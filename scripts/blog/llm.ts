@@ -1,9 +1,9 @@
-import Groq from "groq-sdk";
+import { GroqPoolExhausted, groqKeyCount, withGroqKey } from "../../lib/groq-pool";
 
 export const MODEL = process.env.BLOG_MODEL ?? "openai/gpt-oss-120b";
 
-// Groq's free tier allows about 8,000 tokens per minute. A request is admitted on prompt + max_tokens,
-// so we track what was used in the last minute and wait for room instead of failing.
+// With a single free-tier key the limit is about 8,000 tokens a minute, and a request counts as prompt + max_tokens.
+// So with one key we track the last minute and wait for room. With several keys the pool rotates on a rate limit instead.
 const TPM = 7500;
 const window: { at: number; tokens: number }[] = [];
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -20,41 +20,42 @@ async function waitForRoom(estimate: number) {
   }
 }
 
-let client: Groq | null = null;
+const MAX_WAIT_MS = 10 * 60_000; // a longer wait means the daily limit is gone, so fail and let the workflow open an issue
 
 export async function chat(
   system: string,
   user: string,
   opts: { json?: boolean; temperature?: number; effort?: "low" | "medium" | "high"; maxTokens?: number } = {},
 ) {
-  client ??= new Groq({ maxRetries: 0 });
   const maxTokens = opts.maxTokens ?? 1500; // reasoning tokens count against this limit
   const estimate = Math.ceil((system.length + user.length) / 3.5) + maxTokens;
   if (estimate > 8000) throw new Error(`Request too large for the free tier (${estimate} tokens)`);
 
   for (let attempt = 0; ; attempt++) {
-    await waitForRoom(estimate);
+    if (groqKeyCount() === 1) await waitForRoom(estimate);
     try {
-      const res = await client.chat.completions.create({
-        model: MODEL,
-        temperature: opts.temperature ?? 0.5,
-        max_tokens: maxTokens,
-        reasoning_effort: opts.effort ?? "low",
-        ...(opts.json ? { response_format: { type: "json_object" as const } } : {}),
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      });
+      const res = await withGroqKey((groq) =>
+        groq.chat.completions.create({
+          model: MODEL,
+          temperature: opts.temperature ?? 0.5,
+          max_tokens: maxTokens,
+          reasoning_effort: opts.effort ?? "low",
+          ...(opts.json ? { response_format: { type: "json_object" as const } } : {}),
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+        }),
+      );
       window.push({ at: Date.now(), tokens: res.usage?.total_tokens ?? estimate });
       const text = res.choices[0]?.message?.content?.trim();
       if (!text) throw new Error("The model returned an empty answer (it may have run out of tokens while reasoning)");
       return text;
     } catch (err) {
-      if (err instanceof Groq.RateLimitError && attempt < 4) {
-        console.log("  rate limited, waiting 30s...");
-        window.push({ at: Date.now(), tokens: TPM }); // fill the window so the next try waits
-        await sleep(30_000);
+      if (err instanceof GroqPoolExhausted && attempt < 10 && err.retryInMs <= MAX_WAIT_MS) {
+        const wait = Math.min(err.retryInMs, 90_000) + 1000;
+        console.log(`  every Groq key is busy, waiting ${Math.ceil(wait / 1000)}s...`);
+        await sleep(wait);
         continue;
       }
       throw err;

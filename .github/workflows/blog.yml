@@ -38,6 +38,7 @@ jobs:
         run: npm run blog:generate
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }} # optional: more keys, comma separated
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Re-check every post against the rules

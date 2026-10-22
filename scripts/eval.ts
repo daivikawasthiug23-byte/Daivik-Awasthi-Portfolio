@@ -1,4 +1,4 @@
-import Groq from "groq-sdk";
+import { hasGroqKeys, withGroqKey } from "../lib/groq-pool";
 import { REFUSAL, systemPrompt } from "../lib/ask/prompts";
 import { retrieve } from "../lib/ask/retrieve";
 
@@ -26,10 +26,10 @@ const answerCases: [question: string, pattern: RegExp][] = [
   ["Does he know Rust?", /(don.t (know|have)|no information|not? (mention|listed|include))/i],
 ];
 
-async function answer(groq: Groq, question: string) {
+async function answer(question: string) {
   const docs = await retrieve(question);
   if (docs.length === 0) return REFUSAL;
-  const res = await groq.chat.completions.create({
+  const res = await withGroqKey((groq) => groq.chat.completions.create({
     model: process.env.ASK_MODEL ?? "openai/gpt-oss-120b",
     temperature: 0,
     max_tokens: 1000,
@@ -38,7 +38,7 @@ async function answer(groq: Groq, question: string) {
       { role: "system", content: systemPrompt(docs.map((d) => `[${d.title}] ${d.text}`).join("\n\n")) },
       { role: "user", content: question },
     ],
-  });
+  }));
   return res.choices[0]?.message?.content ?? "";
 }
 
@@ -57,12 +57,11 @@ async function main() {
   }
 
   console.log("\nAnswers");
-  if (!process.env.GROQ_API_KEY) {
-    console.log("SKIP  GROQ_API_KEY is not set");
+  if (!hasGroqKeys()) {
+    console.log("SKIP  no Groq key is set");
   } else {
-    const groq = new Groq();
     for (const [q, pattern] of answerCases) {
-      const a = await answer(groq, q);
+      const a = await answer(q);
       report(pattern.test(a), `${q}  (needs ${pattern})`);
       if (!pattern.test(a)) console.log(`      got: ${a.replace(/\n/g, " ")}`);
     }

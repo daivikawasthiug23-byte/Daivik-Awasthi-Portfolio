@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { embed } from "../../lib/ask/embed";
+import { hasGroqKeys } from "../../lib/groq-pool";
 import { critique, ruleViolations, wordCount, type Review } from "./gate";
 import { MODEL, chat, chatJson } from "./llm";
 import { normalize } from "./normalize";
@@ -149,7 +150,7 @@ async function gate(brief: string, sources: Source[], first: string) {
 }
 
 async function main() {
-  if (!process.env.GROQ_API_KEY) throw new Error("GROQ_API_KEY is not set");
+  if (!hasGroqKeys()) throw new Error("No Groq API key is set (GROQ_API_KEY, GROQ_API_KEY_2, ... or GROQ_API_KEYS)");
   const posts = loadPosts();
   const { ordered, fresh } = await shortlist(posts);
 
