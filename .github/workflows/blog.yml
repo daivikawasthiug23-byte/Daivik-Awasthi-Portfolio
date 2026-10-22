@@ -1,8 +1,8 @@
 name: Daily blog post
 
+# No schedule here: an external cron (cron-job.org) triggers this through the GitHub API once a day.
+# It can also be run by hand from the Actions tab.
 on:
-  schedule:
-    - cron: "30 3 * * *" # every day at 03:30 UTC
   workflow_dispatch:
 
 permissions:
