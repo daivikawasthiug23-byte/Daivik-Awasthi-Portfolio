@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-hover: var(--hover);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-space), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+:root {
+  --bg: #FFFFFF; --surface: #FAFAFA; --fg: #171717; --muted: #4D4D4D;
+  --subtle: #8F8F8F; --border: #EAEAEA; --hover: #F2F2F2;
+}
+.dark {
+  --bg: #0A0A0A; --surface: #111111; --fg: #EDEDED; --muted: #A1A1A1;
+  --subtle: #707070; --border: #262626; --hover: #1A1A1A;
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--fg); }
+::selection { background: var(--fg); color: var(--bg); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
