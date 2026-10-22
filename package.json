@@ -9,6 +9,7 @@
     "lint": "eslint",
     "index": "tsx scripts/build-index.ts",
     "eval": "tsx scripts/eval.ts",
+    "groq:check": "tsx scripts/groq-check.ts",
     "blog:generate": "tsx scripts/blog/run.ts",
     "blog:check": "tsx scripts/blog/check.ts",
     "prebuild": "npm run index"
