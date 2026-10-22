@@ -44,11 +44,11 @@ Create `.env.local` in the project root (it is git-ignored):
 All site content lives in `content/*.ts`. Edit those files and the page, the Ask bot and the blog all pick up the change.
 
 ### Ask bot
-1. `npm run index` splits the content and `content/ask-notes.md` into chunks and embeds them locally with a small model. Sections of the notes that still contain a `TODO` are skipped.
-2. Each question is embedded the same way and the best matching chunks are selected. If nothing matches, the bot refuses without calling Groq.
+1. `npm run index` splits the content and `content/ask-notes.md` into chunks and writes `data/index.json`. Sections of the notes that still contain a `TODO` are skipped.
+2. Each question is matched against those chunks with keyword search (BM25), a small pure-JavaScript ranker. If nothing matches, and the question is not about Daivik, the bot refuses without calling Groq.
 3. Only the matched chunks go to Groq, and the answer streams back with source links.
 
-Code is in `lib/ask/`, `app/api/ask/route.ts` and `components/AskBot.tsx`.
+Code is in `lib/ask/`, `app/api/ask/route.ts` and `components/AskBot.tsx`. The route has no native dependencies, so it runs on Vercel as is.
 
 ### Blog
 A scheduled GitHub Action runs `scripts/blog/run.ts` every day:
@@ -59,7 +59,14 @@ A scheduled GitHub Action runs `scripts/blog/run.ts` every day:
 4. Check the draft with code rules (no emojis, dashes, filler phrases, invented numbers or unknown links), then a second AI pass for tone and accuracy. Rewrite up to three times.
 5. If it passes, commit it to `content/blog/`. If not, nothing is published and the Action opens an issue.
 
-The AI-generated disclosure is shown on the blog and on every post. Add `GROQ_API_KEY` as a repository secret (Settings, Secrets and variables, Actions) before the schedule can work.
+The AI-generated disclosure is shown on the blog and on every post. Add `GROQ_API_KEY` as a repository secret (Settings, Secrets and variables, Actions) before the workflow can work.
+
+The workflow has no schedule of its own. An external cron service ([cron-job.org](https://cron-job.org)) starts it once a day by calling the GitHub API:
+
+- **URL:** `https://api.github.com/repos/<owner>/<repo>/actions/workflows/blog.yml/dispatches`
+- **Method:** `POST`, with the body `{"ref":"main"}`
+- **Headers:** `Accept: application/vnd.github+json`, `Authorization: Bearer <token>`, `X-GitHub-Api-Version: 2022-11-28`, `User-Agent: cron-job-org`
+- **Token:** a fine-grained token limited to this one repository, with **Actions: Read and write**. A successful call returns `204`.
 
 ## Deploy
 
