@@ -25,7 +25,7 @@ export const normalize = (s: string) =>
   s
     .replace(/\s*[—–]\s*/g, ", ")
     .replace(/[\u2010\u2011\u2012]/g, "-")
-    .replace(/\u00a0/g, " ")
+    .replace(/[\u00a0\u2009\u202f]/g, " ")
     .split(/(```[\s\S]*?```)/)
     .map((part) =>
       part.startsWith("```")
