@@ -78,7 +78,7 @@ export function AskBot() {
           const event = JSON.parse(line);
           if (event.type === "sources") patchLast((m) => ({ ...m, sources: event.sources }));
           else if (event.type === "token") patchLast((m) => ({ ...m, text: m.text + event.value }));
-          else if (event.type === "error") fail("Something went wrong. Try again.");
+          else if (event.type === "error") fail(event.reason === "busy" ? "The assistant is busy right now. Please try again in a few minutes, or email Daivik." : "Something went wrong. Try again.");
         }
       }
     } catch {

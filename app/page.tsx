@@ -3,6 +3,7 @@ import { Building2, FileText, Mail, MapPin, Phone } from "lucide-react";
 import { GithubIcon, LeetcodeIcon, LinkedinIcon } from "@/components/BrandIcons";
 import { Card, DateTag, Parts, Tag } from "@/components/Card";
 import { AskBot } from "@/components/AskBot";
+import { hasGroqKeys } from "@/lib/groq-pool";
 import { ProjectCard } from "@/components/ProjectCard";
 import { profile, stats } from "@/content/profile";
 import { education, experience } from "@/content/experience";
@@ -189,7 +190,7 @@ export default async function Home() {
             </div>
           </div>
 
-          {process.env.GROQ_API_KEY && <AskBot />}
+          {hasGroqKeys() && <AskBot />}
         </div>
       </div>
     </main>
