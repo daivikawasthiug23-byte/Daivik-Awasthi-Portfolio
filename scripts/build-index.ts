@@ -4,7 +4,6 @@ import { education, experience, type Point } from "../content/experience";
 import { profile, stats } from "../content/profile";
 import { moreOnGithub, projects } from "../content/projects";
 import { skills } from "../content/skills";
-import { EMBED_MODEL, embed } from "../lib/ask/embed";
 import type { Chunk } from "../lib/ask/types";
 
 const plain = (p: Point) => p.map((x) => (typeof x === "string" ? x : x.b)).join("");
@@ -61,15 +60,10 @@ function buildChunks(): Chunk[] {
   return chunks;
 }
 
-async function main() {
+function main() {
   const chunks = buildChunks();
-  const indexed = [];
-  for (const c of chunks) {
-    const embedding = (await embed(c.text)).map((v) => Math.round(v * 1e5) / 1e5);
-    indexed.push({ ...c, embedding });
-  }
-  writeFileSync("data/index.json", JSON.stringify({ model: EMBED_MODEL, chunks: indexed }));
-  console.log(`Indexed ${indexed.length} chunks with ${EMBED_MODEL}.`);
+  writeFileSync("data/index.json", JSON.stringify({ chunks }));
+  console.log(`Indexed ${chunks.length} chunks.`);
 }
 
 main();
