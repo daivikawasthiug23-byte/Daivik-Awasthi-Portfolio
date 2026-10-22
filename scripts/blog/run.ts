@@ -90,7 +90,10 @@ const writerSystem =
   examples +
   "\n\nRules that matter most: use only facts, names and numbers that appear in the source material. " +
   "Do not invent scenes, teams, incidents, quotes or measurements. When the material is thin, explain the idea in general terms " +
-  "and say what the source reports instead of making up detail. Aim for about 900 words, and never fewer than 700.";
+  "and say what the source reports instead of making up detail. " +
+  "Never open with an invented story or scene (for example 'A small team grew a project into...'). Open with a real fact from the notes. " +
+  "Include code only when it appears in the notes, and never write code or API names the notes do not show. " +
+  "Aim for about 900 words, and never fewer than 700.";
 
 // 4: outline first, then the draft, so every post has the same shape.
 const outline = (brief: string) =>
@@ -117,7 +120,7 @@ const draft = (brief: string, plan: Awaited<ReturnType<typeof outline>>) =>
 // Rewrites skip the example posts: the draft already carries the tone, and the free tier is token-limited.
 const rewriterSystem =
   "You edit posts for an engineering blog. Follow this style guide exactly.\n\n" + styleGuide +
-  "\n\nUse only facts, names and numbers from the source material. Never invent details.";
+  "\n\nUse only facts, names and numbers from the source material. Never invent details, scenes or code the material does not show.";
 
 const rewrite = (brief: string, body: string, problems: string[]) =>
   chat(
