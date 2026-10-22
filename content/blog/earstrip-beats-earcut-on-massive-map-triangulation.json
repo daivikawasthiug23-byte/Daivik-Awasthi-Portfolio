@@ -1,0 +1,27 @@
+{
+  "slug": "earstrip-beats-earcut-on-massive-map-triangulation",
+  "title": "Earstrip beats earcut on massive map triangulation",
+  "date": "2026-10-22",
+  "excerpt": "The earstrip library triangulates 3.7 million map polygons in 489 ms, outpacing earcut in both C++ and WebAssembly.",
+  "tags": [
+    "Web",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A map of the Masovian Voivodeship around Warsaw contains 3,740,425 polygons. On a single core of an M4 Pro, the engine’s constrained Delaunay triangulator needed 2.93 seconds to cut all of them. Replacing that code with an ear-clipping implementation reduced the time to well under a second for the same 3.7 million polygons.\n\nThe post below walks through why ear clipping wins on this data, how the earstrip library trims work on tiny polygons, the incremental ear test that uses a cross-determinant, and the performance numbers that prove the gain.\n\n## Why ear clipping beats constrained Delaunay for map data\n\nMap data is dominated by small, simple polygons. Almost half of the 3.7 million polygons have four vertices or fewer. A constrained Delaunay algorithm still walks the entire triangulation for each new vertex, splits the containing triangle, and flips edges until the circle rule holds. That work is repeated even for a triangle that needs no cutting at all. The source notes that the Delaunay code spends 419 ms on those tiny polygons, building each triangulation from scratch.\n\nEar clipping, by contrast, treats a polygon as a sequence of corners and removes ears one by one. An ear is a convex corner whose triangle does not contain any other vertex of the polygon. Because every simple polygon with more than three vertices has at least two non-overlapping ears (Gary Meisters, 1975), the algorithm can always make progress.\n\nThe work per ear is proportional to the number of remaining vertices, not to the number of triangles already created. For the many quads and triangles in map data this means almost no work at all.\n\n## How earstrip reduces work on tiny polygons\n\nEarstrip implements the ear-clipping idea in a single C++ header and a matching WebAssembly build. The implementation was rebuilt one idea at a time, timing each commit on the full 3.7 million-polygon dataset. Triangles and quads get their own shortcut before the main ear-clipping loop, so the many tiny polygons skip the expensive path. That removes the 419 ms the Delaunay code spent rebuilding each of them from scratch.\n\n## Incremental ear testing and the cross determinant\n\nThe core of ear detection is a single 2 × 2 determinant, often called the cross product in 2-D geometry. The source provides the exact function used:\n\n```cpp\nstatic double cross(double ax, double ay,\n                    double bx, double by,\n                    double cx, double cy) {\n    return (bx - ax) * (cy - ay) -\n           (by - ay) * (cx - ax);\n}\n```\n\nA positive value means point c lies to the left of the directed line a → b. For a counter-clockwise polygon, that means the corner at b is convex. The ear test first checks this convexity, then scans the remaining vertices to ensure none fall inside the triangle abc. Because the determinant is cheap to compute, the whole ear test stays lightweight even when the scan runs over dozens of vertices.\n\nAfter an ear is cut, the two neighbouring corners become sharper, so earstrip checks those corners again instead of starting over on the whole polygon.\n\n## Performance numbers on a real-world map\n\nThe article times each change on the 3.74 million polygons of the Masovian dataset, on one thread. The original constrained Delaunay engine took 2.93 seconds. After that, each step shaved off more:\n\n- Naive ear clipping: 1,119 ms\n- Zig-zag strips: 762 ms\n- Buckets: 697 ms\n- No branches: 519 ms\n- Marked hits: 489 ms\n\nThe final earstrip release is 14 % faster than earcut.hpp in native code and 1.4 × to 2.1 × faster than earcut.js in the browser. The library is ISC-licensed, the same licence earcut uses.\n\n## The takeaway\n\nEar clipping scales far better than constrained Delaunay for map data because most polygons are tiny and convex. By giving triangles and quads a shortcut and re-checking only the neighbouring corners after each cut, earstrip turns a 2.93-second workload into a sub-second one. For any engine that triangulates large numbers of simple map polygons, switching to an ear-clipping library like earstrip is worth benchmarking against your own data.",
+  "sources": [
+    {
+      "title": "Faster than earcut: triangulating 3.7M map polygons in 489 ms",
+      "url": "https://globus.software/blog/2026/10/16/cutting-map-polygons/"
+    }
+  ],
+  "popularity": 22,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b"
+}
