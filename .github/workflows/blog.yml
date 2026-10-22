@@ -44,6 +44,7 @@ jobs:
         run: npm run blog:check
 
       - name: Commit the new post
+        id: commit
         run: |
           git config user.name "blog-bot"
           git config user.email "blog-bot@users.noreply.github.com"
@@ -53,7 +54,20 @@ jobs:
           else
             git commit -m "blog: add daily post"
             git push
+            echo "committed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # Vercel can skip deployments for commits by a bot author, so start the deploy explicitly.
+      - name: Trigger a Vercel deploy
+        if: steps.commit.outputs.committed == 'true'
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "VERCEL_DEPLOY_HOOK_URL is not set, skipping"
+          else
+            curl --fail --silent --show-error -X POST "$VERCEL_DEPLOY_HOOK_URL"
+          fi
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
 
       # A failed gate publishes nothing and opens an issue with the draft and the reasons.
       - name: Open an issue if no post was published
