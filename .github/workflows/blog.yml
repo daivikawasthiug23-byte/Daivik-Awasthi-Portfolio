@@ -1,0 +1,63 @@
+name: Daily blog post
+
+on:
+  schedule:
+    - cron: "30 3 * * *" # every day at 03:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: daily-blog
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Caches the small local embedding model used to avoid duplicate topics.
+      - uses: actions/cache@v4
+        with:
+          path: node_modules/@huggingface/transformers/.cache
+          key: hf-embed-model-v1
+
+      - name: Generate post
+        id: generate
+        run: npm run blog:generate
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Re-check every post against the rules
+        run: npm run blog:check
+
+      - name: Commit the new post
+        run: |
+          git config user.name "blog-bot"
+          git config user.email "blog-bot@users.noreply.github.com"
+          git add content/blog
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "blog: add daily post"
+            git push
+          fi
+
+      # A failed gate publishes nothing and opens an issue with the draft and the reasons.
+      - name: Open an issue if no post was published
+        if: failure() && steps.generate.outcome == 'failure'
+        run: gh issue create --title "Daily blog post was not published ($(date -u +%F))" --body-file blog-failure.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
