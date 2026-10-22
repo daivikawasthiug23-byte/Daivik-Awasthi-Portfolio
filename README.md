@@ -20,11 +20,25 @@ Create `.env.local` in the project root (it is git-ignored):
 
 | Variable | Required | What it does |
 |---|---|---|
-| `GROQ_API_KEY` | For the Ask bot and the blog pipeline | Free key from [console.groq.com](https://console.groq.com). Without it the Ask widget is hidden. |
+| `GROQ_API_KEY` | For the Ask bot and the blog pipeline | Free key from [console.groq.com](https://console.groq.com). Without any Groq key the Ask widget is hidden. |
+| `GROQ_API_KEY_2` to `GROQ_API_KEY_20` | No | Extra keys. If a key is rate limited or rejected, the app moves on to the next one. |
+| `GROQ_API_KEYS` | No | The same extra keys as one comma-separated value. This is the easiest form for Vercel and GitHub, where you would otherwise add every key by hand. |
 | `ASK_MODEL` | No | Overrides the Groq model used by the Ask bot. Default `openai/gpt-oss-120b`. |
 | `BLOG_MODEL` | No | Overrides the model used by the blog pipeline. |
 | `GITHUB_TOKEN` | No | Raises the GitHub API limit for project stats on the home page. Without it the limit is 60 requests an hour. |
 | `NEXT_PUBLIC_SITE_URL` | In production | The public URL of the site, for example `https://yourname.dev`. |
+
+### Groq key pool
+
+Calls go to the first usable key. A rejected key (401 or 403) is skipped for a day, and a rate-limited key (429) is skipped until its limit resets. When every key is busy, the Ask widget tells visitors to try again shortly, and the blog pipeline waits a few minutes or stops if the daily limit is gone. Key values are never logged, only their names.
+
+To put all keys into one value for Vercel or GitHub, run this in the project folder. It copies them to the clipboard without printing them:
+
+```bash
+grep -E '^GROQ_API_KEY(_[0-9]+)?=' .env.local | cut -d= -f2- | paste -sd, - | pbcopy
+```
+
+Paste the result as the `GROQ_API_KEYS` environment variable in Vercel, and as a repository secret named `GROQ_API_KEYS` in GitHub (Settings, Secrets and variables, Actions). Keep `GROQ_API_KEY` set as well.
 
 ## Scripts
 
@@ -36,6 +50,7 @@ Create `.env.local` in the project root (it is git-ignored):
 | `npm run eval` | Check Ask retrieval and answers (answers need `GROQ_API_KEY`) |
 | `npm run blog:generate` | Write one blog post (add `-- --dry` to print it without saving) |
 | `npm run blog:check` | Re-run the blog's hard rules over every saved post |
+| `npm run groq:check` | Test every Groq key with one tiny request and show which ones work (names only, never the values) |
 | `npm run lint` | Lint the project |
 
 ## How the pieces work
