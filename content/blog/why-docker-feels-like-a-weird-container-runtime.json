@@ -1,0 +1,27 @@
+{
+  "slug": "why-docker-feels-like-a-weird-container-runtime",
+  "title": "Why Docker feels like a weird container runtime",
+  "date": "2026-10-23",
+  "excerpt": "Docker hides five kernel features behind a simple command line, but its Go implementation adds surprising quirks.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "## Containers are just processes with restrictions  \n\nDocker does not start a separate operating system. The host kernel still runs the container’s main process, but it wraps that process in a handful of isolation mechanisms. Namespaces hide what the host and the container can see, while cgroups limit CPU, memory, and I/O usage.\n\nBecause the process lives in the normal Linux process table, it appears under /proc like any other PID. In other words, a “container” is a regular process that has been dressed up with several kernel features.\n\n## Images become a chrooted filesystem  \n\nAn image is not a special binary format. Docker stores each layer of an image as an ordinary directory on disk. When a container starts, Docker assembles the layers into a single directory tree and then calls chroot (or pivot_root) so that this directory becomes the new root filesystem for the container process. The command  \n\n```bash\ndocker run -it --rm ubuntu /bin/bash\n```  \n\ndoes three things described in the source:\n\n1. Pull the *ubuntu* image from Docker Hub.  \n2. Mount the image’s layers as one directory.  \n3. Change the process’s root to that directory and exec /bin/bash inside it.  \n\nFrom the process’s point of view the filesystem looks like a full Linux system, even though it is just a subtree prepared by Docker.\n\n## Go’s runtime collides with low-level container needs  \n\nDocker’s low-level runtime, runc, is written in Go. Go’s runtime is natively multithreaded, which creates a problem for many Linux syscalls that must be issued from a single thread. To work around this, the Docker project ships a small C module that runs before the Go runtime starts, guaranteeing that those syscalls happen in a single-threaded context.\n\nAnother mismatch is Go’s lack of a true fork primitive. In Go, `fork` duplicates only the main thread, leaving other goroutines in an undefined state. A container runtime, however, needs to:\n\n* fork a new process,  \n* place it in new namespaces,  \n* attach it to cgroups, and  \n* finally exec the user-specified binary.  \n\nBecause Go cannot perform a clean fork, runc re-executes its own binary via /proc/self/exe with a special flag that tells the child to behave like a forked process. This extra indirection is invisible to most users but is essential for correctness.\n\n## Root privileges and networking quirks  \n\nHistorically many Linux kernel APIs used by container runtimes required root privileges. That is why the Docker daemon usually runs as root. The source notes that root-less runtimes have improved the situation for most subsystems, but networking remains a sticky point. A root-less runtime often has to reimplement large parts of the networking stack in userspace to offer the same features that a privileged daemon provides.\n\nRunning Docker on macOS adds another layer of complexity. macOS does not have a native Linux kernel, so Docker must proxy Linux syscalls through a lightweight VM. This extra hop makes debugging low-level steps harder, especially when the runtime relies on root-only APIs.\n\n## Building a custom runtime reveals Docker’s “weirdness”  \n\nThe author of the source started a personal container runtime “for fun” and quickly discovered how many moving parts Docker hides behind a simple command line. Writing a custom version forces a developer to confront the same kernel features, namespaces, cgroups, chroot, and the Go-related syscall gymnastics, that Docker abstracts away. The experience reinforces the idea that Docker’s oddities stem from stitching together existing Linux mechanisms rather than inventing a brand-new technology.\n\n## The takeaway  \n\nDocker treats a container as a regular process wrapped in namespaces, cgroups, and a chrooted filesystem. Its Go-based runtime must juggle single-threaded syscalls and the absence of a true fork, which leads to C shims and self-exec tricks. Knowing these details explains why Docker feels different from a full virtual machine and helps when debugging or building alternative runtimes.",
+  "sources": [
+    {
+      "title": "Docker is weird",
+      "url": "https://codeandcake.dev/posts/2026-10-22-docker-is-weird"
+    }
+  ],
+  "popularity": 41,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-docker-feels-like-a-weird-container-runtime.jpg"
+}
