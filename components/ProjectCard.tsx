@@ -12,7 +12,7 @@ export function ProjectCard({ title, repo, live, stack, points, description, gh 
 }) {
   const text = description ?? gh?.description;
   return (
-    <article className="rounded-lg border border-border bg-surface p-5 transition-colors hover:border-fg/20 md:p-6">
+    <article className="rounded-lg border border-border bg-surface/70 p-5 backdrop-blur-md transition-colors hover:border-fg/20 md:p-6">
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-base font-medium text-fg">{title}</h3>

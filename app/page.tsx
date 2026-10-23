@@ -28,7 +28,8 @@ export default async function Home() {
   const repos = await Promise.all(projects.map((p) => getRepo(p.repo)));
   const otherRepos = await Promise.all(moreOnGithub.map((m) => getRepo(m.url)));
   return (
-    <main id="top" className="mx-auto max-w-6xl px-4 py-8 md:px-6">
+    <main id="top" className="relative mx-auto max-w-6xl px-4 py-8 md:px-6">
+      <div aria-hidden className="bg-aurora" />
       <div className="grid items-start gap-6 lg:grid-cols-12">
         <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:col-span-4">
           <Card id="about">
@@ -110,7 +111,7 @@ export default async function Home() {
         <div className="flex flex-col gap-4 lg:col-span-8">
           <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {stats.map((s) => (
-              <div key={s.label} className="rounded-lg border border-border bg-surface px-3 py-5 text-center">
+              <div key={s.label} className="rounded-lg border border-border bg-surface/70 px-3 backdrop-blur-md py-5 text-center">
                 <p className="flex items-baseline justify-center gap-1.5">
                   <span className="text-2xl font-semibold tracking-tight text-fg xl:text-3xl">{s.value}</span>
                   {s.unit && <span className="text-sm text-subtle">{s.unit}</span>}

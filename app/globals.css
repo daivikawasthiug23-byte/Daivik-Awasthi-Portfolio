@@ -16,15 +16,42 @@
 }
 
 :root {
-  --bg: #FFFFFF; --surface: #FAFAFA; --fg: #171717; --muted: #4D4D4D;
-  --subtle: #8F8F8F; --border: #EAEAEA; --hover: #F2F2F2;
+  --bg: #FFFFFF; --surface: #FAFAFA; --fg: #0A0A0A; --muted: #333333;
+  --subtle: #6B6B6B; --border: #E2E2E2; --hover: #F2F2F2;
 }
 .dark {
-  --bg: #0A0A0A; --surface: #111111; --fg: #EDEDED; --muted: #A1A1A1;
-  --subtle: #707070; --border: #262626; --hover: #1A1A1A;
+  --bg: #0A0A0A; --surface: #111111; --fg: #FFFFFF; --muted: #C8C8C8;
+  --subtle: #9A9A9A; --border: #2E2E2E; --hover: #1A1A1A;
 }
 
 html { scroll-behavior: smooth; }
 body { background: var(--bg); color: var(--fg); }
 ::selection { background: var(--fg); color: var(--bg); }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* Drifting colour glows behind the overview page; cards sit on top, translucent. */
+.bg-aurora {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+}
+.bg-aurora::before, .bg-aurora::after {
+  content: ""; position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%;
+  filter: blur(80px); opacity: 0.28; will-change: transform;
+}
+.bg-aurora::before {
+  top: -20vmax; left: -15vmax;
+  background: radial-gradient(circle, #6366f1, transparent 65%);
+  animation: aurora-a 22s ease-in-out infinite alternate;
+}
+.bg-aurora::after {
+  bottom: -25vmax; right: -15vmax;
+  background: radial-gradient(circle, #06b6d4, transparent 65%);
+  animation: aurora-b 28s ease-in-out infinite alternate;
+}
+.dark .bg-aurora::before, .dark .bg-aurora::after { opacity: 0.22; }
+@keyframes aurora-a { to { transform: translate(35vmax, 25vmax) scale(1.2); } }
+@keyframes aurora-b { to { transform: translate(-35vmax, -25vmax) scale(1.15); } }
+@media (prefers-reduced-motion: reduce) {
+  .bg-aurora::before, .bg-aurora::after { animation: none; }
+}
+
+h1, h2, h3 { text-shadow: 0 1px 12px color-mix(in srgb, var(--fg) 12%, transparent); }

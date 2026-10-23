@@ -2,7 +2,7 @@ export function Card({ id, title, aside, children, className = "" }: {
   id?: string; title?: string; aside?: React.ReactNode; children: React.ReactNode; className?: string;
 }) {
   return (
-    <section id={id} className={`scroll-mt-6 rounded-lg border border-border bg-surface p-5 md:p-6 ${className}`}>
+    <section id={id} className={`scroll-mt-6 rounded-lg border border-border bg-surface/70 p-5 backdrop-blur-md md:p-6 ${className}`}>
       {title && (
         <div className="mb-4 flex items-baseline justify-between gap-4">
           <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-fg">{title}</h2>
