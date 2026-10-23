@@ -23,5 +23,10 @@
     "grounded": 9
   },
   "model": "openai/gpt-oss-120b",
-  "thumbnail": "/blog/why-docker-feels-like-a-weird-container-runtime.jpg"
+  "thumbnail": "/blog/why-docker-feels-like-a-weird-container-runtime.jpg",
+  "thumbnailCredit": {
+    "name": "Dominik Lückmann",
+    "url": "https://unsplash.com/@exdigy?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/blue-and-red-cargo-ship-on-dock-during-daytime-SInhLTQouEk?utm_source=daivik_portfolio&utm_medium=referral"
+  }
 }
