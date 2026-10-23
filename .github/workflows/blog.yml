@@ -57,6 +57,8 @@ jobs:
             echo "Nothing to commit"
           else
             git commit -m "blog: add daily post"
+            # main may have moved while the post was being written, so rebase onto it before pushing
+            git pull --rebase origin "$GITHUB_REF_NAME"
             git push
             echo "committed=true" >> "$GITHUB_OUTPUT"
           fi
