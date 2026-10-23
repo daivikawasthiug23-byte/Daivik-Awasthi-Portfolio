@@ -36,7 +36,8 @@ async function searchWords(post: Input) {
 type Credit = { name: string; url: string; photoUrl: string };
 
 const REFERRAL = "utm_source=daivik_portfolio&utm_medium=referral";
-const unsplashKey = () => (process.env.UNSPLASH_ACCESS_KEY ?? process.env.UPSLASH_ACCESS_KEY)?.trim();
+// GitHub passes an empty string for a missing secret, so || is used here and not ??.
+const unsplashKey = () => (process.env.UNSPLASH_ACCESS_KEY?.trim() || process.env.UPSLASH_ACCESS_KEY?.trim()) || undefined;
 
 // Searches Unsplash and returns the best match as a sharp pipeline, plus the credit its licence asks us to show.
 async function renderPhoto(query: string) {

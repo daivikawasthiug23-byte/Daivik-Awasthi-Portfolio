@@ -42,6 +42,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }} # optional: more keys, comma separated
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          UPSLASH_ACCESS_KEY: ${{ secrets.UPSLASH_ACCESS_KEY }} # same key, in case the secret was saved with this spelling
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Re-check every post against the rules
