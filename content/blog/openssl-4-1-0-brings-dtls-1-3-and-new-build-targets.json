@@ -1,0 +1,32 @@
+{
+  "slug": "openssl-4-1-0-brings-dtls-1-3-and-new-build-targets",
+  "title": "OpenSSL 4.1.0 brings DTLS 1.3 and new build targets",
+  "date": "2026-10-23",
+  "excerpt": "OpenSSL 4.1.0 adds DTLS 1.3 support, GREASE extensions, and optimized cryptography for modern CPUs while dropping legacy Windows targets.",
+  "tags": [
+    "Security",
+    "Systems"
+  ],
+  "body": "OpenSSL 4.1.0 arrives as a feature release that widens the Windows build matrix, adds a handful of low-level optimizations, and finally ships DTLS 1.3 and the GREASE extension mechanism. The changes matter most to teams that compile OpenSSL from source and need to support legacy Windows toolchains or take advantage of newer CPU instructions.\n\nThe sections below explain what each change does, how to enable it, and what caveats remain. By the end you will know which new configuration flags to use, how the performance paths are activated, and which DTLS edge cases still require attention.\n\n## New build targets for MSVC 2013  \n\nOpenSSL 4.1.0 adds the configuration names `VC-WIN32-MSVC2013` and `VC-WIN64A-MSVC2013`. They are not simple aliases; the configurations ship internal helpers that emulate missing C99 features such as designated initializers and flexible array members. The release notes describe these helpers as “bridging the gaps in C99 standard support that are present in MSVC 2013.”  \n\nBecause the targets are part of the official configuration list, they can be selected with the usual `./config` command, for example:\n\n```sh\n./config VC-WIN64A-MSVC2013\nmake -j$(nproc)\n```\n\nThe same release also drops the older `VC-WIN64I` (Windows-on-Itanium) and `VC-CE` (Windows CE) configurations, cleaning up the supported platform matrix. Teams that need to ship binaries for legacy Windows environments can now stay on MSVC 2013 while still receiving the security fixes and new features introduced in OpenSSL 4.1.0. The change eliminates the need to maintain a separate fork for older toolchains.\n\n## AVX-512 optimizations for post-quantum and AES-CBC code  \n\nThe release adds optimized Number-Theoretic Transform (NTT) operations for ML-DSA and ML-KEM on `ppc64le`, and hand-tuned assembly for the same algorithms on `x86_64`. On `x86_64` the code uses AVX-512 registers, and the SHAKE-X4 implementation for ML-DSA runs four parallel instances per cycle.  \n\nAES-CBC decryption also receives AVX-512 and VAES (Vector AES) instruction support on `x86_64`. These optimizations are enabled automatically when the configure script detects the required CPU extensions, so a build that already uses `-march=native` will pick them up without any source changes. If the hardware lacks AVX-512, the fallback code path remains unchanged, and the same binary works everywhere; the optimizer simply does not activate the specialized routines.\n\n## DTLS 1.3 support and GREASE extension  \n\nDTLS 1.3 is now a fully supported mode, documented in the `ossl-guide-dtlsv13(7)` manual page and aligned with RFC 9147. It provides the same handshake flow and post-handshake authentication mechanisms as TLS 1.3, but over UDP.  \n\nA few implementation details are worth noting:\n\n* When a DTLS 1.3 `KeyUpdate` is received, the library discards any outstanding post-handshake records from the retransmission buffer. This means a pending `NewSessionTicket` will not be resent if the original packet was lost; the release notes flag this as a known issue slated for a future fix.  \n* A permanent receive failure on a DTLS listener can appear as `SSL_ERROR_WANT_READ` on an accepted connection, potentially causing an application to wait indefinitely.  \n* A retryable write failure on a non-blocking connection accepted from a DTLS listener may be reported as `SSL_ERROR_SYSCALL` instead of `SSL_ERROR_WANT_WRITE`, which some applications treat as fatal.\n\nThe GREASE mechanism from RFC 8701 is also integrated. When the `-grease` flag is used during configuration, OpenSSL automatically generates random extension types during the handshake, helping peers ignore unknown extensions and keeping the protocol extensible. A typical configure line looks like:\n\n```sh\n./config enable-ssl3 enable-tls1_3 -grease\n```\n\n## Dropped options and new architecture support  \n\nTwo configuration options that never truly disabled the underlying code have been removed: `no-ecdsa` and `no-ecdh`. The source explains that these flags “did not really disable the implementations” and recommends using `no-ec` to turn off all elliptic-curve support in one step. This simplifies the build matrix and reduces the chance of accidental partial disables.  \n\nOpenSSL 4.1.0 also adds initial support for the Elbrus2000 (`e2k`) architecture. While the implementation is still early, the presence of a dedicated target means developers targeting that platform can start experimenting without waiting for a separate patch set.\n\n## The takeaway  \n\nOpenSSL 4.1.0 expands the Windows build matrix with `VC-WIN32-MSVC2013` and `VC-WIN64A-MSVC2013`, letting legacy toolchains stay current. It adds AVX-512-based speedups for ML-DSA, ML-KEM and AES-CBC on `x86_64`, and it brings DTLS 1.3 and GREASE into the core library.\n\nTeams should switch to the new version to maintain older Windows builds, enable the performance paths automatically, and adopt DTLS 1.3 while watching for the documented edge cases. The release also cleans up unused options and introduces early support for the Elbrus2000 architecture, further streamlining future builds.\n\nSource: [OpenSSL 4.1.0 release notes](https://github.com/openssl/openssl/releases/tag/openssl-4.1.0)",
+  "sources": [
+    {
+      "title": "OpenSSL 4.1.0",
+      "url": "https://github.com/openssl/openssl/releases/tag/openssl-4.1.0"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/openssl-4-1-0-brings-dtls-1-3-and-new-build-targets.jpg",
+  "thumbnailCredit": {
+    "name": "FlyD",
+    "url": "https://unsplash.com/@flyd2069?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/red-padlock-on-black-computer-keyboard-mT7lXZPjk7U?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
