@@ -1,0 +1,32 @@
+{
+  "slug": "why-uuidv7-timestamps-aren-t-reliable",
+  "title": "Why UUIDv7 timestamps aren’t reliable",
+  "date": "2026-10-23",
+  "excerpt": "UUIDv7 can embed a timestamp, but implementations may alter it, making the extracted time inaccurate and even far ahead of the system clock.",
+  "tags": [
+    "Systems",
+    "Backend"
+  ],
+  "body": "A recent blog post showed a Python script that prints a growing time delta after the system clock is set back one hour. The first call to `uuid.uuid7().time` is only a few milliseconds behind `datetime.now()`.\n\nAfter the clock is moved back, the delta jumps to about 3 600 seconds and then climbs by another thousand seconds each second the generator runs at more than one ID per millisecond. The source explains that this behavior is allowed by RFC 9562 and that several implementations, including Python’s standard library, can let the embedded timestamp race ahead of real time.\n\nThe post will walk through three ways the timestamp in a UUIDv7 can become unreliable: the spec does not require accuracy, some generators deliberately bump the timestamp before the clock, and a counter overflow can trigger an uncontrolled advance. Knowing these quirks helps decide whether a UUIDv7 timestamp is suitable for ordering or audit purposes.\n\n## Timestamp accuracy is not guaranteed\n\nRFC 9562 states that implementations *may* alter the timestamp field and provides no bound on how close the value must be to the system clock. The specification explicitly says “the specification makes no requirement or guarantee about how close the clock value needs to be to the actual time.” As a result, the timestamp embedded in a UUIDv7 is not a reliable record of when the object was created.\n\nPostgreSQL’s `uuid_extract_timestamp` even warns that “the extracted timestamp is not necessarily exactly equal to the time the UUID was generated.” In practice this means a UUIDv7 can carry a time that is seconds, minutes, or even hours different from the moment the ID was minted.\n\n## Implementations may increment timestamps ahead of time\n\nSection 6.2 of the RFC permits generators to increment the timestamp ahead of the actual time, for example when the internal counter overflows. The Python standard library’s `uuid.uuid7()` does exactly this. When the clock is set back, the generator refuses to let the embedded timestamp move backwards. Instead it keeps increasing the timestamp until the system clock catches up. Under a load of more than one ID per millisecond the delta grows without bound, as shown by the script:\n\n```python\nimport uuid\nfrom datetime import datetime\n\nt = uuid.uuid7().time\nnow = datetime.now()\ndelta = (datetime.fromtimestamp(t/1000) - now).total_seconds()\nprint(\"Initial delta: \", delta)\n\ninput(\"Set clock back one hour\")\nwhile True:\n    for _ in range(100000):\n        uuid.uuid7()\n    t = uuid.uuid7().time\n    now = datetime.now()\n    delta = (datetime.fromtimestamp(t/1000) - now).total_seconds()\n    print(\"New delta: \", delta)\n```\n\nThe output starts with a tiny negative delta, then after the clock jump shows a positive delta of about 3 600 seconds, and each subsequent batch adds roughly another thousand seconds. The implementation’s choice to “increment the timestamp ahead of the system clock” is therefore not just a theoretical edge case; it can happen on any system that experiences a backward clock jump combined with sustained load.\n\n## Counter overflow can cause runaway timestamps\n\nUUIDv7 includes a counter field that is meant to differentiate IDs generated within the same millisecond. The RFC recommends a minimum of 12 bits, which allows up to 4 096 IDs per millisecond per node. If a generator produces more than that, the counter overflows and the spec permits the implementation to bump the timestamp forward to make room.\n\nWhen the timestamp is frozen, such as after a backward clock adjustment, each overflow forces the timestamp to advance further into the future. The Python implementation demonstrates this: once the counter overflows under high load, the timestamp accelerates, and the delta between the embedded time and the real clock expands indefinitely.\n\nThe runaway effect is not limited to Python. Other RFC-compliant generators exhibit the same pattern because the specification gives them leeway to prioritize monotonicity over accuracy. The source notes that “the generator can get stuck in an increment cycle if the clock ever jumps backwards and the timestamp can race ahead of the system time by an arbitrarily large amount.”\n\n## The takeaway\n\nUUIDv7 guarantees uniqueness but does not guarantee that its embedded timestamp reflects the actual creation time. Implementations can and do push the timestamp ahead of the clock, especially after counter overflows or backward clock jumps. If precise ordering or audit trails are required, rely on a separate, trusted time source instead of the UUIDv7 timestamp.",
+  "sources": [
+    {
+      "title": "UUIDv7 doesn't have the properties you think it does",
+      "url": "https://alexsci.com/blog/uuidv7-is-weird/"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-uuidv7-timestamps-aren-t-reliable.jpg",
+  "thumbnailCredit": {
+    "name": "Markus Spiske",
+    "url": "https://unsplash.com/@markusspiske?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/black-laptop-computer-showing-95907-IuXRooGHx9U?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
