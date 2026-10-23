@@ -1,0 +1,32 @@
+{
+  "slug": "how-zfs-recovers-a-pool-after-a-crash",
+  "title": "How ZFS recovers a pool after a crash",
+  "date": "2026-10-23",
+  "excerpt": "ZFS reads a ring of uberblocks on each disk, picks the highest valid transaction group, and walks the metadata tree from there.",
+  "tags": [
+    "Systems",
+    "Backend"
+  ],
+  "body": "A pool crash leaves millions of blocks scattered across several disks, but ZFS does not scan them all. Instead it starts from a single record that lives on every disk: the uberblock. The uberblock stores the transaction-group number of the last successful sync and a pointer to the root of the pool’s metadata tree. From that root every other block can be reached, so the pool can be rebuilt in a few reads instead of a full scan.\n\nThe source describes a ring of uberblock slots on each vdev label. When a transaction group (txg) commits, ZFS writes a new uberblock to the next slot in the ring. The previous uberblock stays untouched, which means a power loss during the write cannot corrupt the older copy.\n\nOn import ZFS reads every slot, discards the ones that fail checksum or have the wrong magic number, and picks the valid uberblock with the highest txg. That uberblock becomes the entry point for the whole pool.\n\n## How the uberblock ring works\n\nEach vdev label contains a fixed-size region (128 KiB) divided into equal slots. A slot is at least 1 KiB and never larger than 8 KiB, so the number of slots depends on the disk’s sector size. With 512-byte sectors the ring holds 128 slots; with 4 KiB sectors it holds 32 slots. The slot size is exactly one sector, so a write always aligns to the underlying hardware.\n\nWhen a txg finishes, `vdev_uberblock_sync` computes the slot index as  \n\n```c\nint m = spa_multihost(vd->vdev_spa) ? MMP_BLOCKS_PER_LABEL : 0;\nint n = (ub->ub_txg - (RRSS_GET_STATE(ub) == RRSS_SCRATCH_VALID)) %\n        (VDEV_UBERBLOCK_COUNT(vd) - m);\n```  \n\nwhere `m` accounts for the Multi-Host Metadata Protection (MMP) block that occupies the last slot when multihost mode is on. The modulo operation makes the uberblocks rotate around the ring, guaranteeing that the newest copy never overwrites the one from the previous txg.\n\nBecause the ring is independent on each disk, a crash that damages one disk does not prevent the pool from being imported as long as at least one readable label contains a valid uberblock. The ring also provides natural wear-leveling: the same physical sector is not rewritten on every txg, only the slot that corresponds to the current modulo value.\n\n## Choosing the newest uberblock on import\n\nDuring pool import ZFS reads every slot from every label on every readable vdev. The function `vdev_uberblock_load_done` is called for each slot. It first checks the I/O error code and runs `uberblock_verify`, which validates the magic number (`0x00bab10c`) and the per-slot checksum. If the slot passes, the uberblock is compared with the current best candidate using `vdev_uberblock_compare`.\n\nThe comparison orders by txg first, then by timestamp. The uberblock with the highest txg wins; if two have the same txg the later timestamp breaks the tie. The selected uberblock is stored in `ubl_latest` and later used to locate the MOS (Meta-Object Set) root block pointer.\n\nBecause every slot carries its own checksum, a corrupted slot is ignored automatically. The algorithm therefore tolerates both read errors and partially written uberblocks, which are common after an abrupt power loss.\n\n## What the uberblock structure contains\n\nThe on-disk layout is defined in `include/sys/uberblock_impl.h` of OpenZFS 2.4.4:\n\n```c\nstruct uberblock {\n    uint64_t ub_magic;      /* UBERBLOCK_MAGIC */\n    uint64_t ub_version;    /* SPA_VERSION */\n    uint64_t ub_txg;        /* txg of last sync */\n    uint64_t ub_guid_sum;   /* sum of all vdev guids */\n    uint64_t ub_timestamp; /* UTC time of last sync */\n    blkptr_t ub_rootbp;     /* MOS objset_phys_t */\n};\n```\n\n* `ub_magic` must equal `0x00bab10c`; any slot lacking this value is rejected as not an uberblock.  \n* `ub_txg` drives the “newest-wins” rule on import.  \n* `ub_guid_sum` ensures the uberblock belongs to the correct pool.  \n* `ub_timestamp` provides a tie-breaker and aids debugging.  \n* `ub_rootbp` points to the MOS, the root of the pool’s object hierarchy; all other data blocks are reachable by traversing the tree that starts at this pointer.\n\nThe combination of these fields gives ZFS enough information to reconstruct the pool’s state without scanning the entire disk layout.\n\n## The takeaway\n\nZFS recovers a crashed pool by reading a small, rotating ring of uberblocks on each disk, discarding any that fail checksum or have the wrong magic, and selecting the one with the highest transaction-group number.\n\nThe uberblock’s concise structure, magic, version, txg, GUID sum, timestamp, and root block pointer, provides everything needed to locate the pool’s metadata tree and resume operation. Understanding the ring layout and the import selection algorithm helps diagnose import failures and explains why ZFS tolerates power loss without losing the last consistent state.",
+  "sources": [
+    {
+      "title": "Show HN: Uberblok – an interactive museum of ZFS internals",
+      "url": "https://uberblok.storagebits.workers.dev/"
+    }
+  ],
+  "popularity": 9,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-zfs-recovers-a-pool-after-a-crash.jpg",
+  "thumbnailCredit": {
+    "name": "İsmail Enes Ayhan",
+    "url": "https://unsplash.com/@ismailenesayhan?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/server-room-aisle-with-metal-equipment-racks-lVZjvw-u9V8?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
