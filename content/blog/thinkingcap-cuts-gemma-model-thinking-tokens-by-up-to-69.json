@@ -1,0 +1,32 @@
+{
+  "slug": "thinkingcap-cuts-gemma-model-thinking-tokens-by-up-to-69",
+  "title": "ThinkingCap cuts gemma model thinking tokens by up to 69%",
+  "date": "2026-10-23",
+  "excerpt": "The ThinkingCap version of gemma-4-26B reduces thinking tokens by 38.9% on average with only a 0.15 point drop in accuracy.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "A recent release from BottleCap shows that the fifth ThinkingCap model, built on Google’s gemma-4-26B-A4B, cuts the number of “thinking” tokens by up to 69 % while keeping answer quality essentially unchanged. The authors measured the reduction across twelve benchmarks and found an average drop of 38.9 % in thinking tokens for only a 0.15 percentage-point dip in overall accuracy. The post also notes that looping, a symptom of the model getting stuck in a reasoning cycle, falls dramatically.\n\nIn the following sections you’ll see how the token savings were achieved, why the looping rate improves, how different task families are affected, and a concrete takeaway for anyone looking to adopt a more efficient LLM.\n\n## Reduced thinking tokens without accuracy loss  \n\nThe core goal was to spend fewer tokens before producing an answer, without altering the model’s knowledge, reasoning ability, instruction following, or safety behaviour. On the twelve benchmark suite the ThinkingCap version used 38.9 % fewer thinking tokens on average. The deepest cuts appeared in long-context and multimodal tasks (-54.4 %) and knowledge-and-reasoning tasks (-44.4 %).  \n\nAccuracy moved by only, 0.15 pp overall. In four of the twelve benchmarks the change was smaller than the run-to-run spread, meaning the difference is statistically indistinguishable. Five benchmarks even improved, with instruction-following gaining +0.65 pp and maths gaining +0.39 pp. The only notable accuracy hit was on AA-LCR (-4.00 pp), which the authors cite as the real cost in the suite.  \n\nBecause the same sampling settings (thinking on, temperature 1.0, top_p 0.95) and the same vLLM serving stack were used for both models, the comparison isolates the token-efficiency work alone.\n\n## Looping rate improves dramatically  \n\nLooping, where the model repeats or stalls on a response, was measured at 3.64 % of outputs for the original gemma-4-26B-A4B. The ThinkingCap variant reduced this to 0.76 %, a more than four-fold drop. On the three benchmarks with the highest original looping rates (AIME 2026, HMMT Nov 25, HMMT Feb 26) the rates fell from 5.5 %, 8.6 % and 17.0 % to 0.9 %, 1.2 % and 4.5 % respectively.  \n\nThe concrete example highlighted in the source: looping drops from 3.6 % of the original model’s responses to 0.8 % for the ThinkingCap version. This suggests that the token-reduction techniques also help the model reach a stable answer more quickly, likely because fewer intermediate reasoning steps reduce the chance of getting stuck.\n\n## Family-wise token reductions and accuracy changes  \n\nEach task family shows a distinct pattern of token savings and accuracy shifts:\n\n* Long-context & multimodal, 54.4 % fewer thinking tokens, accuracy change +0.92 pp.  \n* Knowledge & reasoning, 44.4 % fewer tokens, accuracy change, 0.51 pp.  \n* Maths, 36.1 % fewer tokens, accuracy change +0.39 pp.  \n* Code, 27.6 % fewer tokens, accuracy change +0.02 pp.  \n* Instruction following & agentic, 17.2 % fewer tokens, accuracy change +0.65 pp.  \n\nThe shallowest reductions appear on IFBench (-13.7 %) and τ²-bench (-20.8 %). Those tasks involve short, rule-based responses rather than deep reasoning, so there is less “thinking” to trim.  \n\nOverall, every benchmark got shorter. The most aggressive cuts were on LongBench v2 (-69.1 %), AA-LCR (-59.3 %), and MMLU-Pro (-49.1 %). Even the smallest cuts still contributed to the aggregate 38.9 % token reduction.\n\n## The takeaway  \n\nThinkingCap’s gemma-4-26B-A4B model demonstrates that a focused reduction in “thinking” tokens can shave up to 69 % of intermediate work while keeping accuracy within the noise of normal runs. The same changes also cut looping rates from roughly 3.6 % to under 1 %, making deployments more reliable. When evaluating a new LLM, measure both token usage and looping frequency across task families; a modest token saving that also lowers looping is likely to deliver real cost and latency benefits.",
+  "sources": [
+    {
+      "title": "Gemma-4-26B-A4B with 39-69% less thinking at same accuracy",
+      "url": "https://bottlecapai.com/post/thinkingcap-gemma-4-26b/"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/thinkingcap-cuts-gemma-model-thinking-tokens-by-up-to-69.jpg",
+  "thumbnailCredit": {
+    "name": "Igor Omilaev",
+    "url": "https://unsplash.com/@omilaev?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-chip-with-the-letter-a-on-top-of-it-eGGFZ5X2LnA?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
