@@ -1,0 +1,32 @@
+{
+  "slug": "removing-pgrust-from-clickbench-reveals-hidden-caching",
+  "title": "Removing pgrust from ClickBench reveals hidden caching",
+  "date": "2026-10-23",
+  "excerpt": "The pgrust entry used per-query kernels and result caching that broke benchmark rules.",
+  "tags": [
+    "Data",
+    "Systems"
+  ],
+  "body": "A recent pull request removed the pgrust entry from ClickBench because it was cheating the benchmark. The entry relied on machinery written for each of the 43 ClickBench queries and then replayed cached answers from a previous run.  \n\nBoth practices break ClickBench’s rule that result-caching must be disabled for a fair measurement. The PR notes that the hot-run numbers reported for queries such as Q20 (7 ms, 23 ms) are not true execution times but replays of earlier verdicts.  \n\n## Hand-written kernels for every query  \n\nThe aarch64 release binary embeds a distinct source file for each benchmark query. Paths listed in the binary include  \n\n```\ncrates/gravity/backend/irprobe/src/q00.rs\ncrates/gravity/backend/irprobe/src/q01.rs\ncrates/gravity/backend/irprobe/src/q02.rs\n…\ncrates/gravity/backend/irprobe/src/q31.rs\n```  \n\nEach file contains a hand-lowered physical plan that matches the exact shape of its ClickBench query. The plan matchers emit refusal messages when a query deviates from the expected pattern, for example *clickbench group count: filter is not `k <> 0`*.  \n\nThe public v0.3 source confirms this design. The file `crates/backend/executor/sqe/rig/plans/clickbench.ron` is described in its header as “hand-lowered physical plans for all 43 ClickBench queries”, and the benchmark SQL (`queries-clickbench.sql`) is compiled into the executor crate with `include_str!`. The source classifies several queries as MetadataAnswer, meaning the answer is derived from per-part statistics without scanning the table.  \n\nFor Q19 the answer is reconstructed from a predicate constant, and for Q29 an algebraic rewrite (`SUM(x+k) = SUM(x) + k*COUNT`) turns the query into a metadata answer. Because the plans are hard-coded, the engine never touches the underlying columnar table for those queries.  \n\n## Result caching and hot-run replay  \n\nA subset of queries includes a note “hot rep = pure fold over cached verdicts, ZERO columns touched; the selection is the answer”. An `EXPLAIN` on the release binary reports the engine family windowreplay for Q20 and metaanswer for Q1, with the scan marked as never executed.  \n\nLocal measurements on a 96-core Graviton (Neoverse-V2) machine illustrate the effect. After a true cold start, stopping the process, dropping OS caches, and restarting, the first run of Q20 took 11.2 s. A second restart reduced the time to 3 ms, matching the published hot numbers (7 ms, 23 ms). The real warm execution of a substring scan is a few hundred milliseconds, comparable to ClickHouse on the same hardware.  \n\nThe PR also shows that disabling `pgrust.gravity_entry` and `pgrust.condition_cache` does not stop the fast replay; a repeated `LIKE` still returns in 3, 4 ms. The cache is baked into the hand-written kernels, so the entry can produce sub-millisecond results even when the configuration attempts to turn caching off.  \n\n## Queries that are refused  \n\nThe engine provides no fallback path for shapes that differ from the 43 hard-coded patterns. When a perturbed benchmark query is submitted, the engine returns an error such as  \n\n```\nERROR: sqe: statement over columnar relation \"hits\" is not served\n```  \n\nThe error detail explains that “the sqe engine serves columnar shapes with no fallback; an unserved shape fails loudly instead of running slowly”. In the PR’s test suite, 20 of 67 near-benchmark probes and 3 of 49 perturbed variants were refused. Examples of refused queries include:  \n\n* `SELECT MIN(URL) FROM hits;`  \n* `SELECT COUNT(*) FROM hits WHERE URL = 'ht'`  \n\nThese refusals reinforce that the entry was tuned exclusively for the exact benchmark queries and cannot be used as a general-purpose executor.  \n\n## Why the entry broke the benchmark rules  \n\nClickBench requires that  \n\n1. Result caches be disabled for all stages of the pipeline.  \n2. No per-query hand-written kernels be used, because they bypass the engine’s normal query planning and execution path.  \n\nThe pgrust entry violated both rules. Hand-written kernels eliminated scans entirely for many queries, and the built-in result-cache replay turned warm runs into trivial look-ups. Consequently, the reported numbers are incomparable to those of a true analytical engine that must parse, plan, and scan data for each query.  \n\n## The takeaway  \n\nThe removal of the pgrust entry exposes two hidden shortcuts: hand-written kernels that bypass scanning and result caching that turns warm runs into mere replays. Those shortcuts break ClickBench’s rule against caching and make the reported numbers incomparable to a genuine analytical engine. When evaluating a benchmark, verify that the entry under test does not contain per-query kernels or hidden caches that invalidate the measurement.",
+  "sources": [
+    {
+      "title": "Remove pgrust: the entry is cheating (per-query kernels and result caching)",
+      "url": "https://github.com/ClickHouse/ClickBench/pull/2165"
+    }
+  ],
+  "popularity": 12,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/removing-pgrust-from-clickbench-reveals-hidden-caching.jpg",
+  "thumbnailCredit": {
+    "name": "Luke Chesser",
+    "url": "https://unsplash.com/@lukechesser?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/graphs-of-performance-analytics-on-a-laptop-screen-JKUTrJ4vK00?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
