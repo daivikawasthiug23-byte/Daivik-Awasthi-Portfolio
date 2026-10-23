@@ -21,6 +21,8 @@ export type Post = {
   body: string;
   sources: Source[];
   popularity: number;
+  thumbnailCredit?: { name: string; url: string; photoUrl: string }; // Unsplash photographer, missing for drawn thumbnails
+  thumbnail?: string; // public path of the AI-generated image, missing when generation failed
   readingMinutes: number;
   quality: Quality;
   model: string;

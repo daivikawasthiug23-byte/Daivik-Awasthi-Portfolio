@@ -3,6 +3,7 @@ import { Building2, FileText, Mail, MapPin, Phone } from "lucide-react";
 import { GithubIcon, LeetcodeIcon, LinkedinIcon } from "@/components/BrandIcons";
 import { Card, DateTag, Parts, Tag } from "@/components/Card";
 import { AskBot } from "@/components/AskBot";
+import { hasGeminiKeys } from "@/lib/gemini-pool";
 import { hasGroqKeys } from "@/lib/groq-pool";
 import { ProjectCard } from "@/components/ProjectCard";
 import { profile, stats } from "@/content/profile";
@@ -191,7 +192,7 @@ export default async function Home() {
             </div>
           </div>
 
-          {hasGroqKeys() && <AskBot />}
+          {(hasGroqKeys() || hasGeminiKeys()) && <AskBot />}
         </div>
       </div>
     </main>

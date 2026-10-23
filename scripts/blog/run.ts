@@ -1,10 +1,12 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { embed } from "../../lib/ask/embed";
+import { hasGeminiKeys } from "../../lib/gemini-pool";
 import { hasGroqKeys } from "../../lib/groq-pool";
 import { critique, ruleViolations, wordCount, type Review } from "./gate";
 import { MODEL, chat, chatJson } from "./llm";
 import { normalize } from "./normalize";
 import { collect, metaDescription, pageText } from "./sources";
+import { makeThumbnail } from "./thumbnail";
 import { TAGS, type Candidate, type Post, type Source } from "./types";
 
 try {
@@ -150,7 +152,7 @@ async function gate(brief: string, sources: Source[], first: string) {
 }
 
 async function main() {
-  if (!hasGroqKeys()) throw new Error("No Groq API key is set (GROQ_API_KEY, GROQ_API_KEY_2, ... or GROQ_API_KEYS)");
+  if (!hasGroqKeys() && !hasGeminiKeys()) throw new Error("No API key is set (GROQ_API_KEY, GROQ_API_KEY_2, ... or GEMINI_API_KEY, ...)");
   const posts = loadPosts();
   const { ordered, fresh } = await shortlist(posts);
 
@@ -190,6 +192,14 @@ async function main() {
   };
 
   if (DRY) return console.log(`\n--dry: not writing.\n\n# ${post.title}\n\n${post.body}`);
+  // 6: the thumbnail is a nicety, so a failed image never blocks a post that passed the gate.
+  try {
+    const { path, credit } = await makeThumbnail(post);
+    post.thumbnail = path;
+    if (credit) post.thumbnailCredit = credit;
+  } catch (err) {
+    console.log(`No thumbnail: ${(err as Error).message}`);
+  }
   writeFileSync(`${POSTS_DIR}/${slug}.json`, JSON.stringify(post, null, 2) + "\n");
   console.log(`Published ${slug}`);
 }

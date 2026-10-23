@@ -23,5 +23,11 @@
     "engagement": 7,
     "grounded": 9
   },
-  "model": "openai/gpt-oss-120b"
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/llms-enable-large-scale-formal-verification-of-open-source-libraries.jpg",
+  "thumbnailCredit": {
+    "name": "Chris Ried",
+    "url": "https://unsplash.com/@cdr6934?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-screen-with-a-bunch-of-code-on-it-ieic5Tq8YMk?utm_source=daivik_portfolio&utm_medium=referral"
+  }
 }

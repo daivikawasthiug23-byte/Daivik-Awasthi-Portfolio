@@ -23,5 +23,11 @@
     "engagement": 7,
     "grounded": 9
   },
-  "model": "openai/gpt-oss-120b"
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/earstrip-beats-earcut-on-massive-map-triangulation.jpg",
+  "thumbnailCredit": {
+    "name": "Andrew Stutesman",
+    "url": "https://unsplash.com/@drwmrk?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/blue-green-and-yellow-world-map-l68Z6eF2peA?utm_source=daivik_portfolio&utm_medium=referral"
+  }
 }

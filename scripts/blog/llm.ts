@@ -1,3 +1,4 @@
+import { GeminiPoolExhausted, geminiText, hasGeminiKeys } from "../../lib/gemini-pool";
 import { GroqPoolExhausted, groqKeyCount, withGroqKey } from "../../lib/groq-pool";
 
 export const MODEL = process.env.BLOG_MODEL ?? "openai/gpt-oss-120b";
@@ -52,6 +53,14 @@ export async function chat(
       if (!text) throw new Error("The model returned an empty answer (it may have run out of tokens while reasoning)");
       return text;
     } catch (err) {
+      if (err instanceof GroqPoolExhausted && hasGeminiKeys()) {
+        try {
+          console.log("  every Groq key is busy, using Gemini...");
+          return await geminiText(system, user, { json: opts.json, temperature: opts.temperature, maxTokens });
+        } catch (geminiErr) {
+          if (!(geminiErr instanceof GeminiPoolExhausted)) throw geminiErr;
+        }
+      }
       if (err instanceof GroqPoolExhausted && attempt < 10 && err.retryInMs <= MAX_WAIT_MS) {
         const wait = Math.min(err.retryInMs, 90_000) + 1000;
         console.log(`  every Groq key is busy, waiting ${Math.ceil(wait / 1000)}s...`);

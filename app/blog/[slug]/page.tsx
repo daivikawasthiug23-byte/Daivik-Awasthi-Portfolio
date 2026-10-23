@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ArrowLeft, ArrowUpRight, Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { getPost, getPosts } from "@/lib/blog";
@@ -14,19 +16,31 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const post = getPost((await params).slug);
-  return post ? { title: `${post.title} | Daivik Awasthi`, description: post.excerpt } : {};
+  return post ? { title: `${post.title} | Daivik Awasthi`, description: post.excerpt, ...(post.thumbnail && { openGraph: { images: [post.thumbnail] } }) } : {};
 }
 
-export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
-  const post = getPost((await params).slug);
-  if (!post) notFound();
+type Params = Promise<{ slug: string }>;
 
+// Reading params outside Suspense would tie the shared App Shell to one URL, so only the back link stays outside.
+export default function BlogPost({ params }: { params: Params }) {
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 md:px-6">
       <Link href="/blog" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-fg">
         <ArrowLeft size={14} /> All posts
       </Link>
 
+      <Suspense fallback={<div className="mt-6 h-96 animate-pulse rounded-lg bg-hover" />}>
+        <Article params={params} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function Article({ params }: { params: Params }) {
+  const post = getPost((await params).slug);
+  if (!post) notFound();
+
+  return (
       <article className="mt-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-subtle">
           <span>
@@ -39,6 +53,26 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
           ))}
         </div>
         <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-fg">{post.title}</h1>
+
+        {post.thumbnail && (
+          <figure className="mt-6">
+            <div className="relative aspect-[1200/630] overflow-hidden rounded-lg border border-border bg-hover">
+              <Image src={post.thumbnail} alt="" fill priority sizes="(min-width: 768px) 768px, 100vw" className="object-cover" />
+            </div>
+            {post.thumbnailCredit && (
+              <figcaption className="mt-1.5 text-xs text-subtle">
+                Photo by{" "}
+                <a href={post.thumbnailCredit.url} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-fg">
+                  {post.thumbnailCredit.name}
+                </a>{" "}
+                on{" "}
+                <a href={post.thumbnailCredit.photoUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-fg">
+                  Unsplash
+                </a>
+              </figcaption>
+            )}
+          </figure>
+        )}
 
         <p className="mt-5 flex items-start gap-2 rounded-lg border border-border bg-surface p-3 text-xs leading-5 text-muted">
           <Bot size={14} className="mt-0.5 shrink-0 text-subtle" />
@@ -91,6 +125,5 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
           </ul>
         </section>
       </article>
-    </main>
   );
 }

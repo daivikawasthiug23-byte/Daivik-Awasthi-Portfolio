@@ -23,6 +23,8 @@ Create `.env.local` in the project root (it is git-ignored):
 | `GROQ_API_KEY` | For the Ask bot and the blog pipeline | Free key from [console.groq.com](https://console.groq.com). Without any Groq key the Ask widget is hidden. |
 | `GROQ_API_KEY_2` to `GROQ_API_KEY_20` | No | Extra keys. If a key is rate limited or rejected, the app moves on to the next one. |
 | `GROQ_API_KEYS` | No | The same extra keys as one comma-separated value. This is the easiest form for Vercel and GitHub, where you would otherwise add every key by hand. |
+| `GEMINI_API_KEY`, `GEMINI_API_KEY_2` to `GEMINI_API_KEY_20`, `GEMINI_API_KEYS` | No | Gemini keys from [aistudio.google.com](https://aistudio.google.com). Used as a fallback when every Groq key is busy. Rotated the same way as the Groq keys. Run `npm run gemini:check` to test them. `GEMINI_TEXT_MODEL` overrides the model. |
+| `UNSPLASH_ACCESS_KEY` | No | Access key from [unsplash.com/developers](https://unsplash.com/developers), used for blog thumbnails. `UPSLASH_ACCESS_KEY` is accepted too. The secret key is not needed. Without it thumbnails are drawn as SVGs. |
 | `ASK_MODEL` | No | Overrides the Groq model used by the Ask bot. Default `openai/gpt-oss-120b`. |
 | `BLOG_MODEL` | No | Overrides the model used by the blog pipeline. |
 | `GITHUB_TOKEN` | No | Raises the GitHub API limit for project stats on the home page. Without it the limit is 60 requests an hour. |
@@ -49,6 +51,7 @@ Paste the result as the `GROQ_API_KEYS` environment variable in Vercel, and as a
 | `npm run index` | Rebuild `data/index.json` from `content/` and `content/ask-notes.md` |
 | `npm run eval` | Check Ask retrieval and answers (answers need `GROQ_API_KEY`) |
 | `npm run blog:generate` | Write one blog post (add `-- --dry` to print it without saving) |
+| `npm run blog:thumbnails` | Generate thumbnails for saved posts that have none (add `-- --force` to redo all) |
 | `npm run blog:check` | Re-run the blog's hard rules over every saved post |
 | `npm run groq:check` | Test every Groq key with one tiny request and show which ones work (names only, never the values) |
 | `npm run lint` | Lint the project |
@@ -72,7 +75,8 @@ A scheduled GitHub Action runs `scripts/blog/run.ts` every day:
 2. Pick one that has not been covered and has enough source material.
 3. Write an outline, then a draft, using `content/blog-style.md` and the reference posts.
 4. Check the draft with code rules (no emojis, dashes, filler phrases, invented numbers or unknown links), then a second AI pass for tone and accuracy. Rewrite up to three times.
-5. If it passes, commit it to `content/blog/`. If not, nothing is published and the Action opens an issue.
+5. Make a thumbnail: the writer model picks a visual idea and search words for the post, and the script saves a matching [Unsplash](https://unsplash.com) photo (tinted blue, photographer credited on the post) into `public/blog/`. If there is no photo the model draws an SVG instead, and if that fails too the post is still published without a thumbnail.
+6. If it passes, commit it to `content/blog/`. If not, nothing is published and the Action opens an issue.
 
 The AI-generated disclosure is shown on the blog and on every post. Add `GROQ_API_KEY` as a repository secret (Settings, Secrets and variables, Actions) before the workflow can work.
 

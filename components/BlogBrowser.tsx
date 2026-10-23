@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Flame, Search } from "lucide-react";
@@ -11,8 +12,20 @@ function PostCard({ post, rank }: { post: PostSummary; rank?: number }) {
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className={`group flex flex-col rounded-lg border border-border bg-surface p-5 transition-colors hover:border-fg/20 ${focus}`}
+      className={`group flex flex-col overflow-hidden rounded-lg border border-border bg-surface transition-colors hover:border-fg/20 ${focus}`}
     >
+      {post.thumbnail && (
+        <div className="relative aspect-[1200/630] w-full border-b border-border bg-hover">
+          <Image
+            src={post.thumbnail}
+            alt=""
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+          />
+        </div>
+      )}
+      <div className="flex flex-1 flex-col p-5">
       <div className="flex items-center justify-between gap-3 text-xs text-subtle">
         <span>
           {formatDate(post.date)} · {post.readingMinutes} min read
@@ -32,6 +45,7 @@ function PostCard({ post, rank }: { post: PostSummary; rank?: number }) {
             {t}
           </span>
         ))}
+      </div>
       </div>
     </Link>
   );

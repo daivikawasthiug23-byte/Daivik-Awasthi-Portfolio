@@ -10,7 +10,9 @@
     "index": "tsx scripts/build-index.ts",
     "eval": "tsx scripts/eval.ts",
     "groq:check": "tsx scripts/groq-check.ts",
+    "gemini:check": "tsx scripts/gemini-check.ts",
     "blog:generate": "tsx scripts/blog/run.ts",
+    "blog:thumbnails": "tsx scripts/blog/thumbnails.ts",
     "blog:check": "tsx scripts/blog/check.ts",
     "prebuild": "npm run index"
   },
@@ -33,6 +35,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5"
