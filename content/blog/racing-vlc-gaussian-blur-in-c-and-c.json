@@ -1,0 +1,32 @@
+{
+  "slug": "racing-vlc-gaussian-blur-in-c-and-c",
+  "title": "Racing VLC Gaussian blur in C and C#",
+  "date": "2026-10-24",
+  "excerpt": "A line-by-line C# port of VLC's Gaussian blur runs within 8% of the native C after two small edits.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A few weeks after the author showed that a VLC 4 video filter could be compiled into a native DLL with .NET Native AOT, the next question was obvious: does the C# version run fast enough? The test used VLC’s built-in Gaussian-blur filter, a classic effect that touches every pixel of every frame.\n\nThe filter was ported line-by-line to C#, loaded through the VLCLR bridge, and timed against the original C implementation on the same 1080p clip. The hardware was an 11th-gen Intel Core i7 (Tiger Lake, four cores) running the same VLC release build.\n\nThe first run showed the C# plugin taking about 23 % longer per frame. The output was byte-identical, so the difference had to come from the generated machine code. The author then tweaked both sides, measured again, and posted the results in two rounds. The final update (October 12) reports that two small edits bring the C# version within 8 % of the native C code.\n\n## How the original C# loop behaved\n\nVLC’s Gaussian blur works in two passes: a horizontal pass writes intermediate values to a buffer, then a vertical pass reads that buffer and writes the final pixels. The inner loop of the horizontal pass looks like this in C:\n\n```c\nfor (int i_line = 0; i_line < i_visible_lines; i_line++) {\n    for (int i_col = 0; i_col < i_visible_pitch; i_col++) {\n        type_t t_value = 0;\n        const int c = i_line*i_in_pitch + i_col;\n        for (int x = __MAX(-i_dim, -i_col*(x_factor+1));\n             x <= __MIN(i_dim, (i_visible_pitch-i_col)*(x_factor+1)+1);\n             x++) {\n            t_value += pt_distribution[x+i_dim] *\n                       p_in[c + (x>>x_factor)];\n        }\n        pt_buffer[c] = t_value;\n    }\n}\n```\n\nThe C# port copied the loops verbatim, using raw pointers and the same integer arithmetic:\n\n```csharp\nfor (int line = 0; line < visibleLines; line++) {\n    for (int col = 0; col < visiblePitch; col++) {\n        int value = 0;\n        int c = line * inPitch + col;\n        for (int x = Math.Max(-dim, -col * (xFactor + 1));\n             x <= Math.Min(dim, (visiblePitch - col) * (xFactor + 1) + 1);\n             x++) {\n            value += distribution[x + dim] *\n                     input[c + (x >> xFactor)];\n        }\n        buffer[c] = value;\n    }\n}\n```\n\nBoth versions allocate nothing on the managed heap per frame, so the garbage collector never runs during the filter. Yet the .NET 10 JIT (RyuJIT) emitted roughly twice as many instructions for the inner loop. The extra work came from recomputing `Math.Max`/`Math.Min` on every iteration and keeping the accumulator in memory instead of a register.\n\n## What the JIT was doing differently\n\nClang, the compiler used for the C build, performs loop-invariant code motion automatically. It evaluates the bounds once, stores them in registers, and lets the CPU reuse them. The generated assembly therefore contains a tight inner loop with a single register for the running sum.\n\nRyuJIT, on the other hand, treats the `Math.Max` and `Math.Min` calls as ordinary method calls. Without explicit hoisting, it inserts a call on each iteration, and the accumulator variable lives on the stack. The result is more arithmetic, more memory traffic, and a longer critical path. The source code itself does not hide any inefficiency; the overhead is a product of the JIT’s default translation strategy.\n\n## Two small edits that closed most of the gap\n\nThe October 12 update shows that a modest rewrite eliminates the bulk of the extra work:\n\n1. Hoist the loop bounds, compute the start and end values once before the inner loop and store them in locals.  \n2. Use `nint` for indices, this native-size integer avoids the implicit 32-to-64-bit conversion that RyuJIT inserts for each pointer arithmetic operation.\n\nThe revised inner loop looks like this:\n\n```csharp\nnint c = (nint)line * inPitch + col;\nnint xStart = Math.Max(-dim, -col * (xFactor + 1));\nnint xEnd   = Math.Min(dim, (visiblePitch - col) * (xFactor + 1) + 1);\nfor (nint x = xStart; x <= xEnd; x++) {\n    value += distribution[x + dim] *\n             input[c + (x >> xFactor)];\n}\nbuffer[c] = value;\n```\n\nWith these changes the JIT no longer emits the per-iteration `Math.Max`/`Math.Min` calls, and the index arithmetic stays in native width, so the generated code resembles clang’s output. The measured frame time drops from a 23 % penalty to within 8 % of the original C implementation. The author notes that .NET 8 and .NET 11 also land within a few percent of the .NET 10 numbers after the same edits.\n\n## Why the result matters for native-AOT plugins\n\nThe experiment proves that a line-by-line C# port can achieve near-native performance when the JIT’s behavior is taken into account. The key is not to rely on the JIT to perform aggressive optimizations automatically; instead, write the hot loops in a way that makes the invariants obvious to the compiler. Because the plugin runs as a native DLL, the same binary can be loaded by VLC without any managed-runtime overhead, and the garbage collector stays idle during the filter’s execution.\n\n## The takeaway\n\nA line-by-line C# port can be almost as fast as the native C source if the JIT’s loop-generation patterns are taken into account. Compute loop bounds once, store them in locals, and prefer `nint` for index arithmetic to avoid hidden widening costs. Those small edits shrink the performance gap dramatically without changing the algorithm or its output.",
+  "sources": [
+    {
+      "title": "C vs. C#: racing VLC's Gaussian blur",
+      "url": "https://martinfinkel.com/blog/gaussian-blur-c-vs-csharp/"
+    }
+  ],
+  "popularity": 8,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/racing-vlc-gaussian-blur-in-c-and-c.jpg",
+  "thumbnailCredit": {
+    "name": "Ilya Pavlov",
+    "url": "https://unsplash.com/@ilyapavlov?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/monitor-showing-java-programming-OqtafYT5kTw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
