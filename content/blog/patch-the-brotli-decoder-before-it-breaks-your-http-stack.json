@@ -1,0 +1,33 @@
+{
+  "slug": "patch-the-brotli-decoder-before-it-breaks-your-http-stack",
+  "title": "Patch the Brotli decoder before it breaks your HTTP stack",
+  "date": "2026-10-24",
+  "excerpt": "The CVE-2026-111497 Brotli out-of-bounds write affects many HTTP libraries and must be fixed by upgrading to version 1.2.1 or later.",
+  "tags": [
+    "Security",
+    "Backend",
+    "Web"
+  ],
+  "body": "A recent advisory shows that the Brotli decoder flaw behind Node2Shell has resurfaced as HTTP2Shell, and it now threatens any HTTP client that relies on the Brotli or brotlicffi Python packages.\n\nThe vulnerability (CVE-2026-111497) is an out-of-bounds write that lets an unauthenticated attacker send a crafted Brotli stream, corrupt memory, leak data, crash the process, or even execute code. Because popular libraries such as requests, httpx, and aiohttp load the decoder automatically, the risk spreads quickly across services that compress HTTP traffic.\n\nEnvironments running Brotli 1.2.0 or earlier, or brotlicffi 1.2.0.x, are exposed. The fix landed in the Brotli source in February, but no packaged release shipped until now, so every project that bundles the library must apply its own update. The advisory assigns a CVSS v4.0 score of 9.2 (Critical) and notes that both client-side and server-side code can be compromised.\n\n## Why the Brotli decoder flaw matters for HTTP clients\n\nHTTP clients that accept compressed responses delegate decompression to the Brotli library when it is present. The bug makes the decoder keep accepting bytes after it should reject malformed input. Those extra bytes overflow a small working buffer and corrupt adjacent memory. An attacker who controls the compressed payload can therefore manipulate the process’s memory layout.\n\nSince the decoder runs in the same address space as the client, the impact is immediate: a malicious server can hijack a vulnerable client, and a malicious client can take over a vulnerable server that returns Brotli-compressed data. The source emphasizes that the issue works in both directions, turning a simple compression step into a remote-code-execution vector.\n\n## Which runtimes and libraries need updating\n\nThe advisory maps the CVE to a broad set of runtimes and libraries. The most common targets are:\n\n- Node.js, upgrade to 22.23.4, 24.22.1, 26.12.1, or a newer release in the same line.  \n- Native libbrotli, upgrade to 1.2.1 or later; older lines can use patched 1.0.10 or 1.1.1.  \n- Python packages, upgrade Brotli to 1.2.1 and brotlicffi to 1.2.1.0.  \n- curl / libcurl, update the bundled Brotli dependency to 1.2.1 or a vendor-patched version.  \n- Bun, upgrade to 1.4.4 or later.\n\nApache’s standard mod_brotli does not decode Brotli, so it is not affected. Any other HTTP server, reverse proxy, API gateway, or client that bundles Brotli must be upgraded or rebuilt with the patched library.\n\n## How to remediate and verify the fix\n\nThe most direct path is to upgrade the affected packages and rebuild any artifacts that embed them. For Python environments, the advisory provides a concrete command:\n\n```bash\npip install --upgrade Brotli==1.2.1 brotlicffi==1.2.1.0\n```\n\nAfter running the command, rebuild any container images that bundle the packages and redeploy them. Updating dependency lock files (for example, requirements.txt or Pipfile.lock) ensures that future builds pull the patched versions.\n\nFor other runtimes, apply the version upgrades listed above. If a runtime bundles Brotli statically, a new binary build is required. After deployment, verify the running version with a simple check, such as:\n\n```bash\npython -c \"import brotli, brotlicffi; print(brotli.__version__, brotlicffi.__version__)\"\n```\n\nThe output should show 1.2.1 and 1.2.1.0 or later. For Node.js, run `node -p process.versions.brotli` and confirm the version meets the required baseline. Finally, perform a smoke test that fetches a known Brotli-compressed endpoint and ensures the response decompresses without error.\n\nIf an immediate upgrade is not possible, the advisory suggests a temporary mitigation: uninstall the optional Brotli packages from Python environments and remove extras such as `httpx[brotli]`. This reduces the attack surface while the upgrade pipeline is prepared.\n\n## The takeaway\n\nThe out-of-bounds write in the Brotli decoder (CVE-2026-111497) can let any HTTP client that loads a vulnerable library be taken over remotely. Upgrade Brotli to 1.2.1 and brotlicffi to 1.2.1.0 in Python, and apply the corresponding version bumps for other runtimes. Rebuild containers, verify the running versions, and consider uninstalling optional Brotli support as a stop-gap. Doing so closes a critical attack vector across a broad swath of HTTP-based software.\n\n*Source: [Node2Shell evolves to HTTP2Shell, blast radius affects many HTTP libs and apps](https://www.aikido.dev/blog/python-packages-vulnerable-node2shell-brotli-cve-2026-111497)*",
+  "sources": [
+    {
+      "title": "Node2Shell evolves to HTTP2Shell, blast radius affects many HTTP libs and apps",
+      "url": "https://www.aikido.dev/blog/python-packages-vulnerable-node2shell-brotli-cve-2026-111497"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/patch-the-brotli-decoder-before-it-breaks-your-http-stack.jpg",
+  "thumbnailCredit": {
+    "name": "FlyD",
+    "url": "https://unsplash.com/@flyd2069?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/red-padlock-on-black-computer-keyboard-mT7lXZPjk7U?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
