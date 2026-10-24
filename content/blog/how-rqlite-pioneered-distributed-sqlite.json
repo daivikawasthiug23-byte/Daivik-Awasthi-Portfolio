@@ -1,0 +1,33 @@
+{
+  "slug": "how-rqlite-pioneered-distributed-sqlite",
+  "title": "How rqlite pioneered distributed SQLite",
+  "date": "2026-10-24",
+  "excerpt": "rqlite was the first open-source project to pair SQLite with Raft, creating a CP-style replicated store in 2014.",
+  "tags": [
+    "Backend",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A clustered service at jut.io needed a tiny relational store, but the team could not agree which node should own the SQLite file. When a node crashed the data vanished, and building a full-blown distributed database felt like overkill. In September 2014 Philip O’Toole released rqlite, the first open-source project to place a Raft log in front of SQLite and replicate every write across a cluster. The code went live on GitHub that weekend and has been maintained ever since.\n\nThe story shows why a Raft-in-front design mattered, how the CP choice locked in consistency, and how later projects have taken different paths. The reader will come away with a clear picture of the design trade-offs and a concrete question to ask when choosing a replicated SQLite solution.\n\n## Why a Raft log in front of SQLite solved a concrete need  \n\nSQLite stores all data in a single file and assumes a single process owns that file. The jut.io system required a small amount of relational data that survived node loss, but no node could be designated as the permanent owner.\n\nBy inserting a Raft log between the client and SQLite, every write is first appended to a replicated state machine. The leader persists the entry, a majority of nodes acknowledge it, and only then is the entry applied to the local SQLite file.\n\nThe result is a cluster where losing a node does not lose data, and a new leader can continue from the same log without manual intervention. The first version used goraft, the same library InfluxDB and etcd used at the time. In early 2016 the implementation switched to HashiCorp’s Raft library, which rqlite still uses today.\n\n```go\n// Simplified rqlite write flow\nentry := raft.Log{Data: []byte(sqlStmt)}\nif err := raftNode.Propose(context.Background(), entry.Data); err != nil {\n    // leader rejected or not reachable\n    return err\n}\napplyToSQLite(entry.Data) // runs on each node after commit\n```\n\nThe snippet shows the two-step process: Raft proposal followed by SQLite application. The design proved that a “just enough” solution, no sharding, no complex schema migrations, could be built on top of SQLite’s ACID guarantees while adding high-availability through Raft.\n\n## The CP design decision that locked in consistency  \n\nAdding the Raft layer made rqlite a CP (Consistency + Partition tolerance) service in the CAP sense. Writes must go through the elected leader, and a majority of nodes must confirm the entry before it is considered committed. If a minority of nodes become isolated, they refuse writes entirely. All other components, HTTP API, read-consistency levels, snapshotting, follow from that rule.\n\nBecause the leader is the only writer, rqlite can guarantee that every read sees the latest committed state once the leader acknowledges the write. The trade-off is that a network partition that isolates a minority of nodes will block writes until the partition heals or a new leader can be elected. The CP contract has remained unchanged since the 2016 switch to HashiCorp’s Raft.\n\n## How later projects diverged from rqlite’s approach  \n\nSince 2014 a dozen “distributed SQLite” projects have appeared, each choosing a different point in the design space. The most notable examples are:\n\n* dqlite (Canonical) rewrote the Raft layer in C and ships as an embeddable library rather than a standalone server. It targets LXD and MicroK8s, where the database lives inside the product.\n* Litestream (2021) abandoned consensus entirely. It watches the SQLite write-ahead log (WAL) and streams each segment to S3, providing cheap disaster recovery for a single-node database. The trade-off is no high-availability guarantee; only machine loss is tolerated.\n* LiteFS (Fly.io, 2022) builds on Litestream’s idea but adds Consul leases to coordinate a single writer at the filesystem level, turning replication into a platform feature.\n* cr-sqlite (2022) introduced CRDTs as a SQLite extension, allowing multiple writers to diverge and merge without a leader. This places it in the AP corner of CAP, suitable for local-first apps where eventual consistency is acceptable.\n* libSQL / Turso forked SQLite itself to add built-in replication primitives, aiming for tighter integration than a separate Raft layer.\n\nAll of these projects share SQLite as the storage engine, but they differ along three axes: where the replication logic lives (library vs server), whether they use consensus (CP vs AP vs none), and the failure model they target (node crash vs network partition). rqlite remains the pure CP server that uses HashiCorp’s Raft and a leader-only write path.\n\n## The takeaway  \n\nrqlite’s early decision to place a Raft log in front of SQLite created a simple, CP-guaranteed store that still powers many clusters today. When evaluating a replicated SQLite solution, start by asking whether strong consistency across partitions is required or whether disaster recovery for a single node is sufficient, and choose the project that matches that requirement.",
+  "sources": [
+    {
+      "title": "Twelve years of distributed SQLite",
+      "url": "https://philipotoole.com/twelve-years-of-distributed-sqlite/"
+    }
+  ],
+  "popularity": 10,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-rqlite-pioneered-distributed-sqlite.jpg",
+  "thumbnailCredit": {
+    "name": "Taylor Vick",
+    "url": "https://unsplash.com/@tvick?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/cable-network-M5tzZtFCOfs?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
