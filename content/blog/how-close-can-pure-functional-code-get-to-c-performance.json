@@ -1,0 +1,32 @@
+{
+  "slug": "how-close-can-pure-functional-code-get-to-c-performance",
+  "title": "How close can pure functional code get to C performance",
+  "date": "2026-10-24",
+  "excerpt": "A Lean 4 DEFLATE library beats Rust's miniz_oxide but still trails C's libdeflate, while Roc narrows the gap.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "Lean-zip, a DEFLATE library written in Lean 4, compressed the Silesia benchmark suite about 15 % faster than the Rust crate miniz_oxide, while producing output roughly 8.8 % smaller. The same tests showed that the Rust library, downloaded over a billion times, still fell behind a functional implementation that benefits from Lean’s ability to emit highly optimized code.\n\nThe author then measured both functional libraries against libdeflate, a hand-tuned C implementation that uses architecture-specific SIMD instructions. Libdeflate outperformed lean-zip on every setting, confirming that low-level optimizations still give C an edge.\n\nFinally, the author evaluated Roc’s DEFLATE package, roc-deflate, on an AMD Ryzen 9 3900X and a 2021 Apple M1. Across 144 non-streaming benchmarks, roc-deflate was 8.9 % slower than libdeflate on the Ryzen and 2.6 % slower on the M1. The post walks through these three data points, explains what they reveal about the performance limits of pure functional code, and suggests how to interpret the results when choosing a language for compression-heavy workloads.\n\n## Lean beats Rust on throughput and size  \n\nThe benchmark used the standard Silesia corpus, which mixes text, binaries, and multimedia files, so the figures reflect realistic data. Lean-zip ran about 15 % faster than miniz_oxide at its highest compression level, and its compressed output was roughly 8.8 % smaller. The source notes that lean-zip beats every compression level provided by miniz_oxide, delivering the same compression with higher throughput.\n\nThe advantage is attributed to Lean’s ability to generate highly optimized code despite being a theorem prover. The author points out that the Rust package’s massive download count does not guarantee superior performance in this specific scenario.\n\n## C’s libdeflate still dominates pure FP  \n\nLibdeflate is a hand-tuned C library that uses SIMD instructions tailored to the target architecture. Because Lean cannot emit those low-level intrinsics, lean-zip cannot match libdeflate’s performance. The source states that libdeflate “blows it out of the water,” confirming that a carefully crafted C codebase still holds the performance crown for DEFLATE compression.\n\nAcross all compression levels, libdeflate beat lean-zip, illustrating the practical limits of pure functional languages when they cannot directly access platform-specific optimizations that C programmers routinely employ.\n\n## Roc gets within single-digit percent of C  \n\nRoc is a functional language that targets runtime speed rather than theorem proving. Its DEFLATE package, roc-deflate, was benchmarked against libdeflate on two machines: an AMD Ryzen 9 3900X running Ubuntu and a 2021 Apple M1 MacBook Pro. On the Ryzen, roc-deflate’s median runtime was 8.9 % slower than libdeflate; on the M1, the gap shrank to 2.6 %. Those numbers come from running 144 Silesia-corpus benchmarks on the non-streaming APIs, because roc-deflate does not yet support streaming.\n\nRoc is still pre-release (version 0.1.0) and its package ecosystem has seen little optimization work. Nevertheless, the language’s design, longstanding optimizations, and a brand-new compiler allow it to approach C-level performance within a single-digit percentage. The results suggest that pure functional code can get very close to the speed of hand-optimized C when the language runtime is built with performance as a core goal.\n\n## What the numbers mean for language choice  \n\nThe three data points form a clear gradient:\n\n* Lean 4 (a theorem prover) can out-pace a popular systems language (Rust) on both speed and output size.  \n* A hand-tuned C implementation still leads when low-level SIMD is available.  \n* Roc, a functional language focused on runtime performance, narrows the gap to a few percent on modern hardware.\n\nFor teams that value strong correctness guarantees and are willing to accept a modest performance penalty, Lean-based solutions may be attractive. When raw throughput and the ability to exploit SIMD matter most, C remains the benchmark. Roc offers a middle ground: functional style with performance close enough to C for many practical workloads, while still lacking the maturity of the C ecosystem.\n\n## The takeaway  \n\nPure functional languages can surpass a widely used Rust library on both speed and output size, yet a hand-tuned C implementation still leads overall. Roc demonstrates that a functional language built for runtime performance can narrow the gap to single-digit percent on modern hardware. Choose the language that matches the performance ceiling you need: functional code can be competitive, but C remains the reference point for ultimate throughput when SIMD and low-level tuning are required.\n\n*Source: [How close can pure functional programming get to C?](https://rtfeldman.com/fp-vs-c)*",
+  "sources": [
+    {
+      "title": "How close can pure functional programming get to C?",
+      "url": "https://rtfeldman.com/fp-vs-c"
+    }
+  ],
+  "popularity": 8,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-close-can-pure-functional-code-get-to-c-performance.jpg",
+  "thumbnailCredit": {
+    "name": "Ilya Pavlov",
+    "url": "https://unsplash.com/@ilyapavlov?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/monitor-showing-java-programming-OqtafYT5kTw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
