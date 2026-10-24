@@ -1,0 +1,32 @@
+{
+  "slug": "building-ai-image-generation-into-code-and-agents",
+  "title": "Building AI image generation into code and agents",
+  "date": "2026-10-24",
+  "excerpt": "A practical guide shows how to integrate diffusion models, handle pricing, and use agents for repeatable image creation.",
+  "tags": [
+    "AI",
+    "Dev Tools"
+  ],
+  "body": "A recent experiment generated a photorealistic card-table background by sending a single prompt to an image provider and then looping through a few edits. The result looked like a real photograph, yet the whole pipeline was just a thin wrapper around the provider’s API and a small prompt-refinement loop. The guide shows how to move from that kind of one-off image to a repeatable component that can be called from any Python code or from a multimodal agent.\n\nThe guide walks through three practical steps. First, it explains why describing the camera and the process yields better results than describing the visual scene. Second, it shows how to hide the quirks of each provider behind a thin interface so the rest of the code stays stable.\n\nThird, it demonstrates how a multimodal agent can take a rough idea, write a prompt, call the API, inspect the result and iterate until the taste matches. The reader will come away with a concrete pattern for turning any diffusion model into a reusable service and a sketch of how an agent can automate prompt refinement.\n\n## Describe the camera, not the view\n\nDiffusion models start from random noise and clean it up step by step; the text prompt steers that clean-up. The guide points out that the same principle applies to the way a photographer thinks: the camera, lens, film stock and lighting define the image more reliably than a list of adjectives. When a prompt says “stunning, hyper-detailed sunset over a city”, the model receives a vague direction and often adds too much glow or drama.\n\nBy contrast, a prompt that mentions a specific focal length, aperture setting, time of day and film style tells the model exactly how to plan the clean-up. The source notes that spelling mistakes and extra fingers are no longer the giveaway; the tell now is taste, and taste is communicated through camera terminology.\n\nThe guide’s concrete example replaces a generic “hyper-detailed” description with “shot with a prime lens at a wide aperture during golden hour on a soft-focus film”. The result tends to look less like a generic AI output and more like a photograph taken by a human.\n\n## Integrating image generation with a thin interface\n\nEvery provider, whether it is a hosted API, a locally run Stable Diffusion checkpoint, or a newer open-weight model, exposes slightly different parameters and pricing. The guide recommends putting a thin interface in front of each provider and keeping the model name in configuration. This way, when a provider retires a model or silently changes defaults, the rest of the code does not break; only the interface layer needs an update and a log of the actual response.\n\nA typical interface includes methods such as `generate(prompt, size)` and `list_models()`. The implementation translates the generic call into the provider’s specific payload, handles authentication, and logs the returned image URL or binary data.\n\nBecause you pay for the canvas, not the content, the interface can also enforce a maximum resolution to keep costs predictable. Prices vary more than a hundred-fold across providers, from fractions of a cent to several cents per image, so the thin layer can select the cheapest model that meets quality requirements.\n\nThe guide stresses that the cheapest model is not always the cheapest result. Running a model locally costs nothing in compute credits, but the time spent on hardware setup may outweigh the per-image savings. By abstracting the provider behind a thin interface, a project can experiment with local and remote models without touching the business logic that consumes the images.\n\n## Using multimodal agents for prompt refinement\n\nClaude, the guide notes, does not generate images directly, but a multimodal agent can still orchestrate the whole workflow. The agent writes a prompt, calls the image API through the thin interface, receives the bitmap, and then evaluates the result. Evaluation can be as simple as checking whether the returned image matches a set of visual constraints (for example, “no extra fingers”, “readable text”) or as sophisticated as feeding the image back into a vision model to extract a description.\n\nIf the result fails the taste test, the agent rewrites the prompt, perhaps by adding more camera details or adjusting the lighting description, and tries again. This loop continues until the agent signals success or a retry budget is exhausted. The guide calls this “agents are good at this” and notes that the human still supplies the overall aesthetic direction; the agent handles the repetitive prompt-tuning.\n\nA hybrid pipeline emerges: AI handles the creative part (choosing composition, color palette), while ordinary code handles deterministic steps such as resizing, applying transparency, or compositing multiple layers. This separation keeps the system maintainable and makes it easy to swap out the image model without rewriting the whole agent.\n\n## The takeaway\n\nDescribe the camera and process rather than visual buzzwords to guide diffusion models effectively. Hide provider quirks behind a thin, configurable interface so your code stays stable as APIs evolve. Let a multimodal agent write, call, and iterate on prompts, keeping the creative loop automated while you retain control over the final taste.",
+  "sources": [
+    {
+      "title": "A practical guide to AI image generation, from diffusion to agents",
+      "url": "https://danielball.com/notes/ai_image_generation.html"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 7,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/building-ai-image-generation-into-code-and-agents.jpg",
+  "thumbnailCredit": {
+    "name": "Steve A Johnson",
+    "url": "https://unsplash.com/@steve_j?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-chip-in-the-shape-of-a-human-head-gakXaqzGad0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
