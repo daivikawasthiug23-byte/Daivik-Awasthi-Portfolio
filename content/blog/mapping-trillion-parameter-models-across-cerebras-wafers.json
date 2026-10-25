@@ -1,0 +1,32 @@
+{
+  "slug": "mapping-trillion-parameter-models-across-cerebras-wafers",
+  "title": "Mapping trillion-parameter models across Cerebras wafers",
+  "date": "2026-10-25",
+  "excerpt": "Cerebras splits a 3-trillion-parameter model over 59 WSE-3T wafers to achieve 1,000, 2,000+ tokens per second with only activations moving between chips.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "A 3-trillion-parameter model such as Kimi K3 needs terabytes for its weights, yet a single Cerebras WSE-3T wafer provides only 44 GB of on-chip SRAM. Cerebras solves this by slicing the model into 16 GB layers, placing each whole layer on a wafer, and streaming only the activations between wafers. The result is inference that runs at 1 000, 2 000+ tokens per second while the weights stay stationary.\n\nThe post answers three practical questions. First, how many layers fit on a 44 GB wafer and how they are arranged. Second, how the runtime builds a pipeline that moves activations from wafer to wafer. Third, how concurrent requests keep every stage busy. The reader will come away with a concrete picture of the wafer-level pipeline and a rule of thumb for sizing wafers for new models.\n\n## How each layer fits on a 44 GB wafer\n\nKimi K3 contains 69 linear-attention layers and 24 dense (full-attention) layers. With 4-bit quantization each parameter occupies half a byte, so each layer requires roughly 16 GB of memory.  \n\nDense layers need extra room for a key-value (KV) cache that grows with the token sequence. Because the cache can dominate memory, the deployment places one dense layer per wafer and reserves the remaining SRAM for its cache.  \n\nLinear-attention layers do not keep a per-token KV cache; they store only a small, fixed-size state per request. That leaves room for two linear layers per wafer (2 × 16 GB = 32 GB), comfortably under the 44 GB limit.  \n\nApplying this rule to Kimi K3’s 69 linear and 24 dense layers yields 35 wafers for the linear layers (69 ÷ 2 ≈ 35) plus 24 wafers for the dense layers, for a total of 59 wafers. Because each layer fits entirely on a wafer, the weights never leave the chip and no layer is split across wafers. Only the intermediate activations travel between wafers.\n\n## Pipeline execution across wafer stages\n\nAfter the Cerebras compiler assigns layers to wafers, the runtime creates a token-flow path. Tokens move from one wafer to the next via RDMA over Ethernet, which adds about 2 µs per hop. Since only activations cross the link, the latency overhead is tiny compared with the compute time of each layer.\n\nThink of the wafers as an assembly line. Each wafer holds the weights for its assigned layers, processes the incoming activations, then forwards the results. For example, Wafer 1 runs model layers 1, 2 and sends its activations to Wafer 2, while Wafer 2 runs layers 3, 4 and passes results onward.\n\nThe chain continues until the final wafer emits the next token. Because each layer stays on a single wafer, the pipeline does not need to shuffle large weight tensors, which would be far slower than the 2 µs activation hop.\n\nThe design also means that a token does not have to wait for an entire batch to finish before the next wafer can start work. As soon as Wafer 1 finishes its computation for a token, it streams the activation to Wafer 2, which can begin its own compute immediately. This fine-grained handoff keeps latency low and enables high throughput.\n\n## Keeping the pipeline full with concurrent requests\n\nA common misconception is that the pipeline would be idle most of the time, effectively running at batch size 1. In practice the system injects many requests into the line simultaneously.\n\nWhile Wafer 3 processes a token for Request A, Wafer 2 works on a token for Request B, and Wafer 1 handles Request C. Each wafer is a stage in a larger pipeline, and each stage can also work on a micro-batch, a small group of requests rather than a single request.\n\nThe number of in-flight requests is roughly the number of stages multiplied by the micro-batch size. With 59 stages, even a micro-batch of two yields over a hundred requests moving through the system at any moment. This keeps every wafer busy and drives the reported 1 000, 2 000+ tokens-per-second throughput.\n\nThe trade-off is memory for the KV cache in dense layers and the micro-batch size. Larger micro-batches improve utilization but increase the amount of KV state that must be stored on the dense wafers. The deployment balances these factors by placing only one dense layer per wafer, leaving enough SRAM for its cache while still fitting two linear layers on the same wafer.\n\n## The takeaway\n\nMap each 16 GB model layer to a single 44 GB wafer, reserving one dense layer per wafer for its KV cache and packing two linear layers where possible. Build a token-level pipeline that passes only activations between wafers, and keep the line full by feeding many concurrent requests or micro-batches. This approach lets trillion-parameter models run on Cerebras wafers with minimal weight movement and high token-per-second throughput.",
+  "sources": [
+    {
+      "title": "Cerebras Deploys Trillion-Parameter AI Models",
+      "url": "https://www.cerebras.ai/blog/how-we-deploy-trillion-parameter-frontier-models-on-cerebras"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 9,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/mapping-trillion-parameter-models-across-cerebras-wafers.jpg",
+  "thumbnailCredit": {
+    "name": "Igor Omilaev",
+    "url": "https://unsplash.com/@omilaev?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-chip-with-the-letter-a-on-top-of-it-eGGFZ5X2LnA?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
