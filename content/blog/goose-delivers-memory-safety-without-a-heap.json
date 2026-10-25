@@ -1,0 +1,36 @@
+{
+  "slug": "goose-delivers-memory-safety-without-a-heap",
+  "title": "Goose delivers memory safety without a heap",
+  "date": "2026-10-25",
+  "excerpt": "Goose runs faster than C++ and safe Rust while using less memory by eliminating heap allocation and garbage collection.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A Goose program can allocate a million-element array without ever touching a heap allocator. The snippet below shows a three-round loop that grows a byte buffer, prints its size, and then frees it with a single store to the stack top. Because growth is just a pointer bump, no data moves and every reference stays valid.\n\n```goose\nfor round in 3 {\n    var scratch: u8[>..] = []; // grow-only: growth is a pointer bump\n    for i in 100000 {\n        scratch.push((i % 256) as! u8);\n    }\n    print(\"round \", round, \": \", scratch.len, \" bytes\");\n} // the free: one store to the stack top\n```\n\nThe article will explain how Goose’s memory model makes this possible, why references survive growth, and how the language achieves safety without any lifetime annotations or runtime checks.\n\n## Memory model uses compile-time data stacks\n\nGoose replaces the traditional heap with a handful of data stacks that the compiler assigns statically. Each stack is a large address-space reservation backed by a bump pointer. At any moment only the topmost resizable value can be live on a stack, so growing that value simply advances the pointer.\n\nThere is no capacity check, no allocation routine, and no garbage collector. When a scope ends, the compiler emits a single store that moves the bump pointer back, freeing the entire region in one operation regardless of how deeply nested the data were.\n\nBecause the compiler knows exactly which stack each value lives on, the runtime only tracks the bump pointers. Benchmarks in the Goose repository show that this model lets Goose run up to 3.3× faster than idiomatic C++ while using 1.9× less memory. The speed advantage comes from eliminating heap allocation overhead and from data staying inline, which improves cache locality.\n\n## References stay valid through growth\n\nIn most languages, expanding a dynamic array can relocate its backing storage, invalidating any pointers or references into the array. Goose avoids that problem by never moving data after it has been placed. Growth is a pure pointer bump, so a reference into a growing array remains valid for the entire lifetime of the array. The language’s type system guarantees that no other value can alias the same memory in a way that would break safety.\n\nThe concrete example above demonstrates this: `scratch` is a grow-only buffer, and the loop pushes 100 000 bytes into it. Any reference taken to an element of `scratch` during the push would still point to the correct byte after the loop finishes, because the underlying memory never moves. This contrasts with C++ where `std::vector` may reallocate, and with safe Rust where indices are often used instead of raw references to avoid the same issue.\n\n## Zero-annotation safety and no runtime overhead\n\nGoose achieves memory safety without any lifetime syntax, aliasing rules, or explicit unsafe blocks. The compiler infers the root of every reference and rejects code where a reference could outlive its owner. Because the analysis is done at compile time, there is no runtime cost for checking lifetimes or reference validity.\n\nThe language also eliminates other sources of overhead common in systems languages. There is no reference counting, no destructors, and no garbage collection. Nested structures such as strings, arrays of strings, or records with variable-size fields are stored as a single contiguous block with no internal pointers. In a benchmark, a 160-byte record that costs 29 bytes in C++ occupies zero extra bytes in Goose.\n\nThese design choices let Goose compile to a single C file, which can be built with any C compiler. The bundled TinyCC backend even compiles and runs a program in-process, removing the need for a separate build step. The benchmarks report that Goose outperforms hand-optimized C++ by 1.16× and the best safe Rust by 1.12×, while using 1.3× and 1.2× less memory respectively.\n\n## The takeaway\n\nGoose’s stack-based memory model lets programs allocate and free large, growable structures with a single pointer store, keeping references valid throughout growth. The compiler enforces safety without any lifetime annotations or runtime checks, and the resulting code runs faster and uses less memory than comparable C++ or Rust programs. For workloads that can fit their data on compile-time-determined stacks, Goose offers a compelling alternative to heap-centric languages.",
+  "sources": [
+    {
+      "title": "The Goose Programming Language",
+      "url": "https://aardappel.github.io/goose/"
+    },
+    {
+      "title": "Small Programs and Languages",
+      "url": "https://ratfactor.com/cards/pl-small"
+    }
+  ],
+  "popularity": 26,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/goose-delivers-memory-safety-without-a-heap.jpg",
+  "thumbnailCredit": {
+    "name": "Franck V.",
+    "url": "https://unsplash.com/@possessedphotography?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/sodimm-ram-stick-nuc3NFB_6po?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
