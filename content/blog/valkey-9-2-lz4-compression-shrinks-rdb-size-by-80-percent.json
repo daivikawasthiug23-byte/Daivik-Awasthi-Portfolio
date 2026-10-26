@@ -1,0 +1,33 @@
+{
+  "slug": "valkey-9-2-lz4-compression-shrinks-rdb-size-by-80-percent",
+  "title": "Valkey 9.2 LZ4 compression shrinks RDB size by 80 percent",
+  "date": "2026-10-26",
+  "excerpt": "Whole-stream LZ4 compression in Valkey 9.2 cuts a million-row RDB from 178 MB to 35 MB and requires a second flag for replication.",
+  "tags": [
+    "Backend",
+    "Systems",
+    "Data"
+  ],
+  "body": "A million-row JSON dump that used to occupy about 178 MB on disk now fits in roughly 35 MB after a single configuration change in Valkey 9.2.0-rc1. The reduction comes from switching the RDB persistence format from per-string LZF to whole-stream LZ4. The experiment also revealed that replication does not inherit this benefit unless a second, undocumented flag is enabled.\n\n## Why the old per-string LZF compression saves little  \n\nValkey has historically compressed each string value in an RDB file with LZF. The approach looks attractive because it adds virtually no CPU overhead. In practice the savings are tiny.  \n\nWhen the default LZF setting was applied to a dataset of one million user-profile hashes, each a 150-200 byte JSON document, the file size dropped from about 180 MB to 177 MB, a 1.5 % reduction. LZF only sees repetition inside a single value, so repeated field names such as `\"active\":true` and `\"roles\":[\"user\",\"member\"]` never cross the boundary of a single string and cannot be exploited.  \n\nA second test with 200 000 synthetic log lines that share a common template showed the same pattern: LZF reduced the 31 MB uncompressed file to just under 30 MB, barely moving the needle.  \n\nWhen the data consisted of random 32-byte tokens, values that contain no cross-record redundancy, LZF gave a modest 4.7 % reduction, but the CPU cost was still comparable to the no-compression case. The takeaway is that per-string LZF is only effective when a single value contains internal repetition, which most real-world payloads do not.\n\n## How whole-stream LZ4 achieves an 80 % size reduction  \n\nValkey 9.2 introduces the `rdbcompression lz4` flag, which tells the server to compress the entire serialized RDB file as one byte stream using LZ4. Because LZ4 operates on the whole file, it can spot repeated byte sequences that span many keys.  \n\nIn the million-row JSON benchmark, the same dataset shrank to about 35 MB, an 80 % cut compared with the default and with no compression. A second, more repetitive dataset of 200 000 log lines dropped from 31 MB to roughly 6 MB, an 81 % reduction. The CPU overhead rose by about 6 % relative to LZF, which is still modest for the storage gain.  \n\nWhen the data consisted of random tokens, whole-stream LZ4 delivered only a 4.7 % reduction, matching LZF’s performance on that workload. This confirms that the algorithm itself is not universally superior; its advantage comes from a larger search window that can capture cross-record redundancy. In environments where keys store highly unique or random data, the benefit diminishes and the extra CPU may not be justified.\n\n## The hidden replication flag needed for compressed sync  \n\nThe initial expectation was that enabling `rdbcompression lz4` would automatically compress the replication stream, because the on-disk file size shrank dramatically. A measurement of a full sync between a primary and a replica showed identical byte counts regardless of the flag, leading to the belief that replication was unaffected. The primary’s log confirmed this: during a sync it printed “Starting BGSAVE for SYNC with target: disk using: normal sync” with no mention of compression.  \n\nThe missing piece turned out to be a separate setting, `repl-compression`. When `repl-compression lz4` was added to the primary’s configuration, the sync logs changed to:\n\n```\n7:M 25 Oct 2026 05:12:15.412 * Disk-based full sync with compression: lz4\n7:M 25 Oct 2026 05:12:15.587 * Replication compression enabled for replica 172.17.0.4:6379 (algo=lz4)\n```\n\nWith both flags active, the replica’s received byte count fell from 17,627,802 to 3,435,304, an 80.5 % reduction that mirrors the on-disk savings. The two flags control distinct code paths: `rdbcompression` affects only the persisted RDB file, while `repl-compression` governs the network stream used for replication. The release notes for Valkey 9.2 only mention the former, so users must consult the source or community discussions to discover the latter.\n\n## The takeaway  \n\nWhole-stream LZ4 compression (`rdbcompression lz4`) can shrink typical JSON-heavy RDB files by roughly 80 % with only a modest CPU increase, but it only helps when the data contains cross-record redundancy. To extend the same benefit to replication, the `repl-compression lz4` flag must also be set; otherwise the sync traffic remains uncompressed. When working with largely random data, the size gain is small, so weigh the extra CPU cost against the storage savings before enabling the feature.",
+  "sources": [
+    {
+      "title": "Valkey 9.2's new rdbcompression lz4 setting cuts a 1M-row RDB from 178MB to 35MB",
+      "url": "https://dev.to/alexgeorgiev17/valkey-92s-new-rdbcompression-lz4-setting-cuts-a-1m-row-rdb-from-178mb-to-35mb-1cje"
+    }
+  ],
+  "popularity": 15,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 9,
+    "specificity": 9,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/valkey-9-2-lz4-compression-shrinks-rdb-size-by-80-percent.jpg",
+  "thumbnailCredit": {
+    "name": "Taylor Vick",
+    "url": "https://unsplash.com/@tvick?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/cable-network-M5tzZtFCOfs?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
