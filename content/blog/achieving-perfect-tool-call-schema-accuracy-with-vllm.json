@@ -1,0 +1,33 @@
+{
+  "slug": "achieving-perfect-tool-call-schema-accuracy-with-vllm",
+  "title": "Achieving perfect tool-call schema accuracy with vLLM",
+  "date": "2026-10-26",
+  "excerpt": "Enabling constrained decoding in vLLM 0.31 brings tool-call schema accuracy to 100% for Kimi and DeepSeek models.",
+  "tags": [
+    "AI",
+    "Backend",
+    "Systems"
+  ],
+  "body": "When Kimi K2.6 was run on vLLM 0.28, the model produced the correct tool-call JSON only 92 percent of the time. In practice that means two out of every twenty-five calls were malformed, forcing the agent to retry or to continue with garbage data. For multi-turn workflows that rely on a chain of tool calls, a single malformed call can derail the whole conversation.\n\nThe post explains why that matters, shows the shortfall in the older vLLM release, and walks through the constrained-decoding flag that pushes accuracy to 100 percent with the newer vLLM 0.31 and models such as Kimi K2.6 and DeepSeek.\n\n## Why tool-call accuracy matters for agentic workloads\n\nAgentic workloads treat the LLM as a planner that calls external functions, fetches data, or triggers side effects. Each call is represented as a JSON object that follows a predefined schema. If the schema is violated, the downstream system cannot parse the request, and the agent loses context. The source notes that inaccurate tool calls “build up on nonsensical context,” which quickly degrades answer quality.\n\nIn a typical retrieval-augmented chat, the model may call a `webfetch` function, receive the page content, and then ask a summarizer function. A malformed `webfetch` payload breaks the pipeline, causing the next step to receive either an empty payload or a malformed JSON string. The resulting answer often contains hallucinations or irrelevant text because the model tries to compensate for missing data.\n\nBecause agentic pipelines are multi-turn, the cost of a single error multiplies. The source points out that low tool-call accuracy is especially harmful for “multi-turn sessions,” where each turn depends on the previous tool output. Achieving near-perfect schema adherence is therefore a prerequisite for reliable agents.\n\n## The gap in vLLM 0.28 with Kimi K2.6\n\nWhen the team served Kimi K2.6 with vLLM 0.28, the observed schema-match rate was 92 percent. The source frames this as “2 out of every 25 attempted tool calls failed.” The failure rate stemmed from the inference engine’s default decoding, which does not enforce the JSON schema during generation. As a result, the model sometimes omitted required fields, misplaced commas, or produced extra whitespace that broke strict parsers.\n\nThe blog post does not give a breakdown of the error types, but the overall figure makes clear that vLLM 0.28 was insufficient for production-grade agentic workloads. The issue is not unique to Kimi; the same gap appears with other open-weight models when run on the same version of vLLM.\n\n## Constrained decoding guarantees schema adherence\n\nvLLM 0.31 introduced a server-side flag that activates constrained decoding. Constrained decoding forces the model to generate tokens only from a set that satisfies the target schema. In practice this means the model cannot emit an opening brace without eventually closing it, cannot skip required keys, and must respect the type constraints defined in the JSON schema.\n\nEnabling the flag turns the tool-call generation step into a deterministic process: every output conforms to the schema by construction. The source reports that with this flag enabled, “you can get to 100 percent schema accuracy with the newer Kimi and DeepSeek models.” No additional post-processing or validation loops are needed, eliminating the retry storms described in other posts.\n\nA concrete example of the JSON payload that the model must emit is the `webfetch` definition:\n\n```json\n[{ \"type\": \"function\", \"function\": { \"name\": \"webfetch\", \"description\": \"- Fetches content from a specified URL\\n- Takes a URL and optional format as input\\n- Fetches the URL content, converts to requested format (markdown by default)\\n- Returns the content in the specified format\\n- Use this tool when you need to retrieve and analyze web content\", \"parameters\": { \"$schema\": \"https://json-schema.org/draf\" } } }]\n```\n\nWhen constrained decoding is active, the model will always produce a well-formed array containing the `type`, `function`, `name`, `description`, and `parameters` fields exactly as required. Any deviation would be blocked at generation time, ensuring that the downstream service can parse the call without error.\n\nThe technique does not require changes to the model weights or to the prompt. It is a runtime configuration that can be toggled per deployment, making it easy to adopt in existing pipelines.\n\n## The takeaway\n\nTool-call schema accuracy is a make-or-break factor for agentic systems. vLLM 0.28 left a noticeable error margin, but vLLM 0.31’s constrained-decoding flag eliminates it. Enable constrained decoding on the server and the model will emit 100 percent valid JSON, keeping multi-turn agents on track.",
+  "sources": [
+    {
+      "title": "Fixing Tool-Call Accuracy in vLLM",
+      "url": "https://www.ubicloud.com/blog/fixing-tool-call-accuracy-in-vllm"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/achieving-perfect-tool-call-schema-accuracy-with-vllm.jpg",
+  "thumbnailCredit": {
+    "name": "Kevin Ache",
+    "url": "https://unsplash.com/@kevinache?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-rack-of-servers-in-a-server-room-2JJ3wBHu4_0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
