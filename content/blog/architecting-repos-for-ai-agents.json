@@ -1,0 +1,33 @@
+{
+  "slug": "architecting-repos-for-ai-agents",
+  "title": "Architecting repos for AI agents",
+  "date": "2026-10-26",
+  "excerpt": "Agents fail when codebases hide architecture, not because prompts are bad.",
+  "tags": [
+    "AI",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A senior engineer asked an AI agent to add a retry mechanism to the notification service. The agent produced code that compiled and passed all tests, but it also duplicated an exponential-backoff utility that already lived three directories away, imported an HTTP client the organization had removed after a security audit, and created a circular dependency between the notification module and the domain layer.\n\nThose problems are not bugs in the generated code. They are “context errors”, failures that happen because the repository does not expose the architectural constraints that a human reader would know from lint rules, Slack threads, or old ADRs. When an agent receives only a checkout and a prompt, it has no way to see those hidden rules, so it confidently produces output that violates them.\n\nIn the sections that follow you will learn how to move architecture into the repository, define explicit context standards, and make dependency policies visible to agents. The goal is to let an AI agent read the same constraints a senior engineer would, cutting the verification work that otherwise eats up senior time.\n\n## Put architecture where the reader is\n\nThe single most effective change is to stop keeping architecture in separate documents or in people’s heads. Create a version-controlled location that every reader opens first. Teams that adopt an `AGENTS.md` file or a `.context/` directory at the repo root report fewer duplicated utilities and fewer accidental imports of banned libraries. The file should contain:\n\n- A high-level domain model (for example, “tenant” means a customer with isolated data)\n- Module boundaries and the rule “never call the data layer from an HTTP handler”\n- A list of disallowed dependencies (for example, `http-client-x` removed after a security audit)\n- Invariants such as “all money fields are integers in minor units”\n\nBecause the file lives alongside the code, an AI agent can retrieve it during its context-gathering step. The source notes that agents that read such in-repo standards stop creating the pattern of duplicated utilities and circular dependencies seen in the notification-service example.\n\n## Define explicit contracts in the repo\n\nImplicit norms are easy for a human to learn over weeks but invisible to an AI. Encode those norms as explicit, machine-readable contracts.\n\nA practical approach is to keep a single `README-ARCHITECTURE.md` at the root that lists each module’s public interface and prohibited calls, and to store Architecture Decision Records (ADRs) in a `docs/adr/` folder referenced from that README. Typed contracts, such as TypeScript interfaces or Go structs, can enforce data shapes, for example “all money fields are integers in minor units.”\n\nWhen the repository contains these contracts, an agent can search for the relevant rule before generating code. The source emphasizes that context engineering, which makes the structural 90 % of the work visible, prevents the agent from guessing and duplicating existing utilities.\n\n## Make dependency policies visible to agents\n\nUnwritten dependency policies are a common source of context errors. The source describes them as “usually a Slack thread, sometimes a wiki page.” Move that policy into the repository by adding a `DEPS.md` file that lists approved, banned, and review-required libraries, together with version ranges and a short reason for each entry (for example, “removed after security audit”). Enforce the list with a CI lint step that fails on prohibited imports.\n\nWith `DEPS.md` in place, an AI agent can parse the file before adding a new import. In the notification-service case, the agent would see that the HTTP client it tried to import is on the banned list and would select the approved alternative instead.\n\n## The takeaway\n\nStore architecture, context standards, and dependency policies inside the repository so agents can read them as they read code. A single, version-controlled location that contains the domain model, module boundaries, invariants, and dependency rules replaces hidden norms and prevents duplicated utilities, banned imports, and circular dependencies. By treating the repo itself as the source of truth for architectural constraints, AI agents behave like well-informed engineers and reduce the costly verification work that senior staff otherwise have to perform.",
+  "sources": [
+    {
+      "title": "Context Engineering over Prompt Engineering: Architecting Codebases for AI Agents",
+      "url": "https://dev.to/debashish_ghosal/context-engineering-over-prompt-engineering-architecting-codebases-for-ai-agents-5a56"
+    }
+  ],
+  "popularity": 12,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/architecting-repos-for-ai-agents.jpg",
+  "thumbnailCredit": {
+    "name": "Markus Spiske",
+    "url": "https://unsplash.com/@markusspiske?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/javascript-code-on-dark-screen-cvBBO4PzWPg?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
