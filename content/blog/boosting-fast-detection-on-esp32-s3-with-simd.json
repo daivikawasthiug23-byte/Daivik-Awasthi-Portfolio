@@ -1,0 +1,32 @@
+{
+  "slug": "boosting-fast-detection-on-esp32-s3-with-simd",
+  "title": "Boosting FAST detection on ESP32-S3 with SIMD",
+  "date": "2026-10-26",
+  "excerpt": "An accelerated FAST corner detector on the $2 ESP32-S3 runs a QVGA frame in about 6 ms, roughly twice the speed of the reference version.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "A cheap ESP32-S3 can crunch a QVGA image in about 6 ms when the FAST corner detector runs with SIMD. The reference C version processes the same frame in roughly twice the time. By packing sixteen 8-bit pixels into a 128-bit vector, extracting the east and west neighborhoods with the slice-extract instruction, and shifting unsigned values into the signed range before comparison, the implementation achieves roughly double the performance.\n\nThe post below walks through why SIMD matters on this microcontroller, how misaligned-read and signed-compare quirks were handled, the concrete 16-pixel extrema routine, and the performance numbers that were observed.\n\n## Why SIMD matters on a cheap microcontroller\n\nFor about two dollars, the ESP32-S3 hides a dual-core 240 MHz CPU and a handful of 128-bit SIMD instructions. Those instructions treat a vector register as sixteen independent 8-bit lanes. A corner detector that must examine the intensity of many neighboring pixels can therefore evaluate sixteen candidates with a single instruction.\n\nThe reference implementation touches one pixel per iteration, while the SIMD version touches sixteen. In theory the inner loop runs one-sixteenth as often; in practice the blog post reports a 2× overall speedup because memory moves and branching still dominate the runtime.\n\n## Overcoming misaligned reads and signed-compare limits\n\nTwo quirks in the ESP32-S3 ISA threatened the SIMD approach. First, the hardware does not support direct misaligned loads. The center pixel of a 3 × 3 FAST pattern can be aligned, but the east and west blocks sit half a vector away.\n\nThe chip provides a slice-extract instruction that can pull a 16-byte slice out of two concatenated registers. By loading the two adjacent aligned blocks and then extracting the needed slice, the east and west neighborhoods are built without violating the alignment rule.\n\nSecond, SIMD compare instructions only work on signed 8-bit values, while image data is naturally unsigned. Interpreting a byte value ≥ 128 as signed yields a negative number, breaking the absolute-difference test. Subtracting 128 from every byte would normally solve the problem, but all SIMD arithmetic on the ESP32-S3 is saturating: values above 127 clamp to -128 instead of wrapping.\n\nThe workaround adds a constant that moves the range [0, 255] into [-128, 127] without triggering saturation. First a saturating add of -128 clamps high values, then a non-saturating shift restores the correct signed representation.\n\n## Implementing the 16-pixel extrema count\n\nThe core routine works on a vector of sixteen pixels:\n\n1. Load a 128-bit register containing sixteen center pixels.  \n2. Load the two adjacent 128-bit blocks, then use slice-extract to obtain the east and west vectors that are misaligned relative to the center.  \n3. Shift all three vectors by -128 so that the unsigned bytes become signed in the range -128 … 127.  \n4. Compute the absolute difference between each east/west pixel and its center using signed subtraction followed by a saturating absolute-value instruction.  \n5. Compare the differences against the FAST threshold; the signed compare now works because the values are in the signed range.  \n6. Count how many of the sixteen lanes exceed the threshold in each direction, then sum the results to obtain the extrema count for that block.\n\nA concise fragment from the source illustrates steps 2-4:\n\n```asm\n// r_center holds 16 center pixels\n// r_adj1 and r_adj2 hold the two neighboring blocks\nslice_extract r_east, r_adj1, r_adj2, #8   // extract east block\nslice_extract r_west, r_adj1, r_adj2, #24  // extract west block\nadd   r_center_s, r_center, #-128         // shift to signed range\nadd   r_east_s,   r_east,   #-128\nadd   r_west_s,   r_west,   #-128\nsub   r_diff_e,   r_east_s,  r_center_s\nsub   r_diff_w,   r_west_s,  r_center_s\nabs   r_abs_e,    r_diff_e\nabs   r_abs_w,    r_diff_w\n```\n\nAfter the absolute differences are ready, a vector compare against the threshold produces a mask, and a population-count instruction tallies the set bits, yielding the number of extreme pixels among the sixteen processed at once.\n\n## Performance results and code availability\n\nProcessing a full QVGA frame (320 × 240) with the SIMD FAST detector takes roughly 6 ms on the ESP32-S3, about half the time of the reference C implementation. The remaining gap is attributed to overhead outside the inner SIMD loop, such as frame fetching and final corner aggregation.\n\nThe complete source code, including the custom register allocator “basm”, is linked in the original blog post [SIMD-accelerated computer vision on a $2 microcontroller](https://shraiwi.com/blog/simd-fast-esp32s3/). Readers can clone the repository, build with the ESP-IDF toolchain, and run the benchmark on their own ESP32-S3 boards to verify the numbers.\n\n## The takeaway\n\nSIMD on the ESP32-S3 lets a FAST corner detector handle sixteen pixels per instruction, cutting the inner-loop work dramatically. Misaligned loads are solved with slice-extract, and unsigned bytes are converted to the signed range to satisfy the ISA’s compare constraints. The result is a roughly 2× speedup, bringing real-time vision to a $2 microcontroller.",
+  "sources": [
+    {
+      "title": "SIMD-accelerated computer vision on a $2 microcontroller",
+      "url": "https://shraiwi.com/blog/simd-fast-esp32s3/"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 8,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/boosting-fast-detection-on-esp32-s3-with-simd.jpg",
+  "thumbnailCredit": {
+    "name": "Umberto",
+    "url": "https://unsplash.com/@umby?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/blue-circuit-board-jXd2FSvcRr8?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
