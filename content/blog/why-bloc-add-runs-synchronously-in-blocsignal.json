@@ -1,0 +1,32 @@
+{
+  "slug": "why-bloc-add-runs-synchronously-in-blocsignal",
+  "title": "Why bloc.add runs synchronously in BlocSignal",
+  "date": "2026-10-26",
+  "excerpt": "BlocSignal’s .add dispatches events inline, avoiding the microtask delay of classic BLoC.",
+  "tags": [
+    "AI",
+    "Dev Tools"
+  ],
+  "body": "A Flutter form can reflect a user’s keystroke the instant the character lands on the screen. In the bloc_signals_genui 1.0 demo the line  \n\n```dart\nsurfaceBloc.add(const UpdateFormField(\n  path: '/user/name',\n  value: 'Randal L. Schwartz',\n));\n```  \n\nmutates the bound field immediately, without waiting for the next frame. The author of *Why bloc.add(...) Isn’t What You Think* points out that classic `package:bloc` would have scheduled a microtask instead, introducing a visible lag on fast typing. The article explains why that “microtask tax” exists, how BlocSignal’s `FutureOr` fast-path eliminates it, and why a synchronous core is the only way to hit 120 FPS in generative UI form bindings.\n\n## Classic BLoC pays a microtask tax  \n\n`package:bloc` routes every event through an internal `StreamController<Event>`. When `bloc.add(event)` is called, the event is placed into the controller’s sink. Dart’s `dart:async` library then schedules a microtask that delivers the event to the stream’s listeners. The call stack returns to the caller before the handler runs.  \n\nEven a handler that contains no `await` statements still incurs two asynchronous hops:\n\n1. Event delivery, the event moves from the sink to the transformer/handler.  \n2. State emission, after the handler calls `emit(newState)`, the new state is added to a second `StreamController<State>`, which again schedules a microtask before the UI rebuilds.\n\nThe result is at least one turn of the event loop between the `add` call and the UI seeing the new state. When a user types quickly, each keystroke triggers its own microtask, and the UI can fall behind the input stream, producing the “input lag” developers notice in rapid form entry.\n\n## BlocSignal’s FutureOr fast-path runs inline  \n\nBlocSignal inspects the return type of an event handler at runtime. The core dispatch logic resembles  \n\n```dart\nfinal result = onEvent(event);\nif (result is Future) {\n  // async path, await the future\n} else {\n  // sync path, continue inline\n}\n```\n\nIf the handler returns a plain value, the common case for simple form updates, BlocSignal executes the handler immediately on the same call stack. No microtask is scheduled, and the subsequent state emission happens in the same synchronous flow. The article notes that this “FutureOr fast-path” preserves full async support for network tasks while delivering zero-cost synchronous updates for UI-bound events.\n\nBecause the entire dispatch-to-emission pipeline runs inline, the line after `surfaceBloc.add(...)` already sees the updated model:\n\n* the underlying `a2ui_core` DataModel signal cell is updated,  \n* every `GenericBinder` signal binding and `CheckRule` validation recomputes,  \n* `surfaceBloc.value` holds the new immutable snapshot.\n\nAll of this occurs in 0 ms, eliminating the microtask tax that classic BLoC cannot avoid.\n\n## Why a synchronous core matters for 120 FPS form bindings  \n\nGoogle’s `package:a2ui_core` builds its DataModel on top of `preact_signals`. Signals propagate changes instantly, and UI widgets subscribe to those signals for two-way bindings. When the perimeter of the app (network, SSE streams, etc.) remains asynchronous but the core event handling is synchronous, each keystroke can be processed and reflected in the UI within the same frame.\n\nAt 120 FPS each frame lasts only a few milliseconds. Any additional microtask hop adds latency that can push the update into the next frame, causing visible tearing or jitter. The source emphasizes that “every keystroke, validation rule, and leaf rebuild must execute in 0 ms on a synchronous signal graph” to achieve smooth generative UI. Without a synchronous core, developers would need to insert artificial delays or flaky test waits to accommodate the inevitable frame lag.\n\n## Concrete comparison of the two pipelines  \n\n*Classic BLoC*, `add` → sink → microtask #1 → transformer → handler → emit → microtask #2 → UI rebuild.  \n\n*BlocSignal*, `add` → handler executed inline → emit → UI rebuild, all on the same call stack.  \n\nThe classic pipeline guarantees that every event passes through an asynchronous stream, which is useful for long-running network calls but adds unavoidable latency for UI-only events. BlocSignal’s pipeline keeps the asynchronous path available when a handler returns a `Future`, but shortcuts the path for pure synchronous work.\n\n## The takeaway  \n\nClassic `package:bloc` always introduces at least one microtask hop, adding latency to UI-bound events. BlocSignal detects synchronous handlers via a `FutureOr` fast-path and runs them inline, removing that hop. The result is an instant, 0 ms update chain that enables 120 FPS form bindings built on `a2ui_core` signals. Use BlocSignal when per-keystroke responsiveness is required; a synchronous core is the only practical way to keep generative UI fluid at high frame rates.",
+  "sources": [
+    {
+      "title": "Why bloc.add(...) Isn't What You Think: Synchronous Event Fast-Paths and 0ms Form Bindings",
+      "url": "https://dev.to/gde/why-blocadd-isnt-what-you-think-synchronous-event-fast-paths-and-0ms-form-bindings-6o"
+    }
+  ],
+  "popularity": 6,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-bloc-add-runs-synchronously-in-blocsignal.jpg",
+  "thumbnailCredit": {
+    "name": "melanfolia меланфолія",
+    "url": "https://unsplash.com/@melanfolia?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-table-topped-with-lots-of-different-types-of-cards-C7l3tV81fLs?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
