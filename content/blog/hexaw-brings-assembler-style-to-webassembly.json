@@ -1,0 +1,33 @@
+{
+  "slug": "hexaw-brings-assembler-style-to-webassembly",
+  "title": "HEXAW brings assembler style to WebAssembly",
+  "date": "2026-10-26",
+  "excerpt": "HEXAW lets you write and debug WebAssembly with readable mnemonics and hex byte listings directly in the terminal.",
+  "tags": [
+    "Dev Tools",
+    "Web",
+    "AI"
+  ],
+  "body": "## A tiny time-machine for WebAssembly  \n\nWhile working on a Z80 game for a Videoton TV Computer, the author missed the instant feedback of seeing each instruction turn into exact bytes. WebAssembly revived that feeling, but the official text format (WAT) turned the code into a “parenthesis jungle”.\n\nTo get back to an assembler-style workflow, the author created HEXAW, a new experimental text format that places readable mnemonics side-by-side with their hexadecimal representation. The result is a language that feels like classic assembly yet targets modern WASM binaries.\n\nIn the Hacktoberfest Open-Source AI Challenge Week 3 submission, the author demonstrates a complete toolchain: a CLI that assembles, dumps, and steps through code; an optional AI mentor that explains opcodes; and a small factorial program that shows the workflow in action. This article walks through those pieces, highlights concrete usage patterns, and points out the trade-offs of a beta-stage project.\n\nBy the end of the read, you will know how to install HEXAW, run the interactive shell, use the AI mentor, and understand the practical benefits of seeing bytecode while you type.\n\n## The CLI assembles, dumps, and steps through code  \n\nThe command-line interface turns a `*.hexaw*` file into a `*.wasm*` binary, can dump an existing binary back into readable instructions, and lets the user step forward or backward through execution. After installing with  \n\n```bash\nnpm install -g hexaw\n```  \n\nthe shell starts with `hexaw -i factorial.hexaw`. Inside the session the user can type `CALL factorial 5` to compute `5! = 120`. Pressing `G BACK` undoes the last step, demonstrating forward and reverse stepping in a single terminal.\n\nThe dump format prints the byte offset, the raw bytes, and the mnemonic on the same line, for example:\n\n```\n00000032 : 20 00 : GET 0\n00000034 : 45    : EQZ\n00000035 : 0D 01 : BRIF 1\n```\n\nBecause the bytes sit next to each token, there is no need to open a separate hex editor or consult the specification while debugging. The CLI also offers an “A mode” inspired by SST: type an instruction, hit Enter, see its hex bytes, and continue at the next address. An empty line commits the draft, making iterative development feel like classic assembly programming.\n\n## The AI mentor explains opcode meanings  \n\nHEXAW ships with an optional AI mentor that runs on the open-weight `gpt-oss-120b` model via Groq’s API. Placing a `GROQ_API_KEY` in a `.env` file enables queries such as “What does BRIF 1 mean here?” while the shell remains active. The model replies with an explanation drawn from the opcode table and the current VM state, then suggests code changes that the user can accept manually.\n\nWithout an API key the assembler, dumper, and debugger continue to work; only the LLM assistance is disabled. Because the mentor’s teaching material lives in the repository, anyone can edit it or replace the model with a self-hosted alternative. The entire project is MIT-licensed, keeping the workflow open-source.\n\n## A concrete factorial example  \n\nThe author provides a ready-to-run `factorial.hexaw` file that illustrates the language’s syntax. The program defines a function named `factorial`, uses locals for the argument and result, and loops until the counter reaches zero. The source looks like this:\n\n```\nEXP \"factorial\" 0 FN 0 PAR 0 ; n\nRES LOC 1 ; result\nCONST 1 SET 1\nBLOCK LOOP\n  GET 0 EQZ BRIF 1          ; leave when n = 0\n  GET 1 GET 0 MUL SET 1\n  GET 0 CONST 1 SUB SET 0\n  BR 0                      ; repeat loop\nEND END\nGET 1 END\n```\n\nRunning `CALL factorial 5` in the shell produces the expected result (`120`). The dump shows each instruction with its hex bytes, confirming that the generated binary matches the intended logic. The example also demonstrates the default numeric type (`i32`) and the optional prefixes (`L`, `F`, `D`) for `i64`, `f32`, and `f64`.\n\n## Trade-offs of a beta project  \n\nHEXAW is still in a totally beta state. The syntax and tooling are evolving, and rough edges are expected. Because the project is built with a TypeScript fork of the CLI and a shared assembly/debugging engine, developers familiar with Node.js can contribute or customize the toolchain. The reliance on an external Groq API for the AI mentor introduces a runtime dependency; however, the core assembler works entirely offline.\n\nAnother consideration is the learning curve for developers accustomed to WAT. While HEXAW removes parentheses, it introduces a new mnemonic set that mirrors the WASM opcode table. The benefit is immediate visual feedback, but the trade-off is the need to learn the HEXAW conventions before moving to production-grade code.\n\n## The takeaway  \n\nHEXAW gives developers a tactile, assembler-style view of WebAssembly by pairing mnemonics with their exact byte representation. Install the CLI, run the factorial example, step through the execution, and, if desired, query the AI mentor for opcode explanations. The result is a faster path from source to understanding for anyone who still enjoys typing instructions and watching the exact machine code appear.",
+  "sources": [
+    {
+      "title": "HEXAW programming language for WebAssembly instead WAT",
+      "url": "https://dev.to/pengeszikra/hexaw-a-lazy-wasm-text-format-5g5n"
+    }
+  ],
+  "popularity": 46,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/hexaw-brings-assembler-style-to-webassembly.jpg",
+  "thumbnailCredit": {
+    "name": "Florian Olivo",
+    "url": "https://unsplash.com/@florianolv?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/lines-of-html-codes-4hbJ-eymZ1o?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
