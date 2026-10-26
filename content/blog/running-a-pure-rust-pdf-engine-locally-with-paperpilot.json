@@ -1,0 +1,33 @@
+{
+  "slug": "running-a-pure-rust-pdf-engine-locally-with-paperpilot",
+  "title": "Running a pure-Rust PDF engine locally with PaperPilot",
+  "date": "2026-10-26",
+  "excerpt": "PaperPilot lets you merge, compress, and OCR PDFs on your machine without any cloud or C++ dependencies.",
+  "tags": [
+    "AI",
+    "Dev Tools",
+    "Systems"
+  ],
+  "body": "A developer on a laptop merged two client contracts at 3 p.m., watched the CPU stay low, and never saw a single upload in the browser’s network tab. The PDF work happened entirely on the machine, thanks to PaperPilot’s pure-Rust engine. That same binary also powers a REST endpoint, a WebAssembly module, and a desktop Tauri app, all without a single cloud call.\n\nThis post shows why a zero-cloud PDF toolkit matters, how the same Rust core can be reused across CLI, REST, WASM and desktop, and the exact steps to run PaperPilot locally. By the end, you will be able to merge PDFs with a single command or a quick browser demo, and you will understand the trade-offs of keeping document processing on the edge.\n\n## Why a zero-cloud PDF toolkit matters\n\nWhen documents contain sensitive data, legal contracts, medical records, or proprietary designs, sending them to a remote service creates a compliance risk. PaperPilot’s README stresses that “files never leave your machine,” and the repository includes a `COMPETITORS.md` that lists cloud-only alternatives as a contrast. Running locally also eliminates network latency; a merge operation finishes in milliseconds on a modest laptop, whereas a cloud API adds round-trip time and possible throttling.\n\nBecause the engine is pure Rust, it has no external C++ runtime or Chromium dependency. The lack of heavyweight runtimes reduces the attack surface and the binary size, which is important for embedded environments or CI pipelines that need fast startup. The repository’s `SYSTEM_BENCHMARK_REPORT.md` shows consistent CPU and memory usage across the different surfaces, confirming that the zero-cloud claim is not just marketing but measurable.\n\n## How the same Rust core powers CLI, REST, WASM and desktop\n\nPaperPilot’s workspace contains several crates: `paperpilot-core`, `paperpilot-pdf`, `paperpilot-nlp`, `paperpilot-gateway`, `paperpilot-mcp`, `paperpilot-wasm`, and `paperpilot-storage`. Each surface, CLI, MCP (stdio), REST (Axum), WASM, and the Tauri desktop app, links against the same core crates. This design guarantees that a merge performed with the CLI produces the identical result as a merge requested via the local REST API or the in-browser WASM widget.\n\nThe CLI is built with `cargo build --release -p paperpilot-cli`. The MCP binary (`paperpilot-mcp`) is a thin wrapper that reads JSON commands from stdin, making it easy to plug into AI agents such as Claude. The REST server starts with `paperpilot serve --port 7823`, exposing an OpenAPI spec at `http://localhost:7823/docs`. The WASM build (`paperpilot-wasm`) can be loaded from `https://cdn.usepaperpilot.com/embed.js`, and the Tauri desktop app lives under `apps/desktop`, launched with `pnpm tauri dev`.\n\nBecause all surfaces share the same Rust code, bug fixes or performance improvements in `paperpilot-core` instantly benefit every interface. The repository’s `ROADMAP.md` lists upcoming features, render, flatten, PDF/A support, that will appear everywhere once merged into the core.\n\n## Running PaperPilot locally, commands and browser demo\n\n1. Clone the repository and build the needed binaries:  \n\n   ```bash\n   git clone https://github.com/KrushnaVardhanReddy/PaperPilot.git\n   cd PaperPilot\n   cargo build --release -p paperpilot-cli -p paperpilot-mcp -p paperpilot-gateway\n   ```\n\n2. Use the CLI to merge two PDFs. The README provides the exact syntax:  \n\n   ```bash\n   paperpilot merge --inputs doc1.pdf doc2.pdf --output merged.pdf\n   ```\n\n   The command reads `doc1.pdf` and `doc2.pdf` from the current directory and writes `merged.pdf` without any network traffic.\n\n3. Start the local REST service if an HTTP endpoint is preferred:  \n\n   ```bash\n   paperpilot serve --port 7823\n   ```\n\n   A `curl` request can then perform the same merge:  \n\n   ```bash\n   curl -X POST http://localhost:7823/api/v1/pdf/merge \\\n        -H \"Content-Type: application/json\" \\\n        -d '{\"inputs\": [\"doc1.pdf\",\"doc2.pdf\"], \"output\": \"merged.pdf\"}'\n   ```\n\n   Swagger UI is available at `http://localhost:7823/docs`, allowing interactive testing.\n\n4. Open a browser tab to `https://usepaperpilot.com`. The page loads the WASM module from the CDN. While working, the browser’s Network tab shows only local `data:` URLs, no uploads, confirming the zero-cloud guarantee. The widget can be embedded with a single script tag, as shown in the README.\n\n5. For AI-agent integration, add the MCP binary to an agent’s configuration file, for example `claude_desktop_config.json`:\n\n   ```json\n   {\n     \"mcpServers\": {\n       \"paperpilot\": { \"command\": \"/path/to/paperpilot-mcp\" }\n     }\n   }\n   ```\n\n   After restarting the agent, a prompt like “Merge these two PDFs and compress the result.” will be handled entirely by the local binary.\n\nAll these entry points use the same underlying Rust engine, so the behavior, page ordering, compression quality, metadata handling, is identical regardless of how the request arrives.\n\n## The takeaway\n\nPaperPilot demonstrates that a single pure-Rust PDF core can serve CLI, REST, WASM and desktop without ever leaving the host machine. The zero-cloud model protects sensitive data and removes network latency, while the shared core guarantees consistent results across all interfaces. Clone the repo, build the binaries, and try the `paperpilot merge` command or the in-browser widget to keep PDF processing safely on the edge.",
+  "sources": [
+    {
+      "title": "PaperPilot – Zero-Cloud, Pure-Rust PDF Engine with WASM and MCP",
+      "url": "https://github.com/KrushnaVardhanReddy/PaperPilot"
+    }
+  ],
+  "popularity": 12,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 9,
+    "specificity": 9,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/running-a-pure-rust-pdf-engine-locally-with-paperpilot.jpg",
+  "thumbnailCredit": {
+    "name": "Ilya Pavlov",
+    "url": "https://unsplash.com/@ilyapavlov?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/monitor-showing-java-programming-OqtafYT5kTw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
