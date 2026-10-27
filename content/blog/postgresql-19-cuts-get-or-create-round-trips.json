@@ -1,0 +1,32 @@
+{
+  "slug": "postgresql-19-cuts-get-or-create-round-trips",
+  "title": "PostgreSQL 19 cuts get-or-create round trips",
+  "date": "2026-10-27",
+  "excerpt": "PostgreSQL 19’s ON CONFLICT DO SELECT folds the fallback SELECT into the INSERT, halving statements when conflicts occur.",
+  "tags": [
+    "Backend",
+    "Systems"
+  ],
+  "body": "Every signup endpoint that must avoid duplicate users ends up with a two-step pattern: try to insert, and if the unique key already exists, fetch the existing row. In PostgreSQL 19 the new `ON CONFLICT DO SELECT` clause folds that fallback `SELECT` into the `INSERT` itself, turning a two-statement round trip into a single one.\n\nThe author of the source measured the classic pattern against the new one and found a clear reduction in round trips when conflicts are common. The following sections break down why the old pattern needed two statements, how the new clause works, what the benchmarks show at different conflict rates, and what to watch for when testing concurrency.\n\n## Why the old pattern needs two statements\n\nThe classic get-or-create workflow looks like this:\n\n```sql\nINSERT INTO users (email, name)\n  VALUES ($1, $2)\n  ON CONFLICT DO NOTHING\n  RETURNING *;\n```\n\nIf the `INSERT` returns no row, the application runs a second statement:\n\n```sql\nSELECT * FROM users WHERE email = $1;\n```\n\nEach call that hits an existing email therefore sends two statements to the server. The source notes that this happens “every time the row already existed,” which is typical for deduplication of webhooks or for tagging objects by an external identifier. The extra round trip doubles the network latency cost and adds work for the database, even though the second statement only reads a row that is already locked by the failed insert.\n\n## How `ON CONFLICT DO SELECT` reduces round trips\n\nPostgreSQL 19 adds the `DO SELECT` clause, allowing the fallback `SELECT` to be folded into the original `INSERT`. The new statement reads:\n\n```sql\nINSERT INTO users (email, name)\n  VALUES ($1, $2)\n  ON CONFLICT (email) DO SELECT\n  RETURNING *;\n```\n\nWhen a conflict occurs, the engine automatically returns the existing row instead of silently doing nothing. The source measured the exact round-trip count: the old path always issued one `INSERT` plus one `SELECT` on conflict, while the new path issued a single statement regardless of conflict outcome. In a benchmark of 2,000 calls all hitting the same email, the old pattern generated 4,000 statements versus 2,000 for the new pattern.\n\n## Performance impact at different conflict rates\n\nThe benefit scales with the proportion of calls that encounter a conflict. In the 100 % conflict benchmark the wall-clock time dropped by 35 % to 56 % across three runs, even though the test ran inside a Docker container on loopback where network latency is minimal.\n\nWhen the author mixed fresh emails with existing ones to achieve a 30 % conflict rate over 10,000 calls, the reduction fell to “single digits to mid-teens,” matching the expectation that the saved round trips are proportional to conflict frequency.\n\nA complementary benchmark with no conflicts, 2,000 inserts of never-seen emails, showed no consistent winner. The new pattern was marginally slower in two runs and marginally faster in one, which the source attributes to noise rather than a systematic advantage. The conclusion is that `ON CONFLICT DO SELECT` only helps when the fallback `SELECT` would have been executed; if most calls create new rows, the feature provides no measurable gain.\n\n## Concurrency test and its pitfalls\n\nThe author also examined the pattern under concurrent contention, a scenario where the get-or-create idiom is most valuable. Twenty threads, each on its own connection, targeted the same email address. An initial naïve test using a separate `SELECT` then `INSERT` appeared to succeed without errors, suggesting the race window might be theoretical.\n\nThe source explains that the test harness unintentionally serialized the operations: by the time later threads reached the `INSERT`, an earlier thread had already committed, so the later `SELECT`s saw the row and never attempted a duplicate insert.\n\nAfter adjusting the harness to increase overlap, the true race condition manifested, and the `ON CONFLICT DO SELECT` version correctly returned the existing row without raising an error. The source warns that benchmarks must ensure the race window is exercised; otherwise the measurement can hide the very contention the pattern is designed to handle.\n\n## The takeaway\n\n`ON CONFLICT DO SELECT` collapses the get-or-create pattern from two statements to one, cutting a round trip whenever a conflict occurs. The performance gain is proportional to the conflict rate, making it most useful for high-contention workloads such as deduplication or user signup. In low-conflict scenarios the feature offers no advantage and may add negligible overhead. When measuring concurrency, ensure the test truly overlaps the critical section, or the race condition will be missed.",
+  "sources": [
+    {
+      "title": "PostgreSQL 19's ON CONFLICT DO SELECT cuts a get-or-create call from two round trips to one",
+      "url": "https://dev.to/alexgeorgiev17/postgresql-19s-on-conflict-do-select-cuts-a-get-or-create-call-from-two-round-trips-to-one-9mb"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/postgresql-19-cuts-get-or-create-round-trips.jpg",
+  "thumbnailCredit": {
+    "name": "Growtika",
+    "url": "https://unsplash.com/@growtika?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-group-of-blue-boxes-ZfVyuV8l7WU?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
