@@ -1,0 +1,31 @@
+{
+  "slug": "lisp-in-64-kb-what-fits-on-a-pdp-11-style-memory",
+  "title": "Lisp in 64 KB: what fits on a PDP-11 style memory",
+  "date": "2026-10-27",
+  "excerpt": "A 64 KB core can hold a tiny Lisp system, a stack and about 8 K cons cells, similar to early IBM 704 and PDP-1 machines.",
+  "tags": [
+    "Systems"
+  ],
+  "body": "A basic DEC PDP-11 or a tiny-model PC-DOS program gets exactly 64 KB for everything: the Lisp interpreter, the runtime stack, and the cons pool. That tight envelope forces the system to live on the edge of what early Lisp machines could manage.\n\nThe page LISPy things you can do in 64 K bytes of core shows how Kilo Lisp squeezes a full interpreter into about 13 KB, leaving room for 8 192 cons cells. Those numbers line up with the limits of the first Lisp installations on machines like the IBM 704 and the PDP-1.\n\n## Memory limits on early Lisp machines\n\nMIT’s IBM 704 ran the original Lisp in 1960. The machine had 32 K words of 36-bit core, which equals 36 × 32 768 = 1 183 608 bits of storage.\n\nThe Lisp system itself occupied 12 K words, and because a single word held a complete cons cell, the hardware offered just under 20 K cells to the language. Later 704 installations were stripped down to 8 K or even 4 K words, which was simply too little to host a Lisp system.\n\nA few years later the PDP-1 demonstrated that Lisp could survive on far smaller hardware. The PDP-1’s 18-bit word size meant a cons cell still fit in one word, but the whole system ran on as little as 4 096 words of memory, with the Lisp implementation using about 2 000 words.\n\nThat left roughly 2 000 cons cells for the program. The PDP-1’s clock ran at 150 kHz, compared with the 704’s 40 kHz, but both relied on hand-crafted assembly to keep the interpreter lean.\n\n## Cons-cell budget in Kilo Lisp\n\nKilo Lisp is a portable ANSI C (C89) implementation that targets the same 64 KB envelope. Its binary occupies about 13 KB, which means the remaining memory must hold the stack and the cons pool.\n\nEach cons cell is 5 bytes: two 16-bit fields for the car and cdr, plus a 3-bit tag that is rounded up to a full byte. Multiplying 5 bytes by 8 192 cells yields exactly 40 960 bytes for the pool, leaving the rest for the stack.\n\nThat 8 192-cell budget is less than half of what the IBM 704 could provide (just under 20 K cells) but about four times the space available on a minimal PDP-1 Lisp (≈2 000 cells). The trade-off is clear: Kilo Lisp sacrifices raw cell count for portability and the ability to run as a tiny PC-DOS executable, while still staying within the same memory constraints that early Lisp machines faced.\n\n## Sample program that fits in 64 KB\n\nA classic association-list lookup fits comfortably inside Kilo Lisp’s memory budget. The source page presents the following definition:\n\n```lisp\n(setq assoc (lambda (x a)\n              (cond ((null a) nil)\n                    ((eq x (caar a)) (car a))\n                    (else (assoc x (cdr a))))))\n```\n\nThe function walks a list of pairs `a`, returning the value paired with `x` or `nil` if the key is absent. Because each list node is a cons cell, the program’s memory usage scales linearly with the length of the association list. With 8 192 cells available, the lookup can handle thousands of pairs before exhausting the pool, which is more than enough for many small utilities or educational demos.\n\nRunning this code on Kilo Lisp demonstrates that a full-featured Lisp environment, lambda expressions, `cond`, `eq`, `null`, and recursive calls, operates within the same 64 KB slice that early hardware allocated for the entire system. No extra libraries or external tools are required; the interpreter, the stack, and the data structures all coexist in the same address space.\n\n## The takeaway\n\nKilo Lisp shows that a complete Lisp system, including a usable cons pool, can live in 64 KB, the same footprint as a PDP-11 or a minimal PC-DOS program. The interpreter itself uses about 13 KB, leaving room for 8 192 five-byte cons cells.\n\nThat budget is roughly half of the original IBM 704’s capacity but far exceeds the PDP-1’s limits, proving that modern portable Lisp can honor the memory constraints of the earliest machines while still providing useful higher-order functions.",
+  "sources": [
+    {
+      "title": "LISPy things you can do in 64K bytes of core (2019)",
+      "url": "https://t3x.org/lisp64k/index.html"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/lisp-in-64-kb-what-fits-on-a-pdp-11-style-memory.jpg",
+  "thumbnailCredit": {
+    "name": "Lorenzo Herrera",
+    "url": "https://unsplash.com/@lorenzoherrera?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/vintage-gray-game-console-and-joystick-p0j-mE6mGo4?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
