@@ -1,0 +1,32 @@
+{
+  "slug": "how-long-digitalocean-functions-stay-warm",
+  "title": "How long DigitalOcean Functions stay warm",
+  "date": "2026-10-27",
+  "excerpt": "Warm containers survive up to 15 minutes, but age matters more than idle time.",
+  "tags": [
+    "Backend",
+    "Systems"
+  ],
+  "body": "A test ran twelve copies of four web functions in the fra1 region, each with 512 MB of memory. Every function generated a random ID on load and kept a call counter; a returned count of 1 meant the container had just started. By invoking a function, waiting a set idle time, then calling it again, the experiment could tell cold from warm without looking at latency.\n\nThe run spanned 3 hours 19 minutes, made 444 HTTP 200 responses, and exercised idle gaps from 30 seconds up to 60 minutes. The data showed that “staying warm” is not a simple function of idle time alone. Instead, the age of the container when the idle period began played a major role.\n\n## Warm-up duration depends on container age\n\nContainers that were brand new when the idle gap started tended to disappear after only a few minutes. A container that had already been alive for three minutes or more survived every idle gap in the 0-15 minute range, and the oldest container in the experiment lasted 33 minutes before its final call. This pattern suggests that the platform preferentially keeps containers that have proven they are used repeatedly, while it discards those that were started for a single request.\n\nThe practical implication is clear: a function that receives steady traffic will stay warm through quiet minutes far better than a function that sees isolated requests. The occasional request is the one that pays for a cold start, because the platform is more likely to kill the container after a short idle if it has no history of reuse.\n\n## Cold start cost grows with import size\n\nAll four functions measured similar warm-call latency, about 90 ms. The two “light” functions (Python 3.12 with no dependencies, Node 22 with no extra packages) also shared a cold-start latency of roughly 0.9 seconds. The “heavy” functions added noticeable import time:\n\n* The Node function that imported the AWS SDK v3 and lodash spent a median of 148 ms importing those packages. Its total cold start was 924 ms slower than the lightweight Node version.  \n* The Python function that imported NumPy spent a median of 355 ms on the import, and its cold start was 2.4 seconds slower than the lightweight Python version.\n\nThese numbers show that most of the extra latency comes from loading larger packages into the container, not from the code that runs after the import. Reducing the size of shipped dependencies is therefore the most effective way to shrink cold-start times on DigitalOcean Functions.\n\n## First call after a pause is slower\n\nEven when a container remained warm, the first call after an idle gap was noticeably slower than the subsequent calls. Across all four functions, the median latency of that first warm call ranged from 146 ms to 161 ms, while the next two calls dropped to a median of 89 ms. The difference, about 60 ms, appears consistently, indicating that the runtime does some lightweight reinitialization after a pause before it can serve requests at full speed.\n\nA separate observation was that a call made immediately after a cold start could still land in a brand-new container. Out of 288 back-to-back calls, nine ended up in a fresh container, and seven of those followed another cold start. This reinforces the idea that the platform may spin up additional containers in parallel when load spikes, even if the previous request just completed.\n\n## The takeaway\n\nContainer age is the dominant factor in whether a DigitalOcean Function stays warm; containers that have survived a few minutes of activity are far more likely to survive longer idle gaps. Cold-start latency is driven primarily by the size of imported packages, so trimming dependencies yields the biggest gains. Finally, expect the first request after any pause, warm or cold, to be roughly 60 ms slower than subsequent calls. Planning for these patterns helps avoid surprise latency in production workloads.",
+  "sources": [
+    {
+      "title": "How long a serverless function stays warm on DigitalOcean",
+      "url": "https://dev.to/remdore/how-long-a-serverless-function-stays-warm-on-digitalocean-59d7"
+    }
+  ],
+  "popularity": 17,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-long-digitalocean-functions-stay-warm.jpg",
+  "thumbnailCredit": {
+    "name": "Growtika",
+    "url": "https://unsplash.com/@growtika?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-close-up-of-a-car-key-72dRZHuYJWE?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
