@@ -1,0 +1,33 @@
+{
+  "slug": "run-open-weight-ai-models-locally-with-hob",
+  "title": "Run open-weight AI models locally with Hob",
+  "date": "2026-10-27",
+  "excerpt": "Hob lets you run models like Gemma and gpt-oss on Mac, Windows or Linux without internet access.",
+  "tags": [
+    "AI",
+    "Dev Tools",
+    "Security"
+  ],
+  "body": "An idle MacBook Pro on a desk opened a PDF, filled a form, and answered a follow-up question without any internet connection. The assistant that made it happen is Hob, an open-source tool that detects the host hardware, picks a compatible open-weight model, and sets everything up locally.\n\nThe rest of this post explains how Hob chooses a model, how it stays offline, which operating systems are supported, and where to get the installers. By the end you’ll know how to run a private AI assistant on your own computer without hunting for wheels or fiddling with CUDA.\n\n## How Hob selects and installs a model  \n\nThe repository’s README says Hob “picks the best frontier open-weight model that fits your computer and sets everything up for you.” Two example models are shipped in the repo: Gemma and gpt-oss. Both are open-weight, meaning the model weights are publicly available and can be run without a cloud API key.\n\nWhen Hob starts, it inspects the host’s CPU and GPU capabilities and matches those specs against a catalog stored in the `catalog` folder. Each catalog entry lists the model’s memory footprint, required instruction-set extensions, and recommended runtime parameters. After a match is found, Hob downloads the model files from the official releases, verifies the checksum, and places them in a local cache directory.\n\nThe installer then pulls in the runtime libraries that ship with the package, so no separate `pip install torch` step or CUDA compilation is needed. The whole process can be triggered with a single click in the GUI or a one-line command in the terminal.\n\n## Running AI offline for private tasks  \n\nThe README emphasizes that Hob is “Free, private, and works offline.” Because the model and inference engine stay on the local filesystem, no request leaves the machine. This is useful for tasks that involve sensitive documents such as filling PDFs, reviewing contracts, or processing internal reports.\n\nRunning offline also avoids the rate limits that cloud APIs impose. All inference happens on the user’s hardware, so latency and throughput depend on the available CPU or GPU. The source code does not contain any telemetry feature, and the repository does not mention a telemetry setting, so there is nothing to configure in that regard.\n\n## Supported platforms and download options  \n\nHob advertises support for the three major desktop operating systems. The landing page at hob.chat offers pre-built installers for macOS, Windows, and Linux:\n\n* macOS, a signed `.dmg` that installs the app in `/Applications`  \n* Windows, an `.exe` that creates a start-menu entry and adds the binary to the system path  \n* Linux, an `.AppImage` that runs without root privileges  \n\nThe GitHub repository confirms this multi-platform strategy. The `package.json` defines build scripts for each target, and the CI workflow in `.github/workflows` runs on macOS, Windows, and Ubuntu runners to produce the binaries. The `README.md` links directly to the three download buttons, so users can grab the appropriate file without digging through release notes.\n\nBecause Hob is released under the MIT license, developers can also clone the repo and build from source. The `pnpm-workspace.yaml` file shows that the project uses pnpm for package management, and the `pnpm-lock.yaml` locks the exact versions of all JavaScript dependencies. This deterministic build process ensures that the same binary can be reproduced on any machine that meets the minimum system requirements.\n\n## Example: filling a PDF on macOS  \n\n1. Download the macOS `.dmg` from hob.chat and install the app.  \n2. Launch Hob; the UI automatically detects the MacBook’s Apple Silicon GPU.  \n3. Hob selects the Gemma model, downloads the weights, and starts the inference server.  \n4. Drag a PDF onto the Hob window, type “Fill the “Date” field with today’s date,” and press Enter.  \n5. Hob returns the filled PDF in the output pane, all without contacting an external service.\n\nThe example demonstrates the end-to-end flow: hardware detection, model selection, offline inference, and a private result.\n\n## The takeaway  \n\nHob automates model selection, installs everything locally, and runs entirely offline on macOS, Windows, or Linux. Grab the installer from hob.chat, let Hob choose the appropriate open-weight model, and you’ll have a private AI assistant that never needs an internet connection. This makes it a practical option for workflows that require data confidentiality and reliable local availability.",
+  "sources": [
+    {
+      "title": "Show HN: Hob - Open-source, on device alternative to Claude Cowork and ChatGPT",
+      "url": "https://github.com/FrigadeHQ/hob"
+    }
+  ],
+  "popularity": 9,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/run-open-weight-ai-models-locally-with-hob.jpg",
+  "thumbnailCredit": {
+    "name": "Brecht Corbeel",
+    "url": "https://unsplash.com/@brechtcorbeel?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/abstract-green-background-with-blurred-shapes-and-geometric-elements-ApeHYvnmZr0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
