@@ -1,0 +1,33 @@
+{
+  "slug": "python-experimental-jit-compiler-removed-from-cpython",
+  "title": "Python experimental JIT compiler removed from CPython",
+  "date": "2026-10-27",
+  "excerpt": "The Python steering council halted the experimental JIT after maintainers withdrew PEP 836, ending development in the main branch.",
+  "tags": [
+    "Backend",
+    "Dev Tools",
+    "Systems"
+  ],
+  "body": "Python’s experimental just-in-time (JIT) compiler landed in CPython 3.13 in early 2024, but the steering council has now asked for its removal. The council gave the JIT maintainers a six-month window to produce a standards-track PEP that answered questions about maintenance, compatibility and clear success metrics.\n\nWhen the draft PEP 836 was withdrawn, the code was taken out of the main branch. The following sections explain why the council paused the work, what went wrong with PEP 836, how the community reacted, and what the change means for CPython.\n\n## Why the council paused JIT work\n\nThe council’s pause was not triggered by a single incident. According to Thomas Wouters, a council member and release manager for 3.13, the group had been discussing the JIT for months and wanted to be sure the feature would not clash with other ongoing projects.\n\nWork was already being done to make the JIT cooperate with instrumentation, debugging and profiling tools, and there were external JIT projects such as CinderX and JIT-adjacent efforts like Numba and PyTorch’s compile. By waiting until after the Python 3.15 beta release, the council could confirm that the status quo for that release was acceptable before imposing new requirements.\n\nThe council asked for a standards-track PEP that would lay out the JIT’s guarantees, maintenance commitments and impact on redistributors. The request included a hard deadline: if a suitable PEP was not accepted within six months, the JIT code would have to be removed from the CPython main branch. This deadline created a clear timeline for the maintainers and set the stage for the next step.\n\n## The failed attempt with PEP 836\n\nBrandt Bucher and Savannah Ostrowski, together with Ken Jin, drafted PEP 836 (“JIT Go Brrr: The Path to a Supported JIT Compiler for CPython”) and posted it on the Python forum on July 3. The draft tried to satisfy the council’s request by describing goals, success metrics and a maintenance plan.\n\nHowever, the community response highlighted structural issues. Commenters such as Thomas Wouters and Mark Shannon argued that the proposal should be split into two separate PEPs, one covering acceptance criteria and another handling implementation details. Shannon felt that goals without a concrete plan were insufficient, while others asked for more information on the proposed maintenance model.\n\nBucher pushed back on the split-PEP suggestion, insisting that outlining goals without sharing the full plan would be uncomfortable. Ostrowski defended the existing structure, emphasizing that goals needed context to be meaningful. After months of discussion and no consensus on a revised document, the maintainers withdrew PEP 836. Because the six-month deadline passed without an accepted standards-track PEP, the council required the JIT code to be removed from the CPython main branch.\n\n## Community feedback on the draft PEP\n\nThe discussion around PEP 836 was lively but divided. Supporters appreciated the effort to bring a JIT into the core interpreter and pointed to the potential performance gains demonstrated in early benchmarks. Critics focused on the lack of a clear maintenance strategy and the risk of fragmenting the ecosystem with multiple JIT implementations. Several comments called for more concrete data on how the JIT would interact with existing tooling and redistributors, echoing the council’s original concerns.\n\nThe feedback loop revealed a broader tension: the Python community values stability and long-term support, yet there is enthusiasm for experimental performance features. The split-PEP suggestion reflected a desire to keep the acceptance criteria separate from the implementation roadmap, allowing each to be evaluated on its own merits. In the end, the inability to reconcile these viewpoints meant that the draft could not move forward.\n\n## What the removal means for CPython\n\nWith the JIT code stripped from the main branch, CPython returns to a baseline that matches the 3.13 release without the experimental compiler. Existing downstream projects that had begun experimenting with the JIT will need to adjust their forks or wait for a future, council-approved solution. The removal also signals that the steering council will not accept experimental features that lack a formal standards-track PEP and a clear maintenance plan.\n\nFor developers, the practical impact is that performance improvements previously promised by the JIT will not be available in the official releases. However, the decision preserves the interpreter’s stability and ensures that any future JIT effort will be subject to the same rigorous review process. The episode may encourage maintainers to submit well-structured, standards-track proposals earlier, rather than relying on informal talks or informational PEPs.\n\n## The takeaway\n\nThe council set a six-month deadline for a standards-track PEP; when PEP 836 was withdrawn, the JIT code had to be removed from the CPython main branch. This outcome underscores that experimental features must be backed by an accepted standards-track PEP that addresses maintenance, compatibility and clear success metrics. Future JIT work will need to follow that path if it is to become part of CPython.",
+  "sources": [
+    {
+      "title": "Python's experimental JIT to be removed",
+      "url": "https://lwn.net/SubscriberLink/1102102/0c00e4d550f25f8c/"
+    }
+  ],
+  "popularity": 29,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/python-experimental-jit-compiler-removed-from-cpython.jpg",
+  "thumbnailCredit": {
+    "name": "Juanjo Jaramillo",
+    "url": "https://unsplash.com/@juanjodev02?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/code-editor-displaying-react-source-code-mZnx9429i94?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
