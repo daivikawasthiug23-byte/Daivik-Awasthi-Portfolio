@@ -1,0 +1,33 @@
+{
+  "slug": "how-wikipedia-volunteers-hunt-ai-written-edits",
+  "title": "How Wikipedia volunteers hunt AI-written edits",
+  "date": "2026-10-27",
+  "excerpt": "Volunteers spot subtle AI patterns and fake citations to keep Wikipedia human-written.",
+  "tags": [
+    "AI",
+    "Web",
+    "Data"
+  ],
+  "body": "A wave of new Wikipedia articles appeared in late 2023 with a familiar feel: they opened with sentences such as “stands as a testament” or “rich cultural heritage” and closed with a section titled “Why is this important?”. Those repeated phrases were the first clue that volunteers on the WikiProject AI Cleanup were seeing. The pattern was consistent enough to become a quick flag for potential machine-written content.\n\nThe volunteers turned that intuition into a systematic hunt. By cataloguing cliché phrasing, measuring creation speed, and checking citations, they built a three-pronged approach that keeps the encyclopedia largely human-written. The sections below walk through each signal and show how it is applied in practice.\n\n## Identifying cliché phrasing and structural patterns  \n\nEarly AI-generated drafts often leaned on a small pool of stock language. Phrases such as “stands as a testament” and “rich cultural heritage” showed up across unrelated topics, from a small town in Italy to a newly described beetle species. Human editors rarely repeat such flourishes verbatim in separate articles.\n\nBeyond word choice, the structure itself gave hints. AI models tend to employ the “rule of three”, three parallel statements in a paragraph, and to insert negative parallelisms such as “not only … but also …”. They also generate generic concluding sections that read like a textbook summary rather than a nuanced encyclopedia entry.\n\nWhen a new article contains several of these markers, volunteers add a tag to the talk page and run a quick manual review. The presence of multiple cues raises confidence that the text was generated rather than written by a human familiar with Wikipedia’s style guidelines. This method remains useful even as AI output becomes more sophisticated, because the models still favor familiar rhetorical templates.\n\n## Detecting implausibly fast article creation  \n\nHuman contributors typically spend hours researching, drafting, and polishing a single Wikipedia entry, especially for topics that require citations and balanced language. Volunteers therefore track the edit history for bursts of activity that defy that timeline.\n\nA concrete signal is the creation of multiple thousand-word articles within a few minutes. In one documented case, an editor posted five full-length articles in under five minutes. Such speed is impossible for a single person to achieve without copying existing text, and it aligns with the output rate of large language models.\n\nThe project maintains a simple list of recent high-volume contributors. When an account appears on that list, other volunteers examine the new pages for the cliché patterns described above. If both speed and phrasing raise flags, the article is queued for deeper analysis or removal. This two-step filter helps avoid false positives from enthusiastic human editors who happen to work quickly.\n\n## Spotting hallucinated or mis-used citations  \n\nCitations are the backbone of Wikipedia’s credibility, and AI-generated drafts have introduced a new failure mode: fabricated or mis-interpreted references. Early versions of the models would often invent a source entirely, but newer systems that use retrieval-augmented generation tend to pull a real paper or book and then attach it to unrelated statements.\n\nVolunteers check whether the cited source actually supports the claim. A common pattern is a citation that appears correct at first glance, a reputable journal or a well-known author, but whose content bears no relation to the surrounding text. For example, an article might cite a study on urban planning to back a claim about a medieval festival simply because the title contains the word “heritage”.\n\nWhen such mismatches are found, the edit is marked with a citation-error template and the offending text is either corrected with a proper source or removed. The project has also begun experimenting with automated tools that cross-reference the DOI or URL of a citation against its abstract, flagging obvious mismatches for human review.\n\n## The takeaway  \n\nWikipedia’s volunteers rely on three practical signals: repeated cliché phrasing, unrealistically rapid article creation, and citations that do not actually back the text. By watching for these signs, they can quickly isolate AI-generated edits and keep the encyclopedia’s content human-crafted. The approach combines low-tech pattern spotting with modest automation, offering a repeatable method for any community facing similar AI-generated noise.",
+  "sources": [
+    {
+      "title": "Wikipedia's Cleanup of AI-Generated Content",
+      "url": "https://spectrum.ieee.org/wikipedia-wikiproject-ai-writing-cleanup"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-wikipedia-volunteers-hunt-ai-written-edits.jpg",
+  "thumbnailCredit": {
+    "name": "Luke Chesser",
+    "url": "https://unsplash.com/@lukechesser?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/wikipedia-page-screenshot-D8QbsYyiFmw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
