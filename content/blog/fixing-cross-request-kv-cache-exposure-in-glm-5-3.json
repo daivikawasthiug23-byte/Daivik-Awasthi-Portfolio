@@ -1,0 +1,33 @@
+{
+  "slug": "fixing-cross-request-kv-cache-exposure-in-glm-5-3",
+  "title": "Fixing cross-request KV cache exposure in GLM-5.3",
+  "date": "2026-10-27",
+  "excerpt": "A misconfigured KV cache and an SGLang bug let long prompts leak data across users, and Cloudflare patched both to restore isolation.",
+  "tags": [
+    "AI",
+    "Security",
+    "Systems"
+  ],
+  "body": "A long prompt slipped through the GLM-5.3 deployment on August 27 2026 and the response included text that belonged to a different tenant. The leak only happened for prompts longer than 681 280 tokens, and a total of 155 responses were affected before the model was taken offline on September 9. The incident was reported by security researcher Gadi Evron and reproduced by the Cloudflare team within hours.\n\nThe post explains why the bug appeared, how a configuration mismatch opened the door, and what steps were taken to make the KV cache and the SGLang engine safe for future long-context workloads.\n\n## What caused the cross-request cache leak\n\nGLM-5.3 stores intermediate activations in a key-value (KV) cache while processing a prompt. In the Workers AI environment the model runs in a disaggregated prefill/decode mode: the prefill GPU builds the KV cache, then hands it off to a decode GPU that generates the final tokens. When a prompt is longer than the KV cache pool, the prefill stage should reject the request and return a client error.\n\nInstead, a bug in the open-source inference engine SGLang allowed the prefill stage to create a one-token placeholder, transfer that placeholder’s KV cache, and then let the decode stage continue as if the full prompt had been cached. The decode node therefore read stale pages that still contained data from the previous request. Any request that exceeded the pool size, 681 280 tokens in this deployment, could thus expose another tenant’s data.\n\n## How the configuration mismatch triggered the bug\n\nThe deployment specified a context window of 1 048 576 tokens for GLM-5.3, but the KV cache pool on the prefill GPUs was sized for only 681 280 tokens. The mismatch was known before launch, and the team expected the engine to reject over-length prompts. Long-context tests, however, returned successful responses, leading to the belief that the configuration was safe.\n\nWhen a prompt longer than the pool arrived, SGLang marked the request as rejected internally but substituted a one-token placeholder instead of aborting. Because the placeholder fit the pool, the prefill stage generated a KV cache and sent a “transfer complete” message to the decode node.\n\nThe decode node assumed the full prompt had been cached and proceeded to generate output, inadvertently reading leftover cache entries from the previous request. This path only activated for prompts that crossed the 681 280-token threshold, which matches the observed set of affected responses.\n\n## Steps taken to harden the KV cache and SGLang engine\n\n1. Resize the KV cache pool, The pool was expanded to hold about 2.04 million tokens, roughly twice the model’s 1 048 576-token context length. This matches the configuration used for GLM-5.2 and guarantees that any valid request fits the pool, eliminating the rejection path for normal workloads.\n\n2. Patch the rejection handling, The SGLang engine was updated so that any request flagged for rejection is retired immediately, rather than being replaced with a placeholder. This change protects against future changes in pool size caused by quantization, tensor parallelism, CUDA graph adjustments, or new model versions.\n\n3. Add safety checks in the scheduler, Additional validation was introduced in the prefill scheduler to verify that the requested token count does not exceed the available KV cache space before any processing begins. If the check fails, the request is dropped with a clear client error.\n\n4. Deploy the patched engine and configuration together, The corrected configuration and the patched SGLang binary were rolled out in a coordinated release. The model was restored to public access on September 9 after the changes were verified in a staging environment.\n\n5. Monitor for cross-request contamination, New telemetry was added to track KV cache usage per request and to alert if any transfer occurs with mismatched token counts. This gives early visibility into any regression that might re-introduce the bug.\n\nThese actions address both the immediate cause (the pool-size mismatch) and the underlying engine flaw that allowed a rejected request to continue through the pipeline.\n\n## The takeaway\n\nCross-request KV cache exposure can arise from a simple size mismatch combined with a subtle engine bug. Align the KV cache pool with the model’s context window and ensure the inference engine aborts any request that cannot be fully cached. Adding explicit checks and retiring rejected requests prevents stale cache pages from leaking into other tenants’ responses.",
+  "sources": [
+    {
+      "title": "Cross-request KV cache exposure in the GLM-5.3 Workers AI model (155 responses)",
+      "url": "https://blog.cloudflare.com/kv-cache-exposure-remediation/"
+    }
+  ],
+  "popularity": 8,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/fixing-cross-request-kv-cache-exposure-in-glm-5-3.jpg",
+  "thumbnailCredit": {
+    "name": "Growtika",
+    "url": "https://unsplash.com/@growtika?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/3d-render-of-cloud-computing-concept-Am6pBe2FpJw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
