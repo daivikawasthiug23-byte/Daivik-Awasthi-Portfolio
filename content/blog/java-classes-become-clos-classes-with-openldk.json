@@ -1,0 +1,33 @@
+{
+  "slug": "java-classes-become-clos-classes-with-openldk",
+  "title": "Java classes become CLOS classes with OpenLDK",
+  "date": "2026-10-27",
+  "excerpt": "OpenLDK compiles Java bytecode to Lisp, letting SBCL run Java libraries in the same process.",
+  "tags": [
+    "Backend",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "## From Java bytecode to native Lisp code  \n\nBack in late 2024 the author needed a Java library inside SBCL, but the existing bridges required a separate JVM process or heavyweight tooling. The result was OpenLDK, a JIT compiler and runtime written in Common Lisp. OpenLDK reads ordinary `.class` files from JDK 25 (using the JDK’s JMOD files or the `lib/modules` container), translates the bytecode into Lisp forms, and hands those forms to SBCL.\n\nSBCL then compiles the Lisp to native machine code the first time a method is called. Because the compilation is lazy, loading a library does not immediately compile every method; only the methods that are actually invoked get turned into native code.\n\nThe pipeline starts with a class file. When a class loads, OpenLDK creates a CLOS representation and installs a stub for each method. The first invocation triggers a three-step translation: bytecode → intermediate representation → Lisp → native code.\n\nThe compiled definition replaces the stub, and the result is cached for future runs. This cache lets a saved Spring Boot image start in roughly 84 ms, since the heavy lifting has already been done and no separate HotSpot VM needs to launch.\n\n## Java classes become CLOS classes  \n\nOpenLDK maps every Java class to a CLOS class. Fields become slots, instance methods become methods of CLOS generic functions, and static methods become ordinary Lisp functions. Overloaded Java methods keep distinct signatures, so the generic function can dispatch correctly. The translation also preserves Java’s 32-bit integer overflow semantics. For example, a simple `add` method\n\n```java\npublic static int add(int x, int y) { return x + y; }\n```\n\nis rendered as\n\n```lisp\n(sb-c::mask-signed-field 32 (+ x y))\n```\n\nThe `mask-signed-field` operation keeps Java’s overflow behavior while allowing SBCL to emit a single machine addition.  \n\nException handling follows the same pattern: Java’s exception hierarchy is reflected in a corresponding Lisp condition hierarchy. Because the representations are native Lisp objects, developers can inspect and even monkey-patch a running Spring Boot application from Emacs and SLY, treating Java objects just like any other CLOS instance. The lazy compilation model means that large libraries only pay the cost for the methods actually used, keeping start-up times low while still offering full Java semantics.\n\n## Embedding other JVM languages in Lisp  \n\nOpenLDK extends the interop surface with source-level blocks that embed foreign language code directly in Lisp forms. After loading the appropriate language runtime and enabling the syntax, a Kotlin fragment can be written as `#@kt{ … }`. The example below shows a Lisp variable `$n` being injected into Kotlin, the Kotlin code executing a range map, and the result coming back as a Lisp list:\n\n```lisp\n(let ((n 4))\n  #@kt{ (1..$n).map { it * it } })\n;; => (1 4 9 16)\n```\n\nLexical variables, collections, and callbacks cross the boundary without being turned into source strings first. The same mechanism works for Scala, Groovy, Kawa, JScheme, ABCL, and Clojure (which also supports a `#[ … ]` form). A Clojure function defined inside such a block becomes a callable foreign-function object; ordinary `funcall` can invoke it, with argument and result conversion handled automatically. The reverse direction works too: Lisp functions can be passed as callbacks to the embedded language.\n\nThese cross-language blocks let a single Lisp expression host seven JVM languages, making it easy to experiment with Kotlin extensions, Scala DSLs, or Clojure data processing without leaving the Lisp REPL. Because the foreign code is compiled by OpenLDK’s JIT, performance is comparable to running the same code in a traditional JVM, while still benefiting from tight integration with the surrounding Lisp environment.\n\n## Persistent code cache and image reuse  \n\nCompiled methods are retained in a persistent code cache. Subsequent runs can load cached code when the classes it depends on remain unchanged, and cache entries are separated by OpenLDK build. Different Lisp images can reuse compiled JDK methods too, so a saved image of a Spring Boot application can be launched repeatedly with sub-second start-up.\n\nThe author demonstrated an initialized Spring Boot app saved in a Lisp image and relaunched in about 84 ms, a number that reflects both the JIT-compiled Java code and the absence of a separate HotSpot launch.\n\n## The takeaway  \n\nOpenLDK turns Java bytecode into Lisp forms that SBCL compiles to native code, representing every Java class as a CLOS class. This design lets Lisp add methods around Kotlin code, call Clojure functions with `funcall`, and snapshot a Spring Boot app for sub-second start-up. Use OpenLDK when tight, in-process access to Java libraries is required and mixing multiple JVM languages inside Lisp is desirable.",
+  "sources": [
+    {
+      "title": "OpenLDK: Bringing the Java World into Common Lisp",
+      "url": "https://atgreen.github.io/repl-yell/posts/openldk-java-in-common-lisp/"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/java-classes-become-clos-classes-with-openldk.jpg",
+  "thumbnailCredit": {
+    "name": "Fotis Fotopoulos",
+    "url": "https://unsplash.com/@ffstop?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/smartphone-and-computer-monitors-with-code-6sAl6aQ4OWI?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
