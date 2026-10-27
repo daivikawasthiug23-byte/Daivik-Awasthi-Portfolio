@@ -1,0 +1,32 @@
+{
+  "slug": "building-reasoning-models-from-scratch-with-python-and-pytorch",
+  "title": "Building reasoning models from scratch with Python and PyTorch",
+  "date": "2026-10-27",
+  "excerpt": "Eight videos and over 11 hours of code walk you through evaluation, scaling, reinforcement learning and distillation for a pre-trained Qwen3 model.",
+  "tags": [
+    "AI",
+    "Dev Tools"
+  ],
+  "body": "A pre-trained Qwen-3 model is loaded, then reasoning methods are added in Python and PyTorch. The eight-video series walks through evaluation, inference-time scaling, reinforcement learning, and distillation, totalling more than 11 hours of hands-on coding. Early chapters run on a CPU, while later fine-tuning benefits from a GPU. By the end of the series, a complete reasoning engine can be built from a modest LLM seed.\n\nReaders will come away with a concrete understanding of how reasoning models extend conventional LLMs, how to scale inference, how to apply RL and distillation, and which hardware setups make the workflow practical.\n\n## Reasoning models as upgraded LLMs  \n\nThe videos start with a small pre-trained Qwen-3 model and treat it as the engine. Post-training steps, reinforcement learning with verifiable rewards and optional inference-scaling tricks, are layered on top. This upgrade makes the model better at math, code, and other complex tasks. The source notes that most current-generation LLMs already expose a reasoning mode, meaning they internally incorporate similar upgrades.\n\n## Evaluation and inference-time scaling  \n\nEvaluation begins with simple text-generation checks on the CPU. The notebooks show how to measure token-level accuracy, compute loss, and compare against ground-truth answers.  \n\nInference scaling builds on that foundation. Techniques such as dynamic-length sampling, batch-wise generation, and cache-based reuse are implemented in PyTorch. The snippet below illustrates how the generation loop can be tweaked to trade latency for quality:\n\n```python\ndef generate(model, prompt, max_len=128, temperature=0.7, device=\"cpu\"):\n    input_ids = tokenizer(prompt, return_tensors=\"pt\").input_ids.to(device)\n    output = model.generate(\n        input_ids,\n        max_new_tokens=max_len,\n        temperature=temperature,\n        do_sample=True,\n        pad_token_id=tokenizer.eos_token_id,\n    )\n    return tokenizer.decode(output[0], skip_special_tokens=True)\n```\n\nChanging `max_new_tokens` or `temperature` lets learners experiment with speed-quality trade-offs without rewriting core logic.\n\n## Reinforcement learning from scratch  \n\nReinforcement learning (RL) is the second major post-training step. The course uses a verifiable reward signal, correctness on a set of math or coding problems, to fine-tune the Qwen-3 base. The RL loop is built from scratch in PyTorch, showing the policy-gradient update and reward normalization.  \n\nThe videos cover these RL components:\n\n- Reward function that returns 1 for a correct answer, 0 otherwise  \n- Log-probability extraction from the model’s output distribution  \n- Advantage calculation by subtracting a moving-average baseline  \n- Gradient ascent step using `optimizer.step()`\n\nThese steps make the reasoning model explicitly learn to prefer correct solutions over random guesses.\n\n## Distillation of the RL-enhanced model  \n\nAfter RL, distillation creates a smaller student model that mimics the RL-enhanced teacher. The loss is the KL-divergence between their output distributions. The series walks through the data pipeline, loss formulation, and training schedule. The result is a lighter model that retains most of the reasoning capability while running faster at inference time.\n\n## Practical hardware tips and prerequisites  \n\nThe early text-generation and evaluation notebooks are designed to run on any laptop, making the entry point accessible. When the course reaches RL fine-tuning and distillation, a CUDA-enabled GPU becomes important to keep training times reasonable. The author points out that GPU acceleration reduces epoch time from hours to minutes, so the later videos recommend a GPU.  \n\nA practical tip is to start with the CPU examples, verify correctness, then switch the same PyTorch code to a GPU by setting `device = \"cuda\"` and calling `.to(device)` on tensors. This pattern lets learners transition smoothly without rewriting core logic.  \n\nThe only prerequisites are comfort with Python and PyTorch; deep-learning framework expertise is not required. Access to a CPU suffices for the first two videos, while a GPU is needed for later fine-tuning. The *Build a Large Language Model (From Scratch)* book and videos are recommended but not mandatory.\n\n## The takeaway  \n\nReasoning models are essentially LLMs that have been post-trained with RL and optional inference scaling. Starting from a pre-trained Qwen-3 model, the course adds evaluation, scaling, RL, and distillation in Python and PyTorch, yielding a complete reasoning engine. Early steps run on a CPU, but GPU acceleration is needed for later training phases. Following the videos gives a hands-on path from a vanilla LLM to a production-ready reasoning model.",
+  "sources": [
+    {
+      "title": "Sebastian Raschka's from-scratch video course on building reasoning models",
+      "url": "https://magazine.sebastianraschka.com/p/building-reasoning-models"
+    }
+  ],
+  "popularity": 37,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/building-reasoning-models-from-scratch-with-python-and-pytorch.jpg",
+  "thumbnailCredit": {
+    "name": "Christopher Gower",
+    "url": "https://unsplash.com/@cgower?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-macbook-with-lines-of-code-on-its-screen-on-a-busy-desk-m_HRfLhgABo?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
