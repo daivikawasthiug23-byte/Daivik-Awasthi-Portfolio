@@ -1,0 +1,37 @@
+{
+  "slug": "what-engineers-must-still-know-when-ai-writes-code",
+  "title": "What engineers must still know when AI writes code",
+  "date": "2026-10-27",
+  "excerpt": "Even with agents that generate code, engineers need fundamentals to spot problems and intervene when things break.",
+  "tags": [
+    "AI",
+    "Backend",
+    "Dev Tools"
+  ],
+  "body": "A recent CI run failed on a pull request that looked perfectly clean at first glance. The diff was only 30 lines, but SonarQube flagged App.tsx for cyclomatic complexity. Opening the file revealed fifteen one-line components that Codex had generated directly inside the file. Each line held a full React component with display logic and business rules. The code ran, the tests passed, but the static analysis tool screamed.\n\nThe incident ended with the agent refactoring the file into ten separate components, each in its own file, and the CI pipeline cleared. The story illustrates three things engineers still need to master when AI writes code: the raw output can be dense, tooling will surface hidden complexity, and the human must decide when to intervene.\n\nIn this post you’ll see how a single-line generation can hide complexity, how SonarQube flags expose it, how an agent can clean up its own work, and why the real skill is knowing when to dive in.  \n\n## AI agents can produce high-complexity code in a single line  \n\nCodex can emit an entire component on one line of TypeScript. In the example, fifteen such lines made up most of App.tsx. The one-liner format passes a formatter like Prettier without issue, but the underlying control flow remains unchanged. Each component contained conditional rendering, loops over data, and calls to service APIs, classic sources of cyclomatic complexity.  \n\nThe advantage is speed: a developer can ask the agent for a feature and get a complete implementation in seconds. The downside is that the visual brevity masks the logical depth. When the code is later inspected, the hidden branches become apparent, and static analysis tools treat them the same as a multi-line implementation.  \n\n## SonarQube flags can reveal hidden cyclomatic complexity  \n\nSonarQube scans the abstract syntax tree, counting decision points such as `if`, `switch`, and ternary operators. It does not care how many physical lines a component occupies. In the case above, the tool raised a complexity warning on a file that was only 30 lines long because the fifteen components together exceeded the configured threshold.  \n\nThe warning forced a manual review. After running Prettier, the engineer inspected each component and confirmed that the logic was correct and justified by business requirements. The flag acted as a safety net, catching a situation where the agent’s output was technically valid but potentially hard to maintain.  \n\n## Refactoring by the agent can fix tooling complaints  \n\nOnce the problem was identified, the engineer instructed Codex to “make SonarQube happy.” The agent responded by extracting the fifteen one-liners into ten separate files, each containing a smaller, more focused component. This refactor reduced the overall cyclomatic complexity reported by SonarQube and allowed the CI pipeline to pass.  \n\nThe process demonstrates that an AI agent can not only generate code but also respond to feedback from static analysis tools. By feeding the tool’s output back into the prompt, the agent can reorganize code, rename variables, or split files to satisfy quality gates. This loop turns a raw generation into a maintainable artifact without the engineer writing the refactor by hand.  \n\n## The real skill is knowing when to dive in  \n\nEven with an agent that can rewrite its own output, the engineer still needed to intervene. The initial CI failure could have been dismissed as a flake, but the SonarQube warning prompted a deeper look. The engineer verified that the complexity was warranted, that no hidden bugs existed, and that the refactor preserved functionality.  \n\nThe broader lesson from the source article is that future ownership of software will rely less on having written every line and more on being able to spot when something is off and to dive deep enough to fix it.\n\nFundamentals such as understanding control flow, reading abstract syntax trees, and interpreting static analysis reports remain essential. Breadth of knowledge, knowing the ecosystem of tools and the limits of AI agents, helps decide when to trust the agent and when to step in.\n\n## The takeaway  \n\nAI agents can churn out dense, one-line components that pass tests but trip static analysis. SonarQube flags expose the hidden complexity, and the same agent can refactor the code to satisfy quality gates. The engineer’s job is to recognize the warning, verify the logic, and guide the agent when needed. Mastering this feedback loop is the skill that will keep systems reliable as AI-generated code becomes the norm.",
+  "sources": [
+    {
+      "title": "Here be monsters: What do you still need to know when agents do the work?",
+      "url": "https://blog.adrq.dev/here-be-monsters-what-do-you-still-need-to-know-when-agents-do-the-work"
+    },
+    {
+      "title": "t3dotgg/tstack: The agent skills I use every day. Works with Claude Code and Codex.",
+      "url": "https://github.com/t3dotgg/tstack"
+    }
+  ],
+  "popularity": 8,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/what-engineers-must-still-know-when-ai-writes-code.jpg",
+  "thumbnailCredit": {
+    "name": "Chris Ried",
+    "url": "https://unsplash.com/@cdr6934?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-screen-with-a-bunch-of-code-on-it-ieic5Tq8YMk?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
