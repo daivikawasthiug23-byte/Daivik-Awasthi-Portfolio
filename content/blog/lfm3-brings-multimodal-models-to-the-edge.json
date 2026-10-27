@@ -1,0 +1,33 @@
+{
+  "slug": "lfm3-brings-multimodal-models-to-the-edge",
+  "title": "LFM3 brings multimodal models to the edge",
+  "date": "2026-10-27",
+  "excerpt": "LFM3 delivers 2 B-parameter text, vision, audio, omni and decision models that run on any device.",
+  "tags": [
+    "AI",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A new family of 2 B-parameter models entered the open-weight arena this week. The LFM3 series bundles text, vision, audio, omni and decision capabilities onto a single backbone, and the first release already shows measurable gains over the previous generation.\n\nThe headline claim is that LFM3-1.7B matches the short-prompt performance of LFM2-1.2B while running about 25 % faster on an 8 K-token context. The post explains why that matters, how the architecture makes it possible, and what the practical workflow looks like for developers who want to specialize the models.\n\n## More capability per parameter with a tri-hybrid backbone  \n\nLFM3 replaces the pure short-convolution plus attention mix of LFM2 with a three-operator layer design. Of the 24 layers, 13 are gated short convolutions, five are sliding-window attention (SWA) blocks with a 256-token window, and six are global-attention blocks. The convolution kernel grew from size 3 to size 7, expanding the receptive field without a proportional speed hit.\n\nThe SWA blocks were chosen after an automated hardware-in-the-loop search because they give the best quality-speed trade-off for long contexts. The result is a model that retains the fast, on-device character of the earlier hybrid while delivering more expressive power per parameter. In practice, LFM3-1.7B reaches the same short-prompt accuracy as LFM2-1.2B despite using 35 % fewer parameters, and it processes an 8 K-token sequence about a quarter faster.\n\nAdditional tricks, head-wise gated attention, partial RoPE in global layers, and sandwich norm, help keep activations stable during quantization, which is essential for edge deployment.\n\n## Designed for on-device inference across many hardware combos  \n\nLFM3 was tested on 14 different device and backend pairings, ranging from high-end phones (Samsung Galaxy S26 Ultra, OnePlus 15) to a Raspberry Pi 5, Apple M4 Max, AMD Ryzen AI laptops, and various Arm and x86 cloud CPUs. The text model fits in about 1 GB when stored at 4-bit precision, a size that comfortably sits on most modern smartphones and embedded boards.\n\nThe expanded hardware-in-the-loop search that produced the tri-hybrid layer mix also verified that the added SWA and global-attention blocks do not erode the low-latency profile on these platforms. In other words, the same binary can run on a phone GPU, a laptop CPU, or a Qualcomm Hexagon NPU without needing separate model variants.\n\n## Fine-tuning on a single GPU makes specialization easy  \n\nAll LFM3 variants are open-weight and available on Hugging Face, the Liquid AI Playground, and via the API ([source](https://www.liquid.ai/blog/lfm3)). Because the base model sits at 1.7 B parameters, a single consumer-grade GPU can fine-tune the model on a custom dataset in a few hours.\n\nThe training recipe includes a mid-stage of 3.5 T high-quality tokens that emphasize agentic traces and tool-call patterns, extending the context window to 256 K tokens. This extra exposure means that after fine-tuning, the model retains the ability to handle long-form inputs while still fitting the target task.\n\nA typical fine-tuning workflow looks like this:\n\n1. Pull the base checkpoint from Hugging Face.  \n2. Run the provided fine-tuning script with your dataset and the default hyper-parameters.  \n3. Export the resulting model and apply the 4-bit quantization pipeline for on-device inference.\n\nThe steps require only a single GPU and a few hours of compute, after which the model can be deployed to any of the supported edge devices.\n\n## New vision and audio encoders raise the multimodal ceiling  \n\nBeyond the text model, LFM3 introduces flagship in-house vision and audio encoders that share the same 2 B-parameter backbone. Because the encoders inherit the tri-hybrid layer mix, they enjoy the same speed-per-parameter advantage as the text model.\n\nEarly benchmarks on the Liquid AI Playground show that the vision encoder can process a standard image on a mid-range phone GPU in well under a few hundred milliseconds, while the audio encoder handles a short clip in a comparable time frame on the same hardware. Those results illustrate that the multimodal family can serve real-time applications such as on-device OCR, speech-to-text, or visual question answering without offloading to a server.\n\n## The takeaway  \n\nLFM3 packs more expressive power per parameter by mixing gated convolutions, sliding-window attention and global attention in a tri-hybrid backbone. That design keeps inference fast on a wide range of edge hardware while still delivering a 25 % speed boost for 8 K-token contexts. Because the entire family is open-weight and fine-tunable on a single GPU, developers can quickly specialize a 2 B-parameter multimodal model and deploy it wherever their application runs.",
+  "sources": [
+    {
+      "title": "Introducing LFM3: Every Modality for Specialized Intelligence",
+      "url": "https://www.liquid.ai/blog/lfm3"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 9,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/lfm3-brings-multimodal-models-to-the-edge.jpg",
+  "thumbnailCredit": {
+    "name": "Igor Omilaev",
+    "url": "https://unsplash.com/@omilaev?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-chip-with-the-letter-a-on-top-of-it-eGGFZ5X2LnA?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
