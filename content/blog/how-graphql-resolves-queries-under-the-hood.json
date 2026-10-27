@@ -1,0 +1,33 @@
+{
+  "slug": "how-graphql-resolves-queries-under-the-hood",
+  "title": "How GraphQL resolves queries under the hood",
+  "date": "2026-10-27",
+  "excerpt": "GraphQL parses a query string into an AST, validates it, then runs a recursive resolver tree that can cause N+1 database calls without batching.",
+  "tags": [
+    "Backend",
+    "Web",
+    "Data"
+  ],
+  "body": "A recent production incident showed a single GraphQL query that asked for twenty posts and their authors fire seventy-one distinct SQL statements in under ten milliseconds. The database CPU spiked to 100 percent and latency jumped from fifty milliseconds to four seconds.\n\nThe root cause was not a mysterious optimizer; it was the way the GraphQL engine walks the query structure. Understanding the three phases the engine runs through, parsing, validation, and resolver execution, lets developers spot the same pattern before it hurts production.\n\n## Phase 1 parsing the query into an AST\n\nWhen a client sends a request, it arrives as a plain JSON payload, for example:\n\n```json\n{ \"query\": \"query GetUser { user(id: \\\"42\\\") { name email } }\", \"variables\": {} }\n```\n\nThe GraphQL runtime cannot work with that raw string. First, a lexer tokenizes the characters into discrete pieces such as keywords, names, braces, and literals. Those tokens are then fed to a parser that builds an Abstract Syntax Tree (AST). The AST is a nested JavaScript object that captures the grammatical structure of the query, independent of whitespace or line breaks.\n\nA minimal query `{ user { name } }` turns into an AST that looks like this:\n\n```json\n{\n  \"kind\": \"Document\",\n  \"definitions\": [\n    {\n      \"kind\": \"OperationDefinition\",\n      \"operation\": \"query\",\n      \"selectionSet\": {\n        \"kind\": \"SelectionSet\",\n        \"selections\": [\n          {\n            \"kind\": \"Field\",\n            \"name\": { \"kind\": \"Name\", \"value\": \"user\" },\n            \"selectionSet\": {\n              \"kind\": \"SelectionSet\",\n              \"selections\": [\n                {\n                  \"kind\": \"Field\",\n                  \"name\": { \"kind\": \"Name\", \"value\": \"name\" }\n                }\n              ]\n            }\n          }\n        ]\n      }\n    }\n  ]\n}\n```\n\nThis object is the exact input the execution engine will later traverse. Because the engine works with a deterministic tree, any variations in formatting, extra spaces or line breaks, are irrelevant. The source for this description is the article “GraphQL Isn’t Magic: How ASTs, Resolvers, and DataLoaders Actually Work Under the Hood” on dev.to【https://dev.to/smtahosin/graphql-isnt-magic-how-asts-resolvers-and-dataloaders-actually-work-under-the-hood-17gp】.\n\n## Phase 2 validating the AST against the schema\n\nBefore any resolver runs, the engine validates the AST against the GraphQL schema. This static check answers three essential questions:\n\n1. Does the field exist on the parent type?  \n2. Does the field accept the arguments supplied, and are those arguments the correct scalar type?  \n3. Does the return type contain the sub-fields requested?\n\nIf any of these checks fail, validation aborts and the client receives an error response. No resolver code is executed, which means malformed queries never reach the database layer. The validation step is why a typo like `usernmae` results in an immediate “field does not exist on type Query” error rather than a silent performance hit.\n\n## Phase 3 executing the resolver tree\n\nAfter a successful validation, the engine walks the AST recursively, calling a resolver function for each field node. A resolver receives four arguments, parent, args, context, and info, and returns either a scalar value, an object, or a promise. The recursion builds a resolver tree that mirrors the AST shape.\n\nBecause each field resolves independently, a naïve implementation often triggers the N + 1 problem. Consider a query that fetches a user’s posts and each post’s author. If the `posts` resolver returns an array of post objects, the engine will invoke the `author` resolver once per post.\n\nIn a typical relational database, that translates to one query for the user, one for the list of posts, and then an additional query per post to fetch its author. The dev.to article cites a real incident where a single request generated seventy-one SQL statements in less than ten milliseconds, exhausting the connection pool.\n\n### Batching with DataLoader\n\nThe article recommends using a batching utility such as DataLoader. DataLoader collects all resolver calls that occur within the same event-loop tick, groups them by key, and issues a single batched database request. The collected promises are then resolved back to the individual fields. This pattern reduces the N + 1 explosion to a constant number of queries regardless of list size.\n\n### Securing query depth\n\nProduction APIs often limit query depth to prevent malicious clients from constructing arbitrarily deep nested queries that would cause deep recursion and stack overflows. The runtime can reject queries whose AST depth exceeds a configured threshold during the validation phase.\n\n## The takeaway\n\nGraphQL execution is a three-step pipeline: lexing and parsing turn the raw string into an AST, validation checks the tree against the schema, and the resolver tree walks the AST to fetch data.\n\nKnowing that each field triggers its own resolver explains why naïve resolvers cause N + 1 queries, and why tools like DataLoader are essential for batch loading. Use the AST shape to enforce depth limits and validate early, and the system will stay predictable even under heavy load.",
+  "sources": [
+    {
+      "title": "GraphQL Isn't Magic: How ASTs, Resolvers, and DataLoaders Actually Work Under the Hood",
+      "url": "https://dev.to/smtahosin/graphql-isnt-magic-how-asts-resolvers-and-dataloaders-actually-work-under-the-hood-17gp"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-graphql-resolves-queries-under-the-hood.jpg",
+  "thumbnailCredit": {
+    "name": "Christopher Gower",
+    "url": "https://unsplash.com/@cgower?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-macbook-with-lines-of-code-on-its-screen-on-a-busy-desk-m_HRfLhgABo?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
