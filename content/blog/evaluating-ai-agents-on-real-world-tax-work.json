@@ -1,0 +1,32 @@
+{
+  "slug": "evaluating-ai-agents-on-real-world-tax-work",
+  "title": "Evaluating AI agents on real-world tax work",
+  "date": "2026-10-28",
+  "excerpt": "DAYJOB: Tax tests AI agents across 50 messy tax assignments to see if they can deliver professional-grade results.",
+  "tags": [
+    "AI",
+    "Data"
+  ],
+  "body": "A tax adviser received a client’s one-sentence request to compare two possible closing dates for a condo sale. The client’s records included PDFs of prior returns, an Excel ledger, and a photo of a handwritten receipt. An AI agent was fed the same folder and asked to produce a professional-grade advisory memo.\n\nThe experiment was part of DAYJOB: Tax, a benchmark that drops AI agents into 50 realistic tax engagements totaling 1,789 files. The goal is to see whether an agent can move from a vague request to a finished deliverable while surfacing hidden issues a human would flag.\n\nThe benchmark tests more than arithmetic correctness. It measures information gathering, judgment about what matters, and the ability to produce work that meets a 95 % rubric covering calculations, evidence, and professional standards. This post explains how the benchmark is structured, what the data looks like, and what the leaderboard reveals about current model trade-offs.  \n\nReaders will come away with a concrete sense of the challenges AI faces in professional tax work and a clear metric to compare models on judgment, not just number-crunching.  \n\n## How DAYJOB: Tax evaluates professional judgment  \n\nEach assignment mimics a mini-engagement. An agent receives a client request, often a single sentence, plus a folder that may contain incomplete, contradictory, or unexpected records. The agent must produce the appropriate tax output: a return, workpapers, a technical review, or advisory advice. Success depends on three abilities:  \n\n1. locating the right PDFs, Excel sheets, or photos and extracting the needed data;  \n2. interpreting which facts matter, spotting gaps, and flagging issues the client never asked about;  \n3. assembling calculations, citations, and narrative that satisfy a rubric requiring at least 95 % of the criteria.  \n\nThe benchmark therefore mirrors the real-world expectation that a tax adviser not only knows the law but also takes ownership of the whole workflow, from request to final report.  \n\n## What the benchmark data looks like  \n\nAcross the 50 environments, the median file count per assignment is 30, with a maximum of 123. The collection includes 1,487 PDFs, 117 Excel workbooks, 38 Word documents, plus emails, images, CSVs, JSON records, and plain-text files. Typical contents are filed and draft returns, K-1s, W-2s, IRS notices, general ledgers, payroll records, contracts, and occasional photographs of handwritten receipts that must be read and reconciled.  \n\nA concrete case illustrates the depth of the task. Anna moved out of her condo in August 2024 and asked whether closing the sale in October 2026 or January 2027 would be better for taxes. The rule requires ownership of the residence for at least two of the five years before sale to qualify for a $250,000 exclusion. Both dates satisfy that rule, and an AI agent correctly reported eligibility for each option.  \n\nThe benchmark, however, expects the agent to note the August 2027 deadline: if the sale is delayed past that month, the two-year residency window closes and the exclusion is lost. The Opus model identified that deadline in all five attempts, while the Astra model missed it every time. The example shows that a correct answer to the explicit question is not enough; professional judgment means surfacing hidden, consequential constraints.  \n\n## Leaderboard results and performance trade-offs  \n\nThe DAYJOB: Tax leaderboard reports pass@1 rates at the 95 % rubric threshold. Claude Sonnet 5.5 leads with a 10.8 % pass rate, followed by Claude Fable 5.1 at 9.6 % and Claude Opus 5.5 at 9.2 %【https://surgehq.ai/blog/dayjob-tax】. The scores are low by absolute standards, underscoring how challenging the benchmark is.  \n\nPerformance is not a single dimension. The report also compares average cost per trial, placing Claude Sonnet 5.5 and Opus 5.5 on the high-performance end of a Pareto frontier. That means they achieve relatively higher pass rates for a given computational cost, while cheaper models fall far behind on judgment tasks.  \n\nThe trade-off becomes clear when looking at the condo example. Opus’s ability to flag the August 2027 deadline came at a modest cost increase, yet it delivered a more complete advisory output. Models that focus solely on calculation accuracy may pass the numeric checks but still lose points for missing consequential issues, pulling them down the leaderboard despite lower run-time expenses.  \n\n## The takeaway  \n\nDAYJOB: Tax shows that professional judgment is the bottleneck for AI agents in real-world tax work. An agent can get the numbers right and still fall short if it does not surface hidden deadlines or conflicts. The current best models achieve just over ten percent pass rates, so there is ample room for improvement. When evaluating AI for tax advisory roles, prioritize models that balance cost with the ability to uncover consequential issues, not just raw calculation accuracy.",
+  "sources": [
+    {
+      "title": "Dayjob: Tax – evaluating AI agents on 50 professional tax assignments",
+      "url": "https://surgehq.ai/blog/dayjob-tax"
+    }
+  ],
+  "popularity": 6,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/evaluating-ai-agents-on-real-world-tax-work.jpg",
+  "thumbnailCredit": {
+    "name": "Kelly Sikkema",
+    "url": "https://unsplash.com/@kellysikkema?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/hands-holding-tax-forms-with-calculator-and-laptop-8XrYtOYQDRU?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
