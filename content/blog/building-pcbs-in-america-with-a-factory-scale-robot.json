@@ -1,0 +1,31 @@
+{
+  "slug": "building-pcbs-in-america-with-a-factory-scale-robot",
+  "title": "Building PCBs in America with a factory-scale robot",
+  "date": "2026-10-28",
+  "excerpt": "The Grid builds U.S. circuit boards in four days for $630, beating Shenzhen quick-turn shops on speed despite a modest price premium.",
+  "tags": [
+    "Systems"
+  ],
+  "body": "A 4-layer motor controller with 118 parts per board (38 unique) arrived from The Grid in four days for $630, while the same five-board order from a typical quick-turn shop in Shenzhen took nine days and cost $465 after shipping and U.S. tariffs. The price gap is about $165, but the time saved translates into five extra days of engineering work, a trade-off most hardware teams find worthwhile.\n\nThe Grid swaps the classic fixed assembly line for a single, factory-scale robot that carries each board along its own path. Because there is no line to reconfigure, changeovers disappear and domestic shipping replaces overseas freight. The result is a supply chain that can keep pace with rapid design iterations without the customs headaches that usually accompany offshore production.\n\n## One robot replaces an entire line\n\nTraditional PCB factories consist of a sequence of stations that must be manually retuned whenever a new design arrives. Retooling can consume hours, which is why many companies either outsource to low-cost labor or accept long lead times. The Grid eliminates that line entirely. A levitating mover transports each board and its components between machines that print solder paste, place parts, reflow, solder and inspect.\n\nSince the robot is the only moving element, every board follows a unique route. A batch of 100 different designs runs as smoothly as 100 identical boards, and prototypes share the same equipment as low-volume production runs. No extra setup is required when a design changes.\n\n## AI-driven scheduling keeps the flow smooth\n\nWithout intelligent scheduling, a single robot could quickly become a bottleneck. The Grid combines learned models, AI agents and classic optimization algorithms to decide which board goes where and when. Real-time routing balances machine capacity, part availability and delivery deadlines.\n\nAI agents excel at handling the high-mix nature of the workload, while classic optimizers fine-tune timing to avoid peaks and valleys. The combined approach keeps every machine busy and prevents the stalls that plague manual lines.\n\n## Concrete cost and lead-time comparison\n\nThe source provides a clear side-by-side example. Five assembled copies of the motor controller board, parts included, cost $630 and arrived in four days when built on The Grid. The same order from a typical Shenzhen quick-turn shop cost about $465 after shipping and U.S.\n\ntariffs and took nine days to reach the same address. The Grid is roughly $165 more expensive, but it shaves off five days of engineering time and removes customs complications. For most hardware teams, five days of iteration time outweighs the modest price premium.\n\n## High-mix, low-volume runs finally get automation\n\nMost products never reach the million-unit volumes that justify dedicated production lines. Companies often need ten of one part, a hundred of another, and a new revision the next week. That “high-mix, low-volume” pattern has resisted automation because each new design traditionally required manual changeovers.\n\nThe Grid’s robot sidesteps that cost by treating every board as a unique job on a shared platform. Start-ups, large EV makers, AI labs and other tech firms already use the system for test stations, tooling, R&D and small production batches. Running prototypes and production on the same machines keeps design cycles short and supply chains domestic.\n\n## The takeaway\n\nAutomation can serve high-mix, low-volume PCB orders when the factory revolves around a single, flexible robot instead of a fixed line. The Grid demonstrates that a domestic, robot-driven flow delivers boards in roughly half the time of a typical Shenzhen quick-turn shop, with only a modest cost increase. Teams that value engineering speed and supply-chain reliability should consider a robot-centric production model to get more time back for design work.  \n\n*Source: [CircuitHub, Unveiling The Grid](https://www.circuithub.com/post/unveiling-the-grid)*",
+  "sources": [
+    {
+      "title": "The Grid, a factory-scale robot in Massachusetts that builds PCBs on demand",
+      "url": "https://www.circuithub.com/post/unveiling-the-grid"
+    }
+  ],
+  "popularity": 29,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/building-pcbs-in-america-with-a-factory-scale-robot.jpg",
+  "thumbnailCredit": {
+    "name": "Vishnu Mohanan",
+    "url": "https://unsplash.com/@vishnumaiea?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/microchip-placement-on-circuit-board-zs4gtT8thO0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
