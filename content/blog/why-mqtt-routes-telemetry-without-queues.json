@@ -1,0 +1,31 @@
+{
+  "slug": "why-mqtt-routes-telemetry-without-queues",
+  "title": "Why MQTT routes telemetry without queues",
+  "date": "2026-10-28",
+  "excerpt": "MQTT delivers live telemetry by instantly pushing messages to current subscribers and discarding them when no one is listening.",
+  "tags": [
+    "Systems"
+  ],
+  "body": "The first field-level engineers ever saw was a simple diagram: a sensor publishes PUBLISH \"factory/temp\", the broker receives it, and instantly pushes the payload to every client that has subscribed to *factory/temp*. If no client is listening, the packet disappears. The source notes that this “instant push” is the core of MQTT, not a hidden queue that stores the message for later.\n\nWhat most developers assume when they read “Message Queuing Telemetry Transport” is that the broker holds a FIFO buffer like RabbitMQ or Kafka. The article *MQTT Doesn’t Have Message Queues* makes it clear that MQTT never queues telemetry unless a client explicitly asks for a persistent session. The post will walk through why the broker routes messages directly, when unacknowledged packets are stored, and what that means for designing IoT pipelines.\n\n## The big misconception about MQTT queues\n\nWhen the name MQ appears, engineers picture a durable queue: a publisher drops a task, the broker writes it to disk, and a consumer later pulls it. MQTT skips that whole model. The source describes MQTT as a *space, time, and synchronization decoupling* system.\n\nPublishers and subscribers are completely unaware of each other; they only interact with the broker. The broker does not maintain a per-topic backlog. If a temperature sensor sends a reading and there are zero active subscribers, the broker discards the packet immediately.\n\nThere is no default persistence, no partitioned log, and no “queue” waiting for a client that might reconnect days later. The only time the broker keeps anything is when a client connects with a persistent session (CleanSession = false or CleanStart = false with a Session Expiry Interval). In that case, the broker buffers only the unacknowledged QoS 1 and QoS 2 messages for that specific client ID, not the topic itself.\n\n## How the broker routes messages to subscribers\n\nThe broker keeps an in-memory subscription tree keyed by topic strings. When a PUBLISH packet arrives, the broker looks up the tree, clones the payload, and writes it to each open TCP connection that matches the topic filter. The source gives a concrete flow:  \n\n```\nPUBLISH \"factory/temp\" → broker → instant push to all subscribed clients\n```\n\nIf three dashboards are listening, the broker sends three copies over three sockets, all within milliseconds. Because the fixed header can be as small as two bytes, the protocol adds virtually no overhead, which is why battery-powered sensors can run for years on a coin cell. The article contrasts this with HTTP, where a single number requires hundreds of bytes of ASCII headers, quickly draining bandwidth and power.\n\nThe routing is purely *publish/subscribe*: topics are stateless broadcast channels. There is no queue per topic, no disk spill, and no guarantee that a message will survive a disconnect unless the client has asked for a persistent session. This design explains why MQTT can handle millions of concurrent telemetry streams with minimal latency.\n\n## When persistent sessions store unacknowledged messages\n\nOnly a client that connects with CleanSession = false (MQTT 3.1.1) or CleanStart = false plus a Session Expiry Interval (MQTT 5.0) gets special treatment. In that scenario, the broker retains any QoS 1 or QoS 2 packets that have not yet been acknowledged. The source emphasizes that the broker buffers *only* those unacknowledged messages for the known ClientId.\n\nIt does not create a queue for the topic; the topic remains a live broadcast channel. When the client reconnects, the broker delivers the stored packets in order, satisfying the QoS contract. If the client never reconnects, the buffered messages eventually expire according to the session expiry settings and are discarded.\n\nThis behavior is a trade-off. The catch is that it adds a small amount of state to the broker, which can grow if many clients use persistent sessions and publish at high QoS levels. However, for most telemetry use cases, where QoS 0 is sufficient and clients are expected to stay online, the broker remains stateless and ultra-lightweight.\n\n## The takeaway\n\nMQTT routes telemetry by instantly pushing messages to currently connected subscribers; it does not keep per-topic queues. Only persistent sessions cause the broker to buffer unacknowledged QoS 1/2 packets for a specific client. Understanding this distinction helps avoid designing systems that rely on MQTT for durable message storage and keeps IoT architectures lean and responsive.",
+  "sources": [
+    {
+      "title": "MQTT Doesn't Have Message Queues. Inside the 2-Byte Protocol Powering Modern IoT.",
+      "url": "https://dev.to/smtahosin/mqtt-doesnt-have-message-queues-inside-the-2-byte-protocol-powering-modern-iot-161"
+    }
+  ],
+  "popularity": 45,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-mqtt-routes-telemetry-without-queues.jpg",
+  "thumbnailCredit": {
+    "name": "Growtika",
+    "url": "https://unsplash.com/@growtika?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-circular-object-with-a-light-in-it-F-Y1EuDHr-4?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
