@@ -1,0 +1,33 @@
+{
+  "slug": "three-tls-bugs-in-goahead-expose-iot-devices",
+  "title": "Three TLS bugs in GoAhead expose IoT devices",
+  "date": "2026-10-28",
+  "excerpt": "Three TLS bugs in GoAhead can accept revoked certificates, bypass chain-depth limits, or leak DH keys, affecting millions of embedded devices.",
+  "tags": [
+    "Security",
+    "Backend",
+    "Systems"
+  ],
+  "body": "GoAhead powers the web-based management consoles of hundreds of millions of devices, from home routers and office printers to industrial controllers and military-grade equipment. A recent security analysis uncovered three independent TLS bugs that can break mutual authentication or expose session keys.\n\nEach flaw lives in a different TLS backend and only triggers when particular compile-time flags are set, so the impact varies from one deployment to another. The following sections break down the three bugs, show the exact code that caused them, and list the concrete steps needed to harden a GoAhead installation.\n\n## OpenSSL-compatible backend silently accepts revoked client certificates  \n\nGoAhead’s default TLS stack uses an OpenSSL-compatible library. When mutual TLS (mTLS) is enabled, the macro `ME_GOAHEAD_SSL_REVOKE` points at a PEM-encoded Certificate Revocation List (CRL). The source code loads the file into the X509 store:\n\n```c\nif (ME_GOAHEAD_SSL_REVOKE && *ME_GOAHEAD_SSL_REVOKE) {\n    store = SSL_CTX_get_cert_store(sslctx);\n    if (!X509_STORE_load_locations(store, ME_GOAHEAD_SSL_REVOKE, 0)) {\n        error(\"Cannot load certificate revoke list: %s\", ME_GOAHEAD_SSL_REVOKE);\n        sslClose();\n        return -1;\n    }\n}\n```\n\nThe load looks correct, but OpenSSL only checks a CRL when the verification context has the flag `X509_V_FLAG_CRL_CHECK` (or `X509_V_FLAG_CRL_CHECK_ALL`). GoAhead never sets either flag, so the verification routine short-circuits:\n\n```c\nint crl_check_enabled = (ctx->param->flags &\n    (X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL)) != 0;\nif (!crl_check_enabled && !ocsp_check_enabled) return 1;\n```\n\nBecause `crl_check_enabled` is always false, the function returns success before examining revocation status. The result is a critical CVSS 9.1 bug (GOAHEAD-SA-2026-0006): a revoked client certificate is accepted even when `ME_GOAHEAD_SSL_VERIFY_ISSUER` is enabled. Devices that rely on CRL checks for mTLS therefore allow compromised or stolen certificates to authenticate.\n\n## LibreSSL legacy verifier bypasses chain-depth restriction  \n\nSome builds link against LibreSSL’s legacy verifier, present in versions 3.2.x and 3.3.2, 3.3.6. The verifier respects two compile-time macros: `VERIFY_PEER=1` (require a client certificate) and `VERIFY_ISSUER=0` (disable issuer checking). When `VERIFY_PEER` is set but `VERIFY_ISSUER` is disabled, the verifier accepts client chains that exceed the configured depth limit of ten certificates.\n\nAn attacker can present a chain with more than ten intermediate CAs and the device will still complete the handshake, effectively nullifying the depth check. The bug carries a high CVSS 7.4 rating (GOAHEAD-SA-2026-0004). The source does not enforce the depth limit because the legacy verifier skips issuer validation entirely when `VERIFY_ISSUER` is zero.\n\n## Mbed TLS typo makes DH parameters recoverable  \n\nWhen GoAhead is built with Mbed TLS, the code that copies Diffie-Hellman (DH) parameters contains a buffer-length typo. The implementation truncates a 2048-bit DH modulus to a single byte before passing it to the cryptographic routine:\n\n```c\n/* buggy copy, length should be sizeof(modulus) */\nmemcpy(dst, src, 1);\n```\n\nThe typo reduces the effective modulus from 2048 bits to 8 bits. A TLS 1.2 `DHE_RSA` session negotiated with a client that accepts the broken parameters can be decrypted by anyone who knows the typo, because the secret is effectively a one-byte value. This medium-severity bug (CVSS 5.9, GOAHEAD-SA-2026-0005) only affects devices that enable finite-field DHE suites.\n\n## Mitigation checklist  \n\n- Upgrade to GoAhead 6.1.1 or later. The release sets the CRL flag in the OpenSSL backend, fixes the LibreSSL depth check, and corrects the Mbed TLS copy length.  \n- If an upgrade is not possible, replace the OpenSSL backend with a library that enforces CRL checks by default, such as LibreSSL 4.x or a recent OpenSSL build.  \n- Ensure `ME_GOAHEAD_SSL_VERIFY_ISSUER=1` (or `VERIFY_ISSUER=1` for LibreSSL) and provide a PEM bundle of trusted CAs. This forces issuer verification and re-enables the chain-depth limit.  \n- Disable finite-field DHE suites in the server configuration when using Mbed TLS. The option is typically exposed as `ME_GOAHEAD_SSL_DHE_DISABLE=1` or through the server’s cipher-suite list.  \n\n## The takeaway  \n\nThree distinct TLS bugs can undermine GoAhead deployments: the OpenSSL-compatible backend ignores loaded CRLs, the LibreSSL legacy verifier skips chain-depth checks when issuer verification is off, and a Mbed TLS typo leaks DH parameters. Upgrading to GoAhead 6.1.1 or later, enabling issuer verification, disabling vulnerable DHE suites, and confirming that CRL checking is active close the most severe attack surfaces across the billions of IoT, firewall, and industrial devices that embed GoAhead.  \n\n*Source: [Three TLS Bugs in GoAhead](https://foxio.io/blog/choose-your-backend-three-tls-bugs-in-goahead)*",
+  "sources": [
+    {
+      "title": "Three TLS Bugs in GoAhead",
+      "url": "https://foxio.io/blog/choose-your-backend-three-tls-bugs-in-goahead"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/three-tls-bugs-in-goahead-expose-iot-devices.jpg",
+  "thumbnailCredit": {
+    "name": "Dan Nelson",
+    "url": "https://unsplash.com/@danny144?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/smartphone-with-security-lock-icon-ah-HeguOe9k?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
