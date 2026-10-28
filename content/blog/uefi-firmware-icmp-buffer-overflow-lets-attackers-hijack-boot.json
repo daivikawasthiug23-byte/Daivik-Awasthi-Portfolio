@@ -1,0 +1,32 @@
+{
+  "slug": "uefi-firmware-icmp-buffer-overflow-lets-attackers-hijack-boot",
+  "title": "UEFI firmware ICMP buffer overflow lets attackers hijack boot",
+  "date": "2026-10-28",
+  "excerpt": "A 16-year-old overflow in the EDK2 PXE driver can let attackers run code before Secure Boot can protect the system.",
+  "tags": [
+    "Security",
+    "Systems"
+  ],
+  "body": "The PXE-Base Code driver in the EDK II firmware stack sits in the path that lets servers pull a boot image over the network. While waiting for that image, the driver listens for ICMP error packets and copies each one into a fixed 504-byte field called `Mode.IcmpError`. Because the copy routine never checks the packet length, a crafted ICMP message that exceeds 504 bytes spills past the buffer and overwrites whatever sits next to it in memory.  \n\nArs Technica reports that this overflow lets an attacker hijack execution before the operating system or Secure Boot can intervene, giving the attacker control at a point where the firmware still has unrestricted access to the TPM and other sensitive components. The article also notes that final payloads have no persistence, but they open a window to install secondary code that runs on every boot.\n\n## The vulnerable component lives in the PXE-Base Code driver  \n\nPXE-Base Code (`NetworkPkg/UefiPxeBcDxe`) implements network-boot support in most server-class UEFI firmware. Vendors such as AMI, Insyde, Phoenix and Microsoft’s Project Mu ship firmware that includes this driver directly from the TianoCore EDK II codebase. Because the overflow resides entirely inside this driver, any platform that uses the unpatched source inherits the bug.\n\n## How the ICMP copy loop overruns the buffer  \n\nWhen an ICMP error arrives, the driver calls either `PxeBcIcmpErrorDpcHandle` (IPv4) or `PxeBcIcmp6ErrorDpcHandle` (IPv6). Both functions copy the packet into `Mode.IcmpError` with a simple loop:\n\n```c\nwhile (bytes_remaining) {\n    *dest++ = *src++;\n    bytes_remaining--;\n}\n```\n\nThe loop never checks whether `dest` has reached the end of the 504-byte array. In addition, the pointer advancement uses the cumulative length of the packet rather than the length of each fragment, so a packet larger than 504 bytes continues writing into whatever memory follows the array.\n\nThe source notes that “nothing earlier on the receive path restricts the message length,” meaning the overflow is guaranteed to occur if an attacker supplies an oversized ICMP error. The result is corruption of adjacent data structures and, ultimately, control-flow hijack.\n\n## Why early-boot execution bypasses Secure Boot  \n\nSecure Boot establishes a chain of trust for all code loaded after the firmware’s measured boot process. The ICMP overflow triggers before the OS loader runs, in the very early stage where the firmware is still executing its own drivers. Because the vulnerability lives inside the firmware itself, the malicious payload runs with the same privileges as the firmware and can reach sensitive components such as the TPM.  \n\nThe article points out that the payload “runs before the operating system and firmware can implement defenses like Secure Boot.” In practice this means an attacker can install a second-stage payload that persists across reboots, or even tamper with disk-encryption keys while the TPM is still accessible.\n\n## The patching challenge for millions of servers  \n\nA CVSS score of 9.5 reflects the severity of the flaw, which has been part of the EDK II reference implementation for roughly 16 years. Virtually every server vendor ships firmware that includes the unpatched driver. AMI published a pull request with a fix, and TianoCore released a public advisory, but applying the update requires flashing new firmware on every device in a data center.  \n\nThe source emphasizes that “patching UEFI code vulnerabilities in millions of end devices … is cumbersome and time-consistent.” Firmware updates often need a full system reboot, coordination with hardware maintenance windows, and verification that the new image does not break vendor-specific extensions. For cloud providers with tens of thousands of machines, the logistical overhead can stretch weeks, leaving a large attack surface in the meantime.\n\n## The takeaway  \n\nThe ICMP buffer overflow lives in a widely used PXE-Base Code driver and lets an attacker hijack execution before Secure Boot can protect the system. Because the overflow occurs in early-boot firmware, the usual OS-level mitigations are ineffective. The practical mitigation is to apply the vendor-supplied firmware patch as soon as possible and to audit any custom PXE implementations for proper bounds checking.",
+  "sources": [
+    {
+      "title": "Code-execution flaw in UEFI firmware threatens most servers on planet Earth",
+      "url": "https://arstechnica.com/security/2026/10/code-execution-flaw-in-uefi-firmware-threatens-most-servers-on-planet-earth/"
+    }
+  ],
+  "popularity": 6,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/uefi-firmware-icmp-buffer-overflow-lets-attackers-hijack-boot.jpg",
+  "thumbnailCredit": {
+    "name": "Alexandre Debiève",
+    "url": "https://unsplash.com/@alexkixa?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/macro-photography-of-black-circuit-board-FO7JIlwjOtU?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
