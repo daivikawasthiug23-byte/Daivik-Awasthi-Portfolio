@@ -1,0 +1,32 @@
+{
+  "slug": "accelerating-drug-development-with-claude",
+  "title": "Accelerating drug development with Claude",
+  "date": "2026-10-28",
+  "excerpt": "Anthropic’s Claude is being used across multiple biotech partners to speed target identification, molecule design, and trial planning.",
+  "tags": [
+    "AI",
+    "Data"
+  ],
+  "body": "A partnership between Anthropic’s life-sciences team and Generate Biomedicines showed how Claude can cut a key CAR-T genetic segment dramatically. The shortened design let immune cells display many more receptors, kill tumor cells more efficiently and stay active longer in laboratory tests. The result illustrates a broader pattern: Claude is being woven into many stages of drug development, from target discovery to clinical-trial paperwork.\n\nOver the past several months, Anthropic has worked with six biotech groups, BigHat Biosciences, Bristol Myers Squibb, Divergence Labs, Enveda, Generate Biomedicines and The Column Group, to test Claude across the full drug-development pipeline. The collaborations serve three purposes. First, they expose the model’s strengths and gaps.\n\nSecond, they provide concrete case studies for the wider life-sciences community. Third, they aim to deliver new medicines for cancers, rare childhood diseases and food allergies. The sections below highlight three concrete ways Claude is already adding speed and insight.\n\n## Claude supports early target research and design  \n\nFinding the right biological target is often the first bottleneck. Researchers must sift through genomic data, literature and assay results to decide which protein or pathway to modulate. Claude can ingest thousands of papers and experimental readouts, then surface the most promising candidates with a concise rationale. In the partnership with Enveda, Claude helped prioritize metabolic enzymes linked to a rare childhood form of muscular dystrophy, narrowing a long list of possibilities to a handful of high-confidence targets within days.\n\nThe model also drafts early-stage assay plans. By prompting Claude with a target description, teams receive a step-by-step experimental outline, complete with suggested controls and readout methods. This reduces the time spent on internal brainstorming meetings and lets scientists move to the bench faster. The source notes that Claude is being used to “handle much of the scientific and operational work” on Anthropic’s own rare-disease programs, indicating that the approach scales beyond a single partner.\n\n## Claude helps redesign CAR-T cell therapy components  \n\nCAR-T therapy has transformed treatment for certain blood cancers, but extending it to solid tumors requires more genetic payload space. Generate Biomedicines tasked six scientists with shortening a regulatory element of the CAR construct. Using Claude Code, the team generated multiple alternative sequences. One proposal was about 70 percent shorter than the standard version, and lab tests showed immune cells built roughly ten times more receptors, killed tumor cells more efficiently and remained active longer.\n\nThe key advantage was speed. Where manual sequence engineering might take weeks of trial-and-error, Claude produced viable candidates in a single interactive session. The model also suggested codon-optimization tweaks that improved expression without sacrificing safety. The technical report linked in the Anthropic post provides the detailed experimental validation, but the headline result, dramatically higher receptor density from a compact gene segment, demonstrates how AI can reshape a core component of cell-therapy design.\n\n## Claude aids in novel allergy-treatment hit generation  \n\nDivergence Labs is pursuing a two-arm molecule that detaches IgE from immune-cell surfaces, a strategy that could outperform existing allergy drugs which only neutralize free IgE. Designing such a bifunctional binder requires precise geometry and balanced affinities. Claude was prompted with the functional requirements and returned a ranked list of candidate sequences, each annotated with predicted binding energies and manufacturability scores.\n\nThe model’s output served as a starting point for rapid synthesis and screening. Within a month, Divergence Labs identified a lead that met the dual-binding criteria and progressed to in-vitro efficacy testing. The source describes this as “hit generation,” emphasizing that Claude’s role was to accelerate the early chemistry stage rather than replace downstream optimization. By providing a curated set of plausible hits, Claude reduced the number of blind experiments and cut the hit-identification cycle from several months to weeks.\n\n## The takeaway  \n\nClaude is being embedded across the drug-development chain, from target prioritization to molecular redesign and hit generation. In the CAR-T case, Claude Code produced a design 70 percent shorter that boosted receptor expression tenfold, showing tangible lab-level gains. Teams that integrate Claude into early research and design loops can expect faster hypothesis testing, fewer manual iterations and clearer paths to experimental validation.",
+  "sources": [
+    {
+      "title": "Early progress on accelerating drug development with Claude",
+      "url": "https://www.anthropic.com/research/early-progress-drug-development"
+    }
+  ],
+  "popularity": 22,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 6
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/accelerating-drug-development-with-claude.jpg",
+  "thumbnailCredit": {
+    "name": "Navy Medicine",
+    "url": "https://unsplash.com/@navymedicine?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/scientist-in-lab-coat-with-petri-dishes-and-equipment-4v5IFWPzcgM?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
