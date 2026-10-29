@@ -1,0 +1,33 @@
+{
+  "slug": "getting-debug-access-on-a-brother-printer-via-telnet",
+  "title": "Getting debug access on a Brother printer via Telnet",
+  "date": "2026-10-29",
+  "excerpt": "A Brother MFC-L8900CDW firmware dump reveals it runs the TRON-family T-Kernel on an ARM processor.",
+  "tags": [
+    "Security",
+    "Systems",
+    "AI"
+  ],
+  "body": "Downloading the firmware binary  \nThe Brother MFC-L8900CDW series does not expose a plain *.bin* file on its support page. Instead the official updater expects a SOAP-style XML payload that describes the target model, driver and desired firmware version. By reproducing that request with curl, the exact binary the printer downloads can be retrieved. The following one-liner works for the NC-8700w command console and any MFC-L8900CDW unit:\n\n```bash\ncurl -sS 'https://firmverup.brother.co.jp/kne_bh7_update_nt_ssl/ifax2.asmx/fileUpdate' \\\n  -H 'Content-Type: text/xml' --data-binary @- <<'XML'\n<REQUESTINFO>\n  <FIRMUPDATETOOLINFO>\n    <FIRMCATEGORY>MAIN</FIRMCATEGORY>\n    <OS>MAC</OS>\n    <INSPECTMODE>0</INSPECTMODE>\n  </FIRMUPDATETOOLINFO>\n  <FIRMUPDATEINFO>\n    <MODELINFO>\n      <NAME>MFC-L8900CDW series</NAME>\n      <SPEC>0001</SPEC>\n      <DRIVER>EWS</DRIVER>\n      <FIRMINFO>\n        <FIRM>\n          <ID>MAIN</ID>\n          <VERSION>ZU2605160228</VERSION>\n        </FIRM>\n      </FIRMINFO>\n    </MODELINFO>\n    <DRIVERCNT>1</DRIVERCNT>\n    <LOGNO>2</LOGNO>\n    <NEEDRESPONSE>1</NEEDRESPONSE>\n  </FIRMUPDATEINFO>\n</REQUESTINFO>\nXML\n```\n\nSwapping the `<VERSION>` element for `B0000000000` also yields a valid response, showing that the server validates only the format, not the actual version string. The reply contains a `<PATH>` element that points to an HTTP URL where the firmware archive is hosted. Downloading that file provides the raw `ZlibRo.bin` and `KernelRo.bin` sections used later in analysis.\n\n## Extracting the T-Kernel runtime  \n\nUnpacking the archive reveals two main binaries. Running `strings` or opening the files in a hex editor quickly surfaces the literal “T-Kernel” at offset 0x019c7d8b in `ZlibRo.bin`. A handful of nearby identifiers, “OS_Ver”, “TSysName” and “TMaxTskId”, confirm that the firmware is built on the TRON-family T-Kernel rather than a generic Linux stack.\n\nFurther clues appear in `KernelRo.bin`. At offset 0x0000e188 the text “T-Monitor Initialize” is followed by the prompt string “TM>”. The following bytes decode as ARM little-endian instructions (`SUB lr, lr, #4` and `PUSH {r3,r12,lr}`), matching the 32-bit ARM core used in the printer. The binary also contains ARM exception registers (R0-R15, CPSR) and separate handlers for undefined ARM and Thumb instructions, confirming a mixed-mode ARM environment typical of T-Kernel deployments.\n\n## Library and component fingerprints  \n\nBeyond the obvious RTOS markers, the extracted binaries expose several library names that hint at the printer’s software stack. In `ZlibRo.bin` the string “Datalight Reliance Nitro v3.0.6 Build 2306EC” appears at offset 0x010050e4, indicating that the flash-memory driver relies on Datalight’s Reliance Nitro file system. Another entry reads “RTOS Edition for” followed by the model name, showing that Brother ships a customized T-Kernel image tailored to the MFC-L8900CDW hardware.\n\nThe kernel section also lists semaphore and mutex configuration names after the “TMaxTskId” marker. Those names follow the standard ITRON API, suggesting that task scheduling and inter-task synchronization are handled by the built-in ITRON primitives.\n\n## SWI vectors as potential debug hooks  \n\nThe firmware contains several software-interrupt (SWI) vectors that could be invoked from a Telnet session if the command console exposes them. Notable entries include:\n\n- SWI #6 at 0x019c0450, labeled “T-Kernel/OS & Extended SVC”  \n- SWI #9 at 0x019c050f, labeled “T-Kernel/DS”\n\nThese vectors provide entry points into the kernel’s system-call layer. Knowing their addresses is useful when crafting low-level commands to probe the kernel or to trigger a debug shell. The presence of task-management symbols such as “TASK STACK INFORMATION for ITRON” further suggests that a knowledgeable user could manipulate task states via the console.\n\n## Putting it together for Telnet access  \n\nWith the firmware in hand, the reverse-engineered information points to a concrete attack surface:\n\n1. Connect to the printer’s Telnet port (usually 23).  \n2. Issue a command that maps to one of the identified SWI vectors.  \n3. Use the “TM>” prompt string as a sanity check that the console is running the T-Monitor.  \n\nBecause the RTOS is not Linux, typical Linux-style root shells are unavailable. Instead, gaining control means interacting with the T-Kernel’s monitor and its SWI-based system calls. The identified strings and vectors give a clear roadmap for building those interactions.\n\n## The takeaway  \n\nThe Brother MFC-L8900CDW firmware can be fetched with a single crafted XML request, and the resulting binaries reveal a 32-bit ARM device running the TRON-family T-Kernel RTOS. Key strings such as “T-Kernel”, the SWI numbers, and the Datalight Reliance Nitro identifier pinpoint the runtime and storage layer. Use the discovered SWI vectors and task-management symbols as entry points when attempting to gain deeper console access via Telnet.",
+  "sources": [
+    {
+      "title": "Getting debug access on a Brother printer over Telnet",
+      "url": "https://inventor7777.github.io/blog/2026/10/22/debug-access-on-brother/"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/getting-debug-access-on-a-brother-printer-via-telnet.jpg",
+  "thumbnailCredit": {
+    "name": "Mahrous Houses",
+    "url": "https://unsplash.com/@mahrous_houses?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/white-and-gray-hp-all-in-one-printer-5AoOejjRUrA?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
