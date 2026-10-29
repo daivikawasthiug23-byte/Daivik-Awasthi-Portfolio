@@ -1,0 +1,33 @@
+{
+  "slug": "gemma-4-quantization-tradeoffs-on-a-tesla-t4",
+  "title": "Gemma 4 quantization tradeoffs on a Tesla T4",
+  "date": "2026-10-29",
+  "excerpt": "Q5_K_M keeps BF16 accuracy while running almost twice as fast on a T4 GPU.",
+  "tags": [
+    "AI",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "## Building the quantization ladder  \n\nThe author ran `ladder.sh` to produce nine GGUF files for Gemma 4 E2B: BF16, F16 and seven quantized variants. The script prints each file’s byte size and SHA-256 hash, creating a reproducible inventory of model footprints. For every rung it launches a dedicated `llama-server` instance, feeds the same 250 GSM8K questions at temperature 0, and records the single most likely answer.  \n\n`graveyard.py` then compares each answer to the BF16 reference. A dead count records questions BF16 got right but the rung got wrong. The first rung where a question dies receives a tombstone marker, and any question that BF16 missed but the rung answers correctly becomes a ghost.\n\nThe script also reports dead, tombstone and ghost totals per rung and can repeat a run to verify deterministic behavior. All counts are committed to the repository, so the entire ladder can be rebuilt exactly.\n\n## Accuracy loss and recovery across rungs  \n\nAgainst the 229 / 250 questions BF16 answers correctly, the quantized models show a clear pattern. Q8_0, Q6_K and Q5_K_M stay within two points of BF16, losing at most five answers and gaining a few ghosts. Q4_K_M and Q4_0 each lose five and seven answers respectively, but they also resurrect some previously dead questions.  \n\nThe biggest drop appears at Q3_K_M, which loses 38 answers compared with BF16. Q2_K collapses further, ending with only three correct answers. Enabling the “thinking on” flag lets Q3_K_M regain 17 of those losses, climbing from 191 to 208 correct answers.  \n\nA single accuracy number can hide the composition of loss and gain. For example, Q4_0’s score of 222 is derived as 229 − 15 (dead) + 8 (ghosts). The graveyard view shows that 15 questions die at Q4_0 while eight different questions, previously dead at higher rungs, are resurrected here.\n\n## Speed versus size for each quantized model  \n\nSize and decode speed scale roughly linearly with the quantization level. BF16 serves as the baseline: it has the largest file size and the slowest decode speed.  \n\n- Q5_K_M occupies 39 % of BF16’s bytes and decodes 1.97 × faster, while matching BF16’s score (231 correct versus 229). The two extra correct answers come from five ghosts outweighing three dead, a difference the author calls “within the noise.”  \n- Q4_0 is the fastest rung, running 2.34 × faster than BF16, but it sacrifices nine correct answers relative to Q5_K_M, ending at 222 correct.  \n- Q4_K_M sits between the two, offering a moderate speed boost and a modest accuracy dip.  \n\nAll other rungs are dominated by one of these three. Q8_0 and Q6_K are slower than Q5_K_M and do not improve the answer count. Q3_K_M is slower than Q4_0 and loses 31 answers. Below Q4, accuracy collapses sharply: Q3_K_M loses 38 answers and Q2_K manages only three correct. With thinking on, the ordering stays the same: Q5_K_M = 230, Q4_K_M = 226, Q4_0 = 219, versus BF16’s 227.\n\n## What the graveyard reveals  \n\nThe “graveyard” view records each question that dies, the rung where it first dies, and any lower rung that brings it back to life. A tombstone entry includes the question ID, the correct answer, the wrong answer the rung gave, and every subsequent rung where the answer resurfaces.  \n\nFor instance, test-687 dies at F16 but is answered correctly again at Q8_0, Q6_K, Q5_K_M and Q4_K_M. Conversely, test-1166 asks for an avocado tree’s fruit after ten years; BF16 answers 1 000, while Q8_0, Q6_K and Q4_0 correctly return 2 350. These examples illustrate that quantization moves answers in both directions; a model can lose some questions while gaining others.\n\n## The takeaway  \n\nFor a Tesla T4, Q5_K_M provides the best trade-off: it preserves BF16-level accuracy, uses less than half the storage, and runs almost twice as fast.  \n\nWhen comparing quantized models, look beyond a single accuracy figure. Track dead, tombstone and ghost counts to understand which questions are lost and which are recovered, and weigh those patterns against size and speed to choose the rung that fits your latency and memory constraints.",
+  "sources": [
+    {
+      "title": "Accuracy vs Speed: Gemma 4 E2B Quantization Tradeoffs, BF16 to Q2_K",
+      "url": "https://dev.to/gde/accuracy-vs-speed-gemma-4-e2b-quantization-tradeoffs-bf16-to-q2k-aea"
+    }
+  ],
+  "popularity": 15,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 6,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/gemma-4-quantization-tradeoffs-on-a-tesla-t4.jpg",
+  "thumbnailCredit": {
+    "name": "Igor Omilaev",
+    "url": "https://unsplash.com/@omilaev?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-chip-with-the-letter-a-on-top-of-it-eGGFZ5X2LnA?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
