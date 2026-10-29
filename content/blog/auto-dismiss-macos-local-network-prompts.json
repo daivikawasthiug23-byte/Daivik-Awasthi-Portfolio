@@ -1,0 +1,33 @@
+{
+  "slug": "auto-dismiss-macos-local-network-prompts",
+  "title": "Auto-dismiss macOS local network prompts",
+  "date": "2026-10-29",
+  "excerpt": "A tiny Swift agent automatically clicks Don’t Allow on the macOS “Allow X to find devices on local networks?” dialog, using zero CPU when idle.",
+  "tags": [
+    "Systems",
+    "Dev Tools",
+    "Security"
+  ],
+  "body": "A fresh install of Chrome on macOS Sequoia shows the dialog “Allow Google Chrome to find devices on local networks?” every time the browser starts. The same thing happens for Brave, Edge, Arc and other Chromium-based browsers. The prompt appears even though the user already clicked “Don’t Allow” once, and it repeats on each launch.\n\nThe cause is that these browsers copy their bundle into a temporary folder at start-up, so macOS treats the copy as a new app and forgets the previous decision. The result is a growing list of duplicate entries in the Privacy → Local Network pane, most of which point at nowhere.\n\nThe repository johncassil/dontallow offers a tiny Swift agent that watches for that exact dialog and clicks “Don’t Allow” automatically. It runs with zero CPU while idle, survives reboots, and does not modify any system files. The post explains how the prompt repeats, how the agent works, and how to control its behavior.\n\n## How the prompt repeats for many apps  \n\nmacOS records the Local Network permission per app bundle path. When an app copies itself to a random temporary folder, the system sees a new path and asks again. Chromium browsers do this on every launch, so each run creates a new entry like “Google Chrome.app” that no longer matches the original bundle.  \n\nVersioned install locations suffer the same fate. An app installed under …/versions/1.2.3/ gets a fresh path after each update, and macOS adds another row to the permission list.  \n\nSometimes the dialog is shown for an app that isn’t running at all. macOS pins the alert to the process it deems “responsible”, which can be a background helper that triggered the network request.  \n\nBecause the permission is rarely needed, only printers, scanners, media servers or explicit LAN-discovery tools ask for it, most users end up clicking “Don’t Allow” once and then watching the same prompt reappear for dozens of phantom entries. There is no supported MDM payload to pre-deny the permission, and `tccutil reset` does not clear these rows.\n\n## How the dontallow agent works  \n\nThe agent registers an Accessibility observer on the system process UserNotificationCenter, which owns the alert window. When a new window appears, the observer sleeps until the notification fires. Then it reads the dialog text, confirms it matches the Local Network prompt, checks the pause state and the allowlist, and finally performs an Accessibility press action on the Don’t Allow button.  \n\n> The agent registers an Accessibility observer on the UserNotificationCenter process, reads the dialog text, and presses the Don’t Allow button within a fraction of a second.\n\nIf the press is rejected, the agent falls back to a synthetic click at the button’s screen coordinates. The whole operation happens in a fraction of a second, far faster than a human could react. The agent never modifies system files, never disables protections, and never selects “Allow”. It simply automates the “Don’t Allow” choice.\n\n## Managing pauses and allowlists  \n\nSometimes an app genuinely needs local-network access. The tool provides a `pause` command that silences dismissals for a configurable period (30 minutes, 2 hours, 1 day, or forever). While paused, the agent records each dismissed app in its log, so the user can see which prompts were ignored.  \n\nTo exempt an app permanently, add its name (case-insensitive substring) to `~/.config/dontallow/allowlist`, one entry per line. Prompts matching an allowlist entry are never touched, letting the user grant access manually.  \n\nThe `rules` subcommand decodes the system’s Local Network rule store and shows each privacy row, including orphaned entries that no longer point at a real bundle. This helps clean up the clutter manually if desired.  \n\nA `grace` setting (`~/.config/dontallow/grace`) defines how long the agent waits before clicking “Don’t Allow”. The default is 0.25 seconds, but increasing it gives the user a brief window to press “Allow” manually.\n\n## The takeaway  \n\nThe dontallow agent eliminates repetitive local-network prompts by observing the system dialog and automatically pressing “Don’t Allow”. It works with zero idle CPU, survives reboots, and respects pause and allowlist settings.\n\n## The takeaway  \n\nInstall the agent via Homebrew (`brew install johncassil/tap/dontallow`) or build from source, then use `dontallow status` to confirm it’s active. Add any apps that truly need network access to the allowlist, and use `dontallow pause` when you want to test a change. The result is a cleaner Privacy → Local Network pane and no more annoying prompts.",
+  "sources": [
+    {
+      "title": "Show HN: Auto Dismiss Mac OS \"Allow <app> to find devices on local networks?\"",
+      "url": "https://github.com/johncassil/dontallow"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/auto-dismiss-macos-local-network-prompts.jpg",
+  "thumbnailCredit": {
+    "name": "Claudio Schwarz",
+    "url": "https://unsplash.com/@purzlbaum?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/an-apple-logo-is-shown-on-a-black-background-stPJWNRJ8os?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
