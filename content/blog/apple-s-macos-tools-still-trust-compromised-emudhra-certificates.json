@@ -1,0 +1,33 @@
+{
+  "slug": "apple-s-macos-tools-still-trust-compromised-emudhra-certificates",
+  "title": "Apple's macOS tools still trust compromised eMudhra certificates",
+  "date": "2026-10-29",
+  "excerpt": "Eleven days after Apple was warned, macOS git, curl and python3 still accept the breached eMudhra roots, leaving HTTPS traffic vulnerable.",
+  "tags": [
+    "Security",
+    "Dev Tools",
+    "Systems"
+  ],
+  "body": "Apple was warned on 17 October that the eMudhra certificate authority had been compromised. Eleven days later, the developer tools that ship with macOS, git, curl and python3, still trust the rogue roots.\n\nThe situation got worse when macOS 27.2 arrived on 26 October: the update rolled back the manual workaround that some users had applied, leaving the tools vulnerable again. The source notes that dozens of volunteer-maintained projects had already patched their own copies of these tools, but Apple’s bundled versions remained exposed.\n\nThe post shows how the vulnerable tools can hand over code and credentials, walks through the checks you can run on a Mac, and gives the steps needed to harden the trust store until Apple releases an official fix.\n\n## Apple did not remove the compromised roots in macOS 27.2  \n\nmacOS 27.2 was released on 26 October. Rather than stripping the compromised eMudhra intermediates from the system trust store, the update restored the original `/etc/ssl/cert.pem` file. That file still contains the rogue root certificates, so any Apple-provided binary that relies on the system store inherits the same trust.  \n\nThe source points out that Safari and apps built on Apple’s networking framework have already been patched, but the command-line tools that developers use every day were left untouched. Because the update undid the manual removal many users performed after the initial notification, the vulnerability re-opened for anyone who upgraded without re-applying the fix.\n\n## How the vulnerable tools expose code and credentials  \n\nGit, curl and python3 all use the system certificate bundle when establishing HTTPS connections. When the bundle trusts a compromised intermediate, a man-in-the-middle can present a forged certificate for any host, including GitHub.  \n\n* Git clones and pulls, An attacker can serve a malicious repository when you run `git clone https://github.com/...`. The clone succeeds because the forged certificate validates, and the attacker’s code is executed on your machine.  \n* Git pushes, The same forged certificate lets an attacker tamper with data sent to the remote, potentially altering commits or tags in transit.  \n* Credential leakage, If you push using an HTTPS URL that includes a token (for example `https://<token>@github.com/...`), the token is sent to the attacker’s server instead of GitHub.  \n\nThe source provides a reproducible demo. Running the following command in a temporary directory forces git to resolve `github.com` to a test server that presents a compromised eMudhra certificate:\n\n```\ngit -c http.curloptResolve=github.com:443:15.235.19.186 clone https://fake-user@github.com/galadran/emudhra-git-test\n```\n\nA patched git aborts with a certificate error. If the clone finishes, the README.md begins with the word INTERCEPTED, proving that the connection was hijacked. A real attacker would not need the `-c http.curloptResolve` flag; any network device that can rewrite DNS or intercept traffic could achieve the same result.\n\nCurl behaves identically. The source shows two curl commands that hit test endpoints; a certificate error means the binary is safe, while a successful fetch indicates it still trusts the bad roots.\n\n## Steps to verify and manually fix the trust store  \n\n1. Check git, Run  \n\n   ```\n   git ls-remote https://git-emudhra.we-have-a-problem.com/check.git\n   ```  \n\n   If git prints a commit hash, it is still trusting the compromised CA. If it reports a certificate error, the binary is protected.  \n\n2. Check curl, Run  \n\n   ```\n   curl https://dv-g3b-noct-emudhra.we-have-a-problem.com/\n   curl https://dv-g3b-aaa-noct-emudhra.we-have-a-problem.com/\n   ```  \n\n   A certificate error signals curl is safe; any response means it is vulnerable.  \n\n3. Remove the bad roots, Edit the system bundle at `/etc/ssl/cert.pem`. The community workaround (linked from the main page of the source) shows how to locate the eMudhra intermediate certificates by their subject lines and delete those blocks. Save the file and restart any terminal sessions.  \n\n4. Persist the fix, Apple’s guidance warns that future macOS updates may overwrite `/etc/ssl/cert.pem` and re-introduce the compromised roots. After each system update, repeat the verification steps above and re-apply the manual removal if needed.  \n\n5. Assess CI runners, If your build pipelines use macOS agents, run the same checks on those machines. An attacker who compromises a CI runner could inject malicious code into every build, so the supply-chain risk must be evaluated.  \n\nThe source emphasizes that the community-provided instructions are the only current mitigation until Apple ships an official update that removes the offending roots from the default trust store.\n\n## The takeaway  \n\nApple’s macOS 27.2 update rolled back the manual removal of compromised eMudhra certificates, leaving git, curl and python3 open to man-in-the-middle attacks. Verify the trust status of each tool with the provided commands, delete the rogue intermediates from `/etc/ssl/cert.pem`, and repeat the process after every macOS update. Until Apple releases a fix, the manual removal is the only reliable defense against code and credential interception.",
+  "sources": [
+    {
+      "title": "Apple's git still trusts the compromised eMudhra certificates",
+      "url": "https://emudhra.we-have-a-problem.com/apple.html"
+    }
+  ],
+  "popularity": 79,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/apple-s-macos-tools-still-trust-compromised-emudhra-certificates.jpg",
+  "thumbnailCredit": {
+    "name": "Claudio Schwarz",
+    "url": "https://unsplash.com/@purzlbaum?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/an-apple-logo-is-shown-on-a-black-background-stPJWNRJ8os?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
