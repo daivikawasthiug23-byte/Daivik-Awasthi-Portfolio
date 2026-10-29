@@ -1,0 +1,33 @@
+{
+  "slug": "enforcing-zero-heap-allocations-in-go-with-noalloc",
+  "title": "Enforcing zero heap allocations in Go with noalloc",
+  "date": "2026-10-29",
+  "excerpt": "noalloc lets you assert that a Go function and its call tree allocate no heap memory and reports each allocating line.",
+  "tags": [
+    "Dev Tools",
+    "Backend",
+    "Systems"
+  ],
+  "body": "A recent commit to the noalloc repository flagged a tiny counter method as allocating on the heap. The comment `//noalloc:root` marks the entry point, and the CLI reported a map write, a call to `strconv.Itoa`, and string concatenation as heap allocations. The output makes it clear that the function and everything it calls are being inspected, not just the lines you wrote.\n\nThe walk-through below shows how to use the `noalloc` directives to keep a Go codebase free of heap allocations as it changes, how to exempt or fix problematic lines, and a quick look at the fixed-size containers that the library ships with. By the end you’ll know how to set up a zero-heap check for a critical function and how to use the bounded containers to stay inside a strict memory budget.\n\n## Marking root functions for allocation checks\n\nThe `//noalloc:root` directive tells the CLI to treat the annotated function as the start of an allocation audit. When you run noalloc on the module, it walks the entire call tree from that root and reports every line that triggers a heap allocation.\n\n```go\n//noalloc:root\nfunc (c *Counter) Add(name string, n int) string {\n    c.counts[name] += n\n    return name + \"=\" + strconv.Itoa(c.counts[name])\n}\n```\n\nRunning the tool on the file produces output like:\n\n```\ncounter.go:11: (*example.com/counter.Counter).Add: map write\ncounter.go:12: (*example.com/counter.Counter).Add: calls strconv.Itoa; string concatenation; escapes: name + \"=\" + ~r0 escapes to heap\n```\n\nThe report shows the exact locations that need attention. Because noalloc checks the whole call chain, a hidden allocation inside `strconv.Itoa` is also surfaced. The CLI exits with status 1 when it finds an allocation, making it easy to integrate into CI pipelines.\n\n## Exempting and fixing lines with directives\n\nNot every allocation is a problem. The library provides `//noalloc:exempt <reason>` to silence a line and its downstream calls. Placing the directive on its own line applies it to the next line; putting it at the end of a line applies it to that line.\n\n```go\nc.counts[name] += n //noalloc:exempt map growth during warm-up\nreturn name + \"=\" + strconv.Itoa(c.counts[name]) //noalloc:exempt string building for error messages\n```\n\nThe reason string is free-form, so you can document why the allocation is acceptable, perhaps it only happens during initialization or on a rare error path. The CLI will then skip those lines while still checking the rest of the function.\n\nWhen you prefer to eliminate the allocation, the report points you to the exact operation. In the counter example, replacing the map write with a pre-allocated slice or using a fixed-size container from the `bounded` package can remove the heap write entirely. The noalloc README notes that the tool also supports `//noalloc:fixed` on types whose methods never grow slices, allowing the checker to treat slice reuse as allocation-free.\n\n## Fixed-size containers in the bounded library\n\nThe `bounded` submodule ships four containers, `Buf`, `Vec`, `Slice`, and `Map`, each with a compile-time maximum capacity. When a write would exceed that capacity, the operation becomes a no-op and the container is marked “full”. This design lets you defer a full-check until the end of a request instead of testing after every write.\n\n* Buf is a byte buffer that you reset with `Reset` and then fill up to its fixed size.  \n* Vec behaves like a slice but never reallocates; you must ensure enough room before appending.  \n* Slice offers a view onto a pre-allocated backing array, again without growth.  \n* Map provides a hash map with a static bucket count; inserts that would overflow are ignored.\n\nAll four can use memory you own or borrow from a `sync.Pool` via a `Region`. The example tests in `example_test.go` demonstrate creating a `Buf`, writing bytes, and checking the `Full` flag after the operation. Because the containers never allocate, they are automatically compatible with noalloc checks, and you can import them with `-source github.com/theconsensuslabs/noalloc/bounded` so the directives inside the library are respected during your own analysis.\n\n## The takeaway\n\nMark critical entry points with `//noalloc:root` to get a full call-graph allocation report, use `//noalloc:exempt` to document acceptable allocations, and replace ad-hoc structures with the fixed-size containers from the `bounded` library to stay allocation-free. This combination lets a Go service enforce zero heap usage as the code evolves, catching regressions early and keeping the memory footprint predictable.",
+  "sources": [
+    {
+      "title": "noalloc: Tooling and libraries to enforce zero heap allocations in Golang",
+      "url": "https://github.com/theconsensuslabs/noalloc"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/enforcing-zero-heap-allocations-in-go-with-noalloc.jpg",
+  "thumbnailCredit": {
+    "name": "Florian Olivo",
+    "url": "https://unsplash.com/@florianolv?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/lines-of-html-codes-4hbJ-eymZ1o?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
