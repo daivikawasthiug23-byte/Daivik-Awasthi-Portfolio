@@ -1,0 +1,33 @@
+{
+  "slug": "running-databricks-workloads-locally-with-minilake",
+  "title": "Running Databricks workloads locally with MiniLake",
+  "date": "2026-10-29",
+  "excerpt": "MiniLake lets you emulate the Databricks API on your laptop with real SQL, Delta Lake and Spark jobs without any cloud account.",
+  "tags": [
+    "Data",
+    "Dev Tools",
+    "Backend"
+  ],
+  "body": "A developer can spin up a Databricks-shaped API on a laptop with a single Docker command. The container runs DuckDB under the hood, writes real Delta Lake files, and even launches Spark jobs in a sibling container. Because the endpoint speaks the exact Databricks REST API, the same `databricks-sdk` calls that work against a cloud workspace run against `http://localhost:8000` without any account, token or cloud bill.\n\nThe following sections show how MiniLake provides a full catalog, schema and table CRUD layer, how Spark jobs are submitted, and how state can be persisted or reset between test runs. By the end you’ll know how to replace a remote Databricks workspace with a local emulator for fast, reliable integration tests.\n\n## Local API emulation with real DuckDB execution\n\nMiniLake is not a mock server that returns canned JSON. Each API call is forwarded to a real DuckDB instance. When a statement is executed, DuckDB parses the SQL, runs it, and returns a result manifest that contains true column types. The engine supports `INLINE` and `EXTERNAL_LINKS` dispositions, as well as JSON, Arrow and CSV output formats. Because DuckDB’s Delta extension is baked into the image, Delta tables are scanned directly from Parquet files and the `_delta_log` directory.\n\nThe benefit is that a green test against MiniLake means the same code would succeed against a real Databricks workspace. Errors are returned as `{ \"error_code\": ..., \"message\": ... }`, so the SDK raises its normal typed exceptions instead of hiding problems behind a generic 501 response.\n\n## Full catalog, schema and table CRUD backed by Delta files\n\nMiniLake treats each catalog as a separate DuckDB database file. That makes `catalog.schema.table` addressing native; there is no regex rewrite layer. Full CRUD operations are available for catalogs, schemas, tables and volumes. When a table is created with `data_source_format=\"DELTA\"` the system writes genuine Delta files to the specified `storage_location`. The column definitions are stored in the Delta log, and DuckDB’s delta extension reads them back with exact type round-trip for types such as `STRING`, `LONG` and `DECIMAL(10,2)`.\n\n```python\nfrom databricks.sdk import WorkspaceClient\nfrom databricks.sdk.service.catalog import ColumnInfo, TableType\n\nw = WorkspaceClient(host=\"http://localhost:8000\", token=\"dev\")\nw.catalogs.create(name=\"sales\")\nw.schemas.create(name=\"store\", catalog_name=\"sales\")\nw.tables.create(\n    name=\"orders\",\n    catalog_name=\"sales\",\n    schema_name=\"store\",\n    table_type=TableType.MANAGED,\n    data_source_format=\"DELTA\",\n    storage_location=\"/data/sales/store/orders\",\n    columns=[\n        ColumnInfo(name=\"id\", type_text=\"BIGINT\"),\n        ColumnInfo(name=\"customer\", type_text=\"STRING\"),\n        ColumnInfo(name=\"amount\", type_text=\"DECIMAL(10,2)\"),\n    ],\n)\n```\n\nThe snippet mirrors production code exactly; the only difference is the host and token. After running it, the Delta files appear under `/data/sales/store/orders`, and a subsequent `INSERT` or `SELECT` operates on real Parquet data.\n\n## Spark job submission runs in a sibling container\n\nWhen a `spark_python_task` or `spark_submit` request reaches MiniLake, the emulator launches a separate Docker container that runs `spark-submit`. The job executes against the same Delta files created by DuckDB, and its stdout is streamed back to the caller. MiniLake also respects DAG scheduling fields such as `depends_on` and `run_if`, allowing independent branches to run in parallel.\n\nBecause the Spark job runs in its own container, the environment matches a production cluster more closely than an in-process interpreter. The SDK receives the actual stdout and exit code, so test failures surface exactly as they would in the cloud. This contrasts with “fake endpoints” that let broken code pass unnoticed.\n\n## Persisting state and resetting the workspace\n\nBy default MiniLake stores all catalogs, Delta files and secret values in the container’s filesystem. When the container stops, the state disappears. Setting the environment variable `MINILAKE_PERSIST=1` snapshots the workspace on shutdown and restores it on the next start, enabling long-running local development sessions.\n\nFor isolated tests, MiniLake offers a single POST to `/_minilake/reset`. The endpoint clears every catalog, schema, table and secret, giving a clean slate without needing to rebuild the Docker image. Health checks are available at `/health` and `/ready`, and `/services` lists the active components. This design lets CI pipelines spin up the container, run a suite of SDK calls, reset, and repeat without external dependencies.\n\n## The takeaway\n\nMiniLake replaces a remote Databricks workspace with a local Docker image that runs real DuckDB SQL, writes genuine Delta files, and launches actual Spark jobs. Use it to exercise full catalog CRUD, run Spark submissions, and reset state between tests, all without cloud credentials or cost.",
+  "sources": [
+    {
+      "title": "MiniLake Is a Local Databricks API Emulator with SQL, Delta Lake and Spark",
+      "url": "https://dmux.github.io/minilake/"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 9,
+    "specificity": 9,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/running-databricks-workloads-locally-with-minilake.jpg",
+  "thumbnailCredit": {
+    "name": "Ales Nesetril",
+    "url": "https://unsplash.com/@alesnesetril?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/gray-and-black-laptop-computer-on-surface-Im7lZjxeLhg?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
