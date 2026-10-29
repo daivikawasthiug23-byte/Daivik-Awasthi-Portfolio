@@ -1,0 +1,32 @@
+{
+  "slug": "why-h-264-shrinks-video-so-dramatically",
+  "title": "Why H.264 shrinks video so dramatically",
+  "date": "2026-10-29",
+  "excerpt": "H.264 cuts raw video size by discarding detail and exploiting temporal redundancy, achieving thousands-times compression over raw frames.",
+  "tags": [
+    "Systems",
+    "Data"
+  ],
+  "body": "A 5-second 60 fps H.264 clip of the Apple homepage (300 frames) is 175 KB, while a single PNG frame of the same page is 1015 KB. The video is a fifth of the size of one still image, yet it stores three hundred frames. That 1500× efficiency gap is the hook that makes H.264 worth a closer look.\n\nThe post explains why raw video is impossible to store directly, how lossy compression beats lossless PNG, and which entropy-based tricks let H.264 discard detail while keeping the picture recognizable. By the end, the reader will understand the core ideas that let a codec shrink video so dramatically.\n\n## How raw video overwhelms storage\n\nAn uncompressed video is essentially a stack of full-resolution frames. Each pixel occupies three bytes, one for red, green, and blue. At 1080p and 60 Hz the math works out to:\n\n```\n1920 × 1080 × 60 × 3 ≈ 370 MB per second\n```\n\nThat rate translates to about 22 GB per minute. A 50 GB Blu-ray disc would therefore hold just two minutes of raw footage. Even modern SSDs struggle to write that amount continuously from RAM to disk. The sheer bandwidth and capacity requirements make raw video impractical for everyday distribution, storage, or streaming.\n\n## Lossy compression versus lossless PNG\n\nPNG stores each frame losslessly, meaning every bit of the original image can be reconstructed exactly. The Apple homepage screenshot in PNG is 1015 KB. H.264, by contrast, is a lossy codec. It deliberately discards bits that are deemed less important to the visual experience. The same Apple page, when encoded as a 5-second 60 fps H.264 video, occupies only 175 KB.\n\nThe difference is not a clever file-system trick; it is a fundamental trade-off. Lossless formats preserve every detail, which inflates size, while lossy formats accept small visual deviations in exchange for massive size reductions. In the Apple example, the video achieves roughly a 1500× size advantage over a single PNG frame, illustrating how much redundant or imperceptible data can be eliminated.\n\n## Discarding detail with entropy tricks\n\nThe heart of H.264’s efficiency lies in information entropy, the minimum number of bits needed to represent a dataset. If a region of a frame contains repetitive or predictable patterns, its entropy is low, and fewer bits are required. H.264 exploits this by:\n\n* Spatial prediction, Within a single frame, blocks are predicted from neighboring blocks. Only the difference (the residual) needs to be stored, and predictable areas generate tiny residuals.\n* Temporal prediction, Consecutive frames often share large portions of the image. Motion vectors describe how blocks move from one frame to the next, so only the changes are encoded.\n* Transform coding, Residuals are transformed (typically with a discrete cosine transform) to concentrate energy into a few coefficients. The many near-zero coefficients can be quantized heavily, dropping fine detail that the human eye is less likely to notice.\n* Quantization, By scaling the transformed coefficients, H.264 reduces precision, effectively throwing away high-frequency detail. The resulting loss is usually invisible at normal viewing distances.\n* Entropy coding, Finally, the remaining symbols are packed using variable-length codes such as CABAC or CAVLC, which allocate shorter codes to more frequent symbols.\n\nA visual example from the source shows the compressed image lacking the tiny speaker-grill holes that are present in the original. The compressed version occupies about 7 % of the original size, demonstrating how discarding fine detail can yield dramatic savings without breaking the overall perception of the scene.\n\n## The takeaway\n\nRaw video data is orders of magnitude larger than any practical storage medium, which forces codecs to discard information. H.264 achieves its dramatic size reduction by using lossy techniques, spatial and temporal prediction, transform coding, quantization, and entropy coding, to keep only the bits that matter to human perception.\n\nThe result is a video that can store hundreds of frames in less space than a single lossless PNG image. Understanding these core tricks explains why H.264 remains the dominant codec across the internet, Blu-ray, phones, and cameras.",
+  "sources": [
+    {
+      "title": "H.264 Is Magic (2016)",
+      "url": "https://sidbala.com/h-264-is-magic/"
+    }
+  ],
+  "popularity": 9,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-h-264-shrinks-video-so-dramatically.jpg",
+  "thumbnailCredit": {
+    "name": "Peter Stumpf",
+    "url": "https://unsplash.com/@peter_s?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/video-editing-timeline-on-dark-screen-yk9VXp4W5-Q?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
