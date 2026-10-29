@@ -1,0 +1,33 @@
+{
+  "slug": "running-a-deterministic-risc-v-cpu-inside-qwen-3-5",
+  "title": "Running a deterministic RISC-V CPU inside Qwen 3.5",
+  "date": "2026-10-29",
+  "excerpt": "Qwenputer embeds a 32-bit RISC-V core in Qwen 3.5 using Gated DeltaNet layers as RAM.",
+  "tags": [
+    "AI",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A stock Qwen 3.5 4B model can be turned into a deterministic RISC-V processor simply by tweaking the Gated DeltaNet (GDN) heads. By forcing the gate to 1 and the write strength β to 1, decay disappears and every write overwrites the targeted row completely. One-hot key encoding then makes each row addressable, turning the hidden-state matrix into exact RAM that stays the same size no matter how long a conversation runs.\n\nThe author compiled a 32-bit RV32IM core (with the Zba extension and a small bignum unit) directly into the model’s weights. No gradient-based training was required; a custom compiler wrote the necessary values into the transformer layers so that each forward pass executes the next CPU step. The resulting model, named Qwenputer, runs C and MicroPython code inside the forward passes, without any external runtime or sandbox.\n\nIn the sections that follow you will see how the GDN heads become exact RAM, how the CPU is compiled into transformer weights, and how instructions are emitted as tokens. The final takeaway explains the concrete step needed to try this yourself.\n\n## How Gated DeltaNet heads become exact RAM\n\nQwen 3.5 uses Gated DeltaNet in three out of four attention layers. Each head keeps a state matrix that is normally updated with a gate g ∈ (0, 1] and a write strength β. The gate multiplies the whole state at every token, providing a decay factor; β blends new values with the existing ones. Setting g = 1 stops decay, and β = 1 forces each write to replace the old value instead of blending.\n\nAddressability comes from a one-hot key vector, zeros everywhere except a single 1. That vector points at exactly one row of the state matrix, just like a memory address points at a cell. When a head receives a one-hot query it retrieves the precise value stored in that row. Because the state matrix size is fixed, the memory behaves like RAM that does not expand with token length, making it far cheaper than the usual KV-cache used for attention.\n\nThe technique builds on earlier work that showed linear attention with the delta rule can act as an associative memory (Schlag et al., 2021). The new contribution is making that memory exact and addressable inside a production model, reliable enough to run a full CPU.\n\n## Compiling a RISC-V core into the transformer\n\nWith deterministic RAM in place, the next step is to embed a 32-bit RV32IM core (plus the Zba extension and a small bignum unit) into the model’s weights. The process does not involve any training. Instead, a custom compiler takes a description of the CPU as a list of micro-operations, read a register, add two numbers, conditional jump, and so on, and translates each operation into a set of weight modifications.\n\nEach micro-operation maps to a small piece of a transformer layer:\n\n- Attention heads perform address lookups in the GDN RAM.  \n- Feed-forward units carry out arithmetic such as addition or bitwise logic.  \n- DeltaNet heads store registers and memory cells.\n\nThe compiler writes exact values into the corresponding tensors, effectively hard-coding the CPU’s circuitry. Because Qwen 3.5 already has 32 layers, the CPU occupies 11 of them, leaving the remaining layers for the original language-modeling capabilities.\n\nDuring generation, the model emits a short token sequence for every instruction: an ADDR token naming the memory row, a VAL token carrying the value, and a STEP token that marks the end of the instruction. While the model generates these tokens, the embedded CPU updates its registers and memory via the GDN RAM, so the forward pass itself advances the CPU state.\n\n## Running C and MicroPython without an external runtime\n\nThe compiled CPU can execute programs written in C or MicroPython directly inside the transformer. The author demonstrated that Qwenputer passes the official riscv-tests, with program outputs matching those of QEMU. Moreover, the CPU has run 18 million instructions in a free-running mode, meaning it generates its own next token without any external correction, and did so without a single error.\n\nHigh-level code follows a two-step path: first, a conventional compiler translates the source into RISC-V machine code; second, that binary is fed into the model. As the model generates each token, the embedded CPU interprets it and updates registers and memory via the exact GDN RAM. Because the RAM stores precise values, arithmetic results are accurate, and the Zba extension plus the bignum unit enable MicroPython’s integer handling.\n\nAll computation stays inside the forward pass, eliminating the need for a separate interpreter or sandbox. The model continues to produce natural-language output while simultaneously running arbitrary code.\n\n## The takeaway\n\nSetting the Gated DeltaNet gate and write strength to 1 and using one-hot keys turns each head into exact, addressable RAM. A custom compiler can then hard-code a full RV32IM core into the transformer’s weights, allowing the model to execute instructions token-by-token. By emitting three tokens per instruction, ADDR, VAL, and STEP, the CPU runs entirely within the forward pass and can execute C or MicroPython code without any external runtime.  \n\nFor more details, see the original blog post at [Qwenputer: A functioning, deterministic RISC-V CPU inside Qwen 3.5](https://divagr.com/blog/qwenputer).",
+  "sources": [
+    {
+      "title": "Qwenputer: A functioning, deterministic RISC-V CPU inside Qwen3.5",
+      "url": "https://divagr.com/blog/qwenputer"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 9,
+    "specificity": 9,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/running-a-deterministic-risc-v-cpu-inside-qwen-3-5.jpg",
+  "thumbnailCredit": {
+    "name": "Umberto",
+    "url": "https://unsplash.com/@umby?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/blue-circuit-board-jXd2FSvcRr8?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
