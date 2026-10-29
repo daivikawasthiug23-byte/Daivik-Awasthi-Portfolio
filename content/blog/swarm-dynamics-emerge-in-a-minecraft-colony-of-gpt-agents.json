@@ -1,0 +1,40 @@
+{
+  "slug": "swarm-dynamics-emerge-in-a-minecraft-colony-of-gpt-agents",
+  "title": "Swarm dynamics emerge in a Minecraft colony of GPT agents",
+  "date": "2026-10-29",
+  "excerpt": "Fifty GPT-6.1 agents built a pseudo-government, rationed food, and coordinated shelter in a three-hour Minecraft run.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "In a recent experiment, 50 GPT-6.1 Sol agents were dropped into a fresh Minecraft survival world for three hours with a single instruction: “Build a thriving civilization.” Within the first ninety seconds the swarm felled almost every tree within reach of the spawn point, a speed that surprised even the researchers.\n\nBy the end of the run the agents had exchanged roughly 5,900 direct messages, rationed scarce food, and drafted a pseudo-government in a shared sandbox. The post walks through how those simple survival goals produced hierarchy, coordinated scarcity management, and a measurable governance signal.\n\n## Agents form a spontaneous hierarchy\n\nThe launch directory listed the agents in a fixed order. The first entry, Ada, quickly became the de facto leader. Other agents sent her direct messages asking for approval before committing to actions, and she responded by writing a colony plan into the shared sandbox. The plan listed concrete coordinates for primary storage, crafting tables, and farming plots, giving every agent a common reference point.\n\nThe hierarchy was not hard-coded; it emerged from the agents’ need to avoid duplicated work and to obtain a single source of truth. When Ada posted “Settlement coordination (Ada)” followed by exact block coordinates, the rest of the swarm copied those coordinates into their own scripts. This mirrors biological colonies where a single queen or scout provides a focal point for collective effort.\n\n## Resource scarcity drives coordinated rationing\n\nFood and wood proved to be the two most limited resources. The agents created a “ration ledger” inside the shared sandbox, recording who received how many food units each day. The ledger also listed permits for wood harvesting, with explicit rules such as “preserve/replant saplings” and “avoid night surface work because of a nearby witch.”\n\nBy the second night the swarm agreed to preserve immature wheat and to expand farming to a riverside plot instead of repeatedly clearing the same area. The coordination reduced waste.\n\nFor example, Tove delivered 29 oak logs to a chest at (1511,71,1516); the ledger earmarked those logs for shelter construction rather than burning them for immediate light. Role specialization emerged as well: Tamsin handled food priorities, Silas held a hoe for planting, and Zane planted at dawn, all without any explicit role assignment in the code.\n\n## Communication volume reveals emergent governance\n\nThe total of about 5,900 direct messages provides a quantitative window into the colony’s internal governance. Early in the run the message rate spiked as agents explored, harvested trees, and reported findings. After the first night’s wave of deaths, Rafe was killed by a zombie while mining coal, the tone of the messages shifted toward caution.\n\nAgents began to include health and food status in their updates, e.g., “Basil health 9.5 food 6 urgent” and “Esme health 8 food 16.” This health reporting became a regular part of the communication protocol, effectively turning the chat into a health-monitoring board.\n\nAda’s nightly update listed policies such as “Avoid redundant new storage” and “Do not harvest immature wheat.” Those messages turned a simple plan into enforceable rules. When other agents consulted the ledger before acting, the message log had become a source of normative guidance rather than just a debugging channel.\n\n## The takeaway\n\nA swarm of 50 GPT-6.1 Sol agents in Minecraft self-organized into a hierarchy, created a rationing system, and used message traffic as a governance layer. The concrete leader role of Ada and the roughly 5,900 direct messages illustrate that even without explicit programming, agents will build coordination structures when faced with shared survival goals. Monitoring communication volume can therefore serve as an early indicator of emergent governance in multi-agent systems.",
+  "sources": [
+    {
+      "title": "We ran AI agent swarms in Minecraft and Mindustry",
+      "url": "https://labs.ycombinator.com/projects/games/index.html"
+    },
+    {
+      "title": "AI for everything besides coding",
+      "url": "https://dev.to/cseeman/ai-for-everything-besides-coding-4hen"
+    },
+    {
+      "title": "AI Agents Can Get Approval and Still Do the Wrong Thing",
+      "url": "https://dev.to/katul1512/ai-agents-can-get-approval-and-still-do-the-wrong-thing-4oon"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 9,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/swarm-dynamics-emerge-in-a-minecraft-colony-of-gpt-agents.jpg",
+  "thumbnailCredit": {
+    "name": "Zach M",
+    "url": "https://unsplash.com/@zachmmalin?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/the-letters-ai-are-displayed-on-a-blurred-background-23PFamjvVLw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
