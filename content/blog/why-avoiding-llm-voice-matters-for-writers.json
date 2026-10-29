@@ -1,0 +1,32 @@
+{
+  "slug": "why-avoiding-llm-voice-matters-for-writers",
+  "title": "Why avoiding LLM voice matters for writers",
+  "date": "2026-10-29",
+  "excerpt": "Relying on LLM-generated drafts makes prose feel uncanny and can erode thinking skills.",
+  "tags": [
+    "AI",
+    "Dev Tools"
+  ],
+  "body": "## The uncanny valley of LLM-generated prose  \n\nWhen a blog post reads like a speaker whose voice has been filtered through a machine, the experience can turn from mild annoyance to outright revulsion.\n\nThe author of *LLM Voice* describes this reaction as the “uncanny valley of prose.” The feeling appears before a reader even reaches for a detection tool, and the tool’s confidence does not restore the lost trust. The source notes that the desire to keep reading “atrophies, sometimes to the point of revulsion” once the synthetic tone is sensed.\n\n## Why drafts written by LLMs are hard to cleanse  \n\nThe source warns that authors should avoid letting an LLM write a first draft. Even after human editing, the underlying “LLM-Voice” tends to persist. The reason is that LLMs embed subtle patterns, sentence rhythm, phrasing choices, and word-level preferences, that survive surface-level edits.\n\nA professional editor at a major periodical was able to remove the synthetic tone from a piece that began as a full-draft LLM output, but the process required deep rewriting rather than line-by-line polishing. Accepting only re-phrasing suggestions is also risky; small changes can retain the underlying synthetic tone.\n\n## Situations where limited LLM assistance may be acceptable  \n\nThe source acknowledges a few narrow scenarios where LLM help does not necessarily produce the dreaded voice.\n\n* Outline or structure generation, Using an LLM to draft an outline or high-level structure can be useful, provided the author fills in the prose themselves.  \n* Functional, low-stakes documents, Form letters to officials, internal reports that are unlikely to be read publicly, or documentation that prioritises consistency over style may tolerate LLM-generated text.  \n* Personal accessibility needs, Jim Highsmith relies on an LLM to overcome the effects of Parkinson’s disease. In that case the trade-off is justified because the alternative would be no prose at all.  \n* Translation for non-native speakers, Colleagues who are uncomfortable writing in English sometimes use LLM translation to communicate. The source prefers a genuine human’s “clunky prose” but admits that a smooth LLM translation can be preferable when the alternative hinders communication.\n\nThese examples illustrate that the rule against LLM-Voice is not absolute; the key is whether the synthetic tone becomes part of the final reading experience.\n\n## The human side of writing  \n\nThe source stresses that writing is more than a vehicle for information; it is a tool for thinking. Many writers find that the act of wrestling with words forces coherence and reveals gaps in understanding. Delegating that process to an LLM risks delegating thinking as well. The author habitually “speaks the words in the head and then writes them down,” using the written draft as a thinking aid. Practice, not shortcut, builds the skill of clear communication.  \n\nWhen an LLM drafts prose, even a diligent human editor may struggle to erase the subtle cadence that signals a synthetic origin. The source notes that the “reaction to LLM-Voice is a human one” and that by the time a detection tool is consulted, the reader’s trust is already compromised.\n\n## Transparency and responsible use  \n\nA policy mentioned in the source requires anyone who uses AI to declare how it was used, typically in the acknowledgments. This transparency serves two purposes: it informs readers about the role of AI and it lets the community learn useful ways to incorporate the technology. The author’s own practice avoids AI for generating prose or structure, limiting AI use to search tasks that are verified against primary sources.\n\n## The takeaway  \n\nAvoiding LLM-Voice is a practical rule of thumb for anyone who values clear, trustworthy communication. Drafts that start with an LLM are extremely difficult to cleanse of the synthetic tone, even after thorough human editing. Limited assistance, such as outlines, structural suggestions, or low-stakes documents, may be acceptable, but the final prose should be authored by a human. Transparency about AI involvement helps maintain reader trust and lets the community share effective practices.",
+  "sources": [
+    {
+      "title": "LLM Voice",
+      "url": "https://martinfowler.com/bliki/LLM-Voice.html"
+    }
+  ],
+  "popularity": 24,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-avoiding-llm-voice-matters-for-writers.jpg",
+  "thumbnailCredit": {
+    "name": "Luke Lung",
+    "url": "https://unsplash.com/@lukelung1991?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/beige-and-white-typewritter-03UCoidYvXw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
