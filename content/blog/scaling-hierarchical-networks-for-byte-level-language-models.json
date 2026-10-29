@@ -1,0 +1,32 @@
+{
+  "slug": "scaling-hierarchical-networks-for-byte-level-language-models",
+  "title": "Scaling hierarchical networks for byte-level language models",
+  "date": "2026-10-29",
+  "excerpt": "Hierarchical networks learn from raw bytes and match a 3B Transformer using ten times less compute and data.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "A 2-stage H-Net matches the quality of an open-source 3 B parameter Transformer while using only one-tenth of the compute and training data. The result comes from a recent Cartesia research post that scales hierarchical networks (H-Nets) from raw bytes. The post shows that learned tokenization alone can shave a few times off the compute budget, and that a full two-stage design can deliver an order-of-magnitude gain.\n\nModern language models still depend on hand-crafted tokenizers, which break the “learn from raw data” principle described by Richard Sutton’s bitter-lesson essay. By replacing the tokenizer with a learned component, H-Nets move one step closer to end-to-end learning. The first part of the series measures scaling laws for these networks and highlights three practical takeaways: compute efficiency from learned tokenization, dramatic gains with a two-stage hierarchy, and new emergent behaviors such as in-context tokenization.\n\nReaders will come away with a clear picture of how much compute can be saved, why a two-stage hierarchy matters, and what novel capabilities appear when models operate directly on bytes.\n\n## Compute efficiency gains from learned tokenization\n\nThe post reports a “standard scaling ladder” for tokenized Transformers as a baseline. When the same compute budget is applied to a 1-stage H-Net that learns its own tokenization, the model consistently achieves lower loss. The efficiency gain ranges from three to five times less compute for the same performance level. The improvement is purely a result of replacing the static tokenizer with a learned one; the rest of the architecture stays identical to a classic Transformer.\n\nAccording to the source, the gain comes from the model’s ability to discover more compact, task-specific byte groupings. Because the learned tokenization is optimized jointly with the language model, it avoids the waste inherent in fixed vocabularies that contain many unused tokens. In practice, this means that a researcher can train a byte-level H-Net on a single GPU for the same number of epochs that would otherwise require a multi-GPU setup for a tokenized baseline.\n\n## Two-stage H-Nets beat open-source models with ten-fold less compute\n\nScaling the hierarchy to two stages adds a second, flexible encoder that operates on the output of the first stage. Empirical results show that a 2-stage H-Net matches the perplexity of a publicly available 3 B parameter Transformer while consuming only one-tenth of the compute and training data.\n\nThe concrete example in the post is exactly this comparison: the 2-stage model reaches the same quality metrics as the 3 B baseline but does so with a ten-fold reduction in FLOPs and token count. The second stage learns to perform a higher-level abstraction over the byte groups produced by the first stage.\n\nThis hierarchical representation lets the model capture longer-range dependencies without blowing up the sequence length, which is the primary driver of compute in Transformers. Because each stage works on a compressed representation, the overall system processes fewer elements per layer, leading directly to the reported compute savings.\n\nThe source does not claim any loss in downstream task performance; instead, it highlights that the efficiency gain comes without sacrificing accuracy on standard language-modeling benchmarks. The result suggests that developers can achieve transformer-scale quality while staying within modest hardware budgets.\n\n## New behaviors like in-context tokenization\n\nBeyond raw efficiency, the scaling experiments reveal qualitative shifts in model behavior. One striking pattern is “in-context tokenization,” where the H-Net adapts its byte-grouping strategy based on the surrounding text it is processing. For example, when presented with a code snippet, the model learns to treat common language constructs as single units, whereas in prose it prefers word-like groupings. This dynamic adaptation emerges without any explicit supervision; it is a by-product of the hierarchical training objective.\n\nThe post also mentions that H-Nets exhibit a richer diversity of learned patterns compared to tokenized Transformers. Because the model sees raw bytes, it can discover sub-byte structures such as UTF-8 multi-byte characters or binary encodings that traditional tokenizers would split arbitrarily. These capabilities open the door to more reliable handling of multilingual text, emojis, and even non-textual data streams.\n\nThese behaviors are not engineered but arise naturally when the model is allowed to shape its own input representation. This aligns with the bitter-lesson philosophy of minimizing human-crafted priors and letting scale do the heavy lifting.\n\n## The takeaway\n\nLearned tokenization alone can cut compute needs by three to five times, and a full two-stage hierarchical network can match a 3 B Transformer while using ten times less compute and data. The hierarchy also enables dynamic, in-context tokenization that adapts to the data it sees. For teams looking to train large language models on limited hardware, adopting a 2-stage H-Net offers a proven path to transformer-scale performance with far lower resource demands.",
+  "sources": [
+    {
+      "title": "Scaling Hierarchical Networks",
+      "url": "https://www.cartesia.ai/blog/from-tokens-to-bytes-part-1"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/scaling-hierarchical-networks-for-byte-level-language-models.jpg",
+  "thumbnailCredit": {
+    "name": "Taylor Vick",
+    "url": "https://unsplash.com/@tvick?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/cable-network-M5tzZtFCOfs?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
