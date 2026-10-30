@@ -1,0 +1,32 @@
+{
+  "slug": "how-syl-uses-modes-for-compile-time-specialization",
+  "title": "How Syl uses modes for compile time specialization",
+  "date": "2026-10-30",
+  "excerpt": "Syl encodes static and erased modes to let the compiler monomorphize functions based on compile-time values.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A function that takes a compile-time boolean can be turned into two separate pieces of code, each hard-wired for one branch. In Syl this happens automatically when the argument is marked erased.\n\nThe compiler sees that the value is known at compile time, generates a specialized version for `true` and another for `false`, and then discards the argument at runtime. The result is code that runs without the branching overhead and that can even return different types depending on the compile-time flag.\n\nThe post walks through Syl’s two mode axes, shows how static arguments drive monomorphization, and demonstrates how erased parameters give the language dependent types. By the end you will know how to write a function that both specializes at compile time and expresses a result type that varies with its input.\n\n## Static and erased modes explained\n\nSyl attaches a *mode* to every value in addition to its type. The mode has two independent axes:\n\n* static vs. dynamic, a static value is known during compilation, a dynamic value may only be known at runtime.\n* erased vs. unerased, an erased value does not exist at runtime, an unerased value does.\n\nA literal like `0` is `static unerased` because the compiler knows the number and the program also needs it at runtime. The source shows how to annotate a mode explicitly:\n\n```syl\nlet x = 0 @ static unerased;;\n```\n\nModes can be *weakened* but never *strengthened*. Treating a static value as dynamic is safe, but the reverse triggers a type error:\n\n```syl\nlet x = 0 @ dynamic;;\nlet y = x @ static;;   // error: Expected a static expression, but got dynamic.\n```\n\nThe same rule applies to erasure: an unerased value may be treated as erased, but not the other way around. Branching on a dynamic value forces the whole expression to become dynamic, because the compiler cannot decide which branch to keep.\n\nThese rules give the compiler a clear picture of what can be computed at compile time and what must survive to the executable.\n\n## Monomorphizing functions with static arguments\n\nWhen a function’s parameter is declared `static`, the compiler requires that any call supplies a static argument. If the requirement is met, Syl *monomorphizes* the call: it creates a concrete implementation that embeds the argument’s value.\n\n```syl\nlet f = fn (static x : bool) -> print_bool x;;\n```\n\nCalling `f true` forces the compiler to generate a version that directly calls `print_bool true`. The same happens for `f false`. The body of `f` is compiled once per distinct static argument, eliminating the need for a runtime test.\n\nIn many cases the argument does not need to be present at runtime at all. Marking it `erased` tells the compiler that the value is both static and irrelevant after compilation:\n\n```syl\nlet f = fn (erased x : bool) -> if erased x then print_int 0 else print_int 1;;\n```\n\nHere `if erased` accepts a static erased condition and guarantees compile-time resolution. The call `f true` becomes a thunk whose body is simply `print_int 0`. No branch or argument lives in the final binary.\n\nThe key trade-off is that erased parameters cannot be inspected at runtime. If the program later needs the value, it must be passed as an unerased argument instead.\n\n## Dependent types via erased parameters\n\nStatic and erased modes alone let you request specialization, but they also enable *dependent types*: the result type can depend on a compile-time value. The source provides a minimal example:\n\n```syl\nlet f = fn (erased x : bool) -> if erased x then 0 else true;;\n```\n\nBecause `if erased` resolves at compile time, the function’s return type is `int` when `x` is `true` and `bool` when `x` is `false`. Syl expresses this relationship directly in the function’s type:\n\n```\nf : erased bool as x -> if erased x then int else bool\n```\n\nThe `as x` part names the argument for use in the result type. Applications automatically pick the correct result type after the compiler evaluates the argument:\n\n```syl\nlet a = (f true)  : int;;\nlet b = (f false) : bool;;\n```\n\nNo separate type grammar is needed; type formers like `->` and type annotations are ordinary expressions. Types such as `int` and `bool` are themselves erased values of the meta-type `type`. This uniformity lets you write polymorphic functions that operate on types themselves:\n\n```syl\nlet id = fn (erased t : type) -> fn (x : t) -> x;;\nlet x = id int 0;;\nlet y = id bool true;;\n```\n\nWhen `id` is applied to a static erased type, the compiler monomorphizes the inner function for that concrete type. At runtime `id int` is just a function that returns its integer argument, with no overhead from the type parameter.\n\nThe dependent typing power comes from the fact that erased arguments are guaranteed to be known at compile time, so the compiler can compute the result type and generate the appropriate code before any runtime code runs.\n\n## The takeaway\n\nSyl’s mode system separates compile-time knowledge (`static`) from runtime presence (`erased`). Declaring a parameter as `erased` forces the compiler to specialize the function for each concrete argument and to treat the argument as nonexistent at runtime. This specialization automatically yields dependent types: the result type can be expressed as a function of the erased argument. Use `erased` parameters when the value only influences compilation; the compiler will generate lean, type-safe code without any runtime cost.",
+  "sources": [
+    {
+      "title": "Compile-Time Dependent Types",
+      "url": "https://thenumb.at/Syl-Intro/"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 5,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-syl-uses-modes-for-compile-time-specialization.jpg",
+  "thumbnailCredit": {
+    "name": "Christopher Gower",
+    "url": "https://unsplash.com/@cgower?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-macbook-with-lines-of-code-on-its-screen-on-a-busy-desk-m_HRfLhgABo?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
