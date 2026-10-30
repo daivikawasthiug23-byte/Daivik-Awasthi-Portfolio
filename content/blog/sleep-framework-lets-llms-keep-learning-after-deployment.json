@@ -1,0 +1,32 @@
+{
+  "slug": "sleep-framework-lets-llms-keep-learning-after-deployment",
+  "title": "Sleep framework lets LLMs keep learning after deployment",
+  "date": "2026-10-30",
+  "excerpt": "A sleep phase lets language models consolidate new facts into long-term parameters and avoid forgetting.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "A deployed language model answered a user query at 3 p.m., then received a breaking-news update at 4 p.m. The fresh fact lived in a fast buffer, guided the next few interactions, and by 6 a.m. the system entered an offline sleep phase.\n\nDuring that pause the model activated pre-allocated Mixture-of-Experts (MoE) memory blocks and refined its weights with self-generated practice examples. The outcome was a model that remembered the news for weeks and reasoned about it more accurately, all without touching the underlying code.\n\nGoogle Research introduced this “sleep” framework to give large language models a periodic consolidation stage instead of treating training and inference as separate worlds. By cycling between an active wake phase that gathers short-term context and an offline sleep phase that folds that context into stable parameters, the approach lets models keep learning after deployment, retain up to 10 million tokens of context, and sharpen complex reasoning [[source](https://research.google/blog/the-sleep-framework-a-new-way-for-llms-to-retain-knowledge-in-continual-learning/)].\n\nThe following sections break down each component of the framework and show how they work together to avoid catastrophic forgetting while expanding a model’s knowledge horizon.\n\n## Active wake phase stores short-term context\n\nWhen the model is online, it behaves like any modern LLM: it receives prompts, runs inference, and produces results. New facts, such as a policy change announced yesterday, are written into a fast, high-frequency memory layer that resembles the brain’s hippocampus. This layer holds information only for the current session.\n\nThe wake phase does not alter the model’s core weights. Instead, it appends incoming data to a temporary buffer that can be accessed for the next few hundred tokens. Because the buffer lives in a high-frequency component, the model can retrieve the fact quickly, but the information disappears once the session ends. This mirrors the limitation of in-context learning, where knowledge is lost after the context window closes.\n\n## Sleep phase expands capacity with MoE experts\n\nWhen external input pauses, the model runs an internal consolidation routine. The key operation is activating pre-allocated MoE memory blocks. These blocks contain low-rank expert modules that were reserved but unused during the wake phase.\n\nDuring sleep the model trains those experts on self-generated practice examples. The examples are created by prompting the model with its own recent outputs and asking it to predict the next token. This self-play loop provides a cheap source of training data that reflects the most recent knowledge the model has seen.\n\nExpanding capacity with MoE experts avoids the classic trade-off where adding new parameters overwrites old ones. The newly activated experts store fresh facts in a separate low-frequency memory hierarchy, keeping the older high-frequency parameters untouched.\n\n## Knowledge seeding moves memories to stable parameters\n\nAfter the MoE experts have been trained, the framework performs knowledge seeding, also called upward distillation. Short-term memories that reside in the high-frequency layers are distilled into the newly expanded low-frequency parameters.\n\nThe process uses Generalized Knowledge Distillation (GKD) together with reinforcement-learning-based imitation learning. In practice, the expanded student model receives token-level feedback from a teacher distribution generated on self-sampled sequences. The student is rewarded for producing text that matches the teacher both semantically and in absolute string similarity, measured with Levenshtein distance.\n\nThrough this on-policy distillation, the fragile context captured during the wake phase becomes part of the model’s stable weight matrix. The result is a long-term memory that persists across deployments, similar to how the brain abstracts and stores memories during non-rapid eye movement sleep.\n\n## Synaptic pruning resets temporary layers\n\nWhen knowledge seeding finishes, the high-frequency temporary parameters are no longer needed. The framework applies synaptic pruning: it zeroes out or reinitializes those fast layers, freeing them for the next active session.\n\nPruning serves two purposes. First, it prevents the temporary buffer from growing without bound, which would otherwise consume memory and slow inference. Second, it eliminates any residual interference that could cause the model to revert to outdated facts. By resetting the short-term layers, the model starts each new wake phase with a clean slate, ready to capture fresh context without risking catastrophic forgetting.\n\n## The takeaway\n\nThe sleep framework turns continual learning into a two-stage cycle: an active wake phase that gathers short-term context, followed by an offline sleep phase that expands capacity with MoE experts, seeds knowledge into stable parameters, and prunes temporary layers.\n\nThis design lets deployed LLMs acquire new facts, retain long-range context up to 10 M tokens, and improve reasoning without altering the core architecture. Implementing a sleep-like cycle provides a practical path to keep models learning after they leave the training lab.",
+  "sources": [
+    {
+      "title": "Sleep framework: A new way for LLMs to retain knowledge in continual learning",
+      "url": "https://research.google/blog/the-sleep-framework-a-new-way-for-llms-to-retain-knowledge-in-continual-learning/"
+    }
+  ],
+  "popularity": 8,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/sleep-framework-lets-llms-keep-learning-after-deployment.jpg",
+  "thumbnailCredit": {
+    "name": "Growtika",
+    "url": "https://unsplash.com/@growtika?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/an-abstract-image-of-a-sphere-with-dots-and-lines-nGoCBxiaRO0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
