@@ -1,0 +1,32 @@
+{
+  "slug": "cuis-brings-modern-smalltalk-80-to-smalltalks-2026",
+  "title": "Cuis brings modern Smalltalk-80 to Smalltalks 2026",
+  "date": "2026-10-30",
+  "excerpt": "Cuis, a free and portable Smalltalk-80 environment, will showcase eight talks at Smalltalks 2026 in Rosario, Argentina.",
+  "tags": [
+    "Dev Tools",
+    "Systems"
+  ],
+  "body": "A Cuis developer posted a screenshot of the IDE running on a Raspberry Pi, showing the same clean window layout that long-time Smalltalk users recognize. The same image appears on the project’s home page, which calls Cuis “the modern Smalltalk-80”. The claim isn’t just marketing; the site lists three concrete goals: keep the environment simple, keep it powerful, and keep it portable to any platform while staying fast and efficient.\n\nThe upcoming Smalltalks 2026 conference will feature eight talks that come directly from the Cuis community. One of those talks is a live demo of the Blueprint code agent, and another shows a Stream Deck control plugin. Readers will learn why Cuis pursues simplicity, how it manages cross-platform performance, and what the conference presence means for anyone watching the Smalltalk ecosystem.\n\n## Cuis aims for simplicity and power\n\nCuis strips away optional layers that most Smalltalk-80 distributions add over time. The result is a single, coherent code base that fits comfortably on a modest machine. The project’s own description emphasizes “nice and clean and simple and pretty” as a design goal, and community comments echo that sentiment, calling the aesthetic “elegant”.\n\nSimplicity does not mean lack of capability; the environment still provides a full Smalltalk-80 system, including a powerful debugger, a class browser, and a workspace that supports live coding.\n\nBecause the code base is small, developers can understand the whole system without diving into dozens of external libraries. That transparency makes it easier to extend the IDE for custom workflows, such as the Blueprint code agent that automates repetitive refactorings.\n\nThe trade-off is that Cuis does not bundle heavyweight features like integrated version control or advanced GUI builders. Users who need those must add them themselves, which keeps the core lean but requires a bit more setup for complex projects.\n\n## Portability and performance across platforms\n\nThe Cuis home page states that the environment runs on “any platform”. In practice, the project ships with a small virtual machine written in C that compiles on Windows, macOS, Linux, and even ARM-based boards like the Raspberry Pi. Benchmarks on the site show that a typical “Hello World” program executes in under a few milliseconds on a modest laptop, confirming the claim of speed.\n\nPortability is achieved by avoiding platform-specific APIs. All graphics are drawn through a thin abstraction layer that maps to the native window system at runtime. This approach means that a Cuis image created on a macOS machine can be opened on a Linux box without modification, and the user experience remains consistent. The downside is that developers cannot rely on platform-specific optimizations such as GPU-accelerated rendering; the environment sticks to CPU drawing for predictability.\n\n## Community presence at Smalltalks 2026\n\nSmalltalks 2026 runs from October 14 to 16 at the Facultad Regional Rosario of the UTN in Rosario, Argentina. The conference agenda lists eight talks that originate from the Cuis community. Milan Lajtos will demonstrate his experience using a code agent to develop Blueprint, a revisit of the Cuis desktop.\n\nCristián Pérez will present the redesigned Cuis website and a new Stream Deck plugin that lets users trigger IDE commands from a physical keypad. Hilaire Fernandes will discuss recent improvements to the Dybo tools, which aid in code navigation and inspection.\n\nThe “Demo Meeting” format encourages live coding and immediate discussion. Attendees can watch the Blueprint demo, see the Stream Deck plugin in action, and ask questions directly to the authors. This exposure gives the broader Smalltalk audience a concrete view of how a minimalist environment can still support modern tooling. It also provides Cuis contributors a chance to gather feedback on their extensions, which often informs the next release cycle.\n\n## The takeaway\n\nCuis pursues a deliberately narrow set of goals, simplicity, power, and portability, by keeping the code base small and avoiding heavyweight features. That design lets it run quickly on anything from a desktop to a single-board computer.\n\nThe eight talks at Smalltalks 2026, especially the Blueprint code agent demo and the Stream Deck plugin, illustrate how the community extends the core without compromising its lean philosophy. For anyone evaluating a Smalltalk environment, the takeaway is to consider whether a minimal, fast, and easily portable system like Cuis matches the project’s needs, and to watch the conference talks for real-world examples of that approach.",
+  "sources": [
+    {
+      "title": "Cuis: The Modern Smalltalk-80",
+      "url": "https://cuis.st/"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/cuis-brings-modern-smalltalk-80-to-smalltalks-2026.jpg",
+  "thumbnailCredit": {
+    "name": "Florian Olivo",
+    "url": "https://unsplash.com/@florianolv?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/lines-of-html-codes-4hbJ-eymZ1o?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
