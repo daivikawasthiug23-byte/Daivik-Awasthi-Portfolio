@@ -1,0 +1,32 @@
+{
+  "slug": "finding-panics-with-the-call-graph-analyzer",
+  "title": "Finding panics with the Call Graph Analyzer",
+  "date": "2026-10-30",
+  "excerpt": "The Call Graph Analyzer extracts a monomorphized MIR callgraph to locate functions that can panic in Rust binaries.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A recent build of an embedded Rust project crashed at start-up because a single arithmetic call could panic. Running `cargo cga check` printed:\n\n```\nerror: call to method `core::num::<impl u64>::strict_sub` which can panic --> src/main.rs:18:17\n   18 | let _ = 2u64.strict_sub(u64::MAX);\n      | ^^^^^^^^^^^^^^^^^^^^^^^^^\n```\n\nThe line looks innocent, yet the analyzer flagged it as a potential panic source. The Call Graph Analyzer (CGA) makes that kind of discovery systematic, turning a hidden risk into a line-item you can address. This post shows why panics matter, how CGA works, and how it stacks up against older detection methods.\n\n## Why panics matter and when to eliminate them\n\nRust’s panic mechanism aborts normal control flow when a condition is deemed unrecoverable. The source explains two typical origins: a bug inside the function itself, or a caller violating the function’s entry contract. For example, `1u32.strict_add(u32::MAX)` panics because the caller supplied an out-of-range argument. The same overflow would also panic in a plain `1 + u32::MAX` when overflow checks are enabled.\n\nIn embedded contexts, every panic pulls in formatting strings and runtime support, inflating code size. The blog notes that developers often replace the default panic handler with `defmt::panic` to shrink the binary, or compile with `-Cpanic=immediate-abort` to turn every panic into an immediate crash. Both approaches reduce size but sacrifice diagnostic information.\n\nZero-panic code is unrealistic. Propagating `Result<T, E>` everywhere simply moves the failure point up the call stack, and the program will still abort at the top level if the error is not handled. The more useful practice is to make panic paths explicit, track them, and decide case-by-case whether they should be eliminated. Regression analysis of panic paths can alert you when a new panic is introduced, which is exactly what CGA enables.\n\n## How the Call Graph Analyzer works\n\nCGA extracts a call graph from the monomorphized Mid-level Intermediate Representation (MIR) that the Rust compiler produces after generic instantiation. Because the graph is built from monomorphized MIR, it reflects the exact functions that will appear in the final binary, not just generic definitions.\n\nThe workflow is simple:\n\n1. Invoke `cargo cga check`.  \n2. CGA walks the MIR, records every function call, and tags each node with a “can panic” flag if the compiler marks the callee as potentially panicking.  \n3. The tool then walks the graph backward from each panic-capable node, marking all callers that could transitively reach a panic.  \n4. Finally, CGA prints a diagnostic that includes the source location of the original call, as shown in the `strict_sub` example.\n\nBecause the analysis runs on the compiler’s own MIR, it sees panic sources that are hidden behind inlining, const evaluation, or macro expansion. The result is a precise list of panic-capable call sites, not a heuristic guess.\n\n## Comparing CGA to previous panic-detection methods\n\nOlder approaches fall into two categories: static linting and runtime testing.\n\n* Static linting, Tools such as `clippy` can warn about obvious panic-prone patterns, like `unwrap()` on an `Option`. However, they rely on pattern matching and cannot follow the full call chain through generic instantiations. A panic hidden behind a generic method often slips through.\n* Runtime testing, Fuzzers or exhaustive test suites may trigger panics, but they only expose paths exercised by the tests. Uncovered code remains unchecked, and reproducing the exact call stack that caused a panic can be difficult.\n\nCGA improves on both fronts. By operating on the fully monomorphized MIR, it catches panics that static linters miss, regardless of how deep the call chain is. Unlike runtime testing, it does not require execution; the analysis is deterministic and runs in seconds as part of the build.\n\nThe trade-off is that CGA needs access to the compiler’s MIR, which means it only works with recent Rust toolchains that expose this data. It also adds a compilation step, so build times increase slightly. For projects where binary size and reliability are critical, especially embedded firmware, the extra cost is usually justified.\n\n## The takeaway\n\nThe Call Graph Analyzer turns hidden panic sources into concrete diagnostics, letting you decide which panic paths to keep, replace with `Result`, or eliminate for size reasons. Run `cargo cga check` early in the CI pipeline, treat its output like any other lint, and focus on the call sites it highlights, such as the `strict_sub` panic in `src/main.rs`. This systematic view of panic propagation is a practical step toward more predictable, smaller Rust binaries.",
+  "sources": [
+    {
+      "title": "Finding Panics with Call Graph Analyzer",
+      "url": "https://tweedegolf.nl/en/blog/242/finding-panics-with-call-graph-analyzer/"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/finding-panics-with-the-call-graph-analyzer.jpg",
+  "thumbnailCredit": {
+    "name": "Markus Spiske",
+    "url": "https://unsplash.com/@markusspiske?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-black-sign-with-a-price-tag-on-it-C0wrkGoyY-A?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
