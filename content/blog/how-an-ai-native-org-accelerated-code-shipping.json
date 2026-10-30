@@ -1,0 +1,33 @@
+{
+  "slug": "how-an-ai-native-org-accelerated-code-shipping",
+  "title": "How an AI-native org accelerated code shipping",
+  "date": "2026-10-30",
+  "excerpt": "Engineers at FurtherAI merged five times more code daily while keeping revert rates below half a percent by automating each step of the software pipeline.",
+  "tags": [
+    "AI",
+    "Dev Tools",
+    "Systems"
+  ],
+  "body": "A few months ago the team at FurtherAI swapped out most of the manual steps in their pipeline for AI-driven agents. The change was dramatic: each engineer went from merging a handful of changes a day to about five times that many, while the revert rate stayed under half a percent. The boost didn’t come from a single magic tool; it was the result of re-engineering the whole shipping process, one stage at a time.\n\nIn this post you’ll see how agents took over code authoring, how AI reviews now handle the bulk of checks, how automated Python rules turned hidden expertise into enforceable builds, and why low-risk changes can now merge without a human click. The goal is to give a concrete picture of what an AI-native workflow looks like and which pieces you can try in your own org.\n\n## Agents write code and steer tests\n\nThe first step was to hand the actual coding to agents. Engineers still guide the output, but the agents generate the implementation and the accompanying test files. The impact is measurable: 91 % of changes now include tests, up from 15 % before agents were writing them. This jump in test coverage means that the CI system has far more reliable signals to act on, and engineers spend less time writing boilerplate test scaffolding.\n\nThe workflow looks like this: an engineer describes the desired behavior in a Slack channel, the agent produces a pull request with both the feature code and a matching test suite, and the engineer reviews the diff before pushing it forward. Because the agent can generate the test at the same time, the test-to-code ratio stays high, and flaky or missing tests become rare.\n\n## AI reviews replace most human checks\n\nOnce a change lands in a pull request, an AI reviewer runs over it before any human looks at it. According to the source, AI now reviews 99 % of changes, up from 60 % when the process started. Human reviewers are therefore freed to focus on the handful of cases that need judgment, design decisions, architectural trade-offs, or ambiguous requirements.\n\nThe AI reviewer checks for style violations, security concerns, and simple logic errors. When it flags an issue, it also suggests a fix, which the agent can apply automatically. This loop cuts the time a reviewer spends on routine nitpicks from minutes to seconds, and it keeps the overall revert rate low despite the five-fold increase in daily merges.\n\n## Automated rules turn tribal knowledge into builds\n\nDuring the first months, engineers often caught subtle bugs by leaving comments like “this function must always be called with a non-null token.” Those comments lived only in people’s heads. In August the team started converting that kind of tribal knowledge into small Python checks that run on every commit and every pull request. If a rule fails, the build stops and the agent prints the exact fix needed.\n\nThe result was a rapid rollout from zero to 21 automated rules. Each rule codifies a piece of expertise that previously required a reviewer to remember it. Because agents see the failure immediately, they can correct the code before the CI step, keeping the pipeline smooth. The rules also form the backbone of the next improvement: low-risk changes can now merge without a person.\n\n## Low-risk changes merge without human approval\n\nWith tests, AI reviews, and rule checks in place, the system can automatically decide when a change is safe to ship. The criteria are simple: the change must pass all generated tests, clear the automated rule checks, and receive an AI-review “pass.” When those conditions are met, the change merges on its own. Up to a third of all daily changes now follow this path, according to the source.\n\nThis automation removes the final manual gate for routine updates, such as UI tweaks or minor bug fixes, allowing engineers to keep momentum. It also opens the door for non-engineers to contribute. A designer has already merged about 50 changes since August, most of them building the design system, and deployment staff can push UI adjustments directly from Slack.\n\n## The takeaway\n\nReplacing manual steps with AI agents, reviews, and rule checks can multiply daily merges while keeping quality high. Start by letting agents generate both code and tests, then layer an AI reviewer to catch routine issues. Convert recurring reviewer comments into automated Python checks, and finally let the system auto-merge changes that satisfy those checks. Those four moves turn hidden expertise into repeatable processes and let low-risk work ship without a human click.",
+  "sources": [
+    {
+      "title": "Building an AI-native engineering org",
+      "url": "https://twitter.com/sgondala2/status/2115832070274723875"
+    }
+  ],
+  "popularity": 13,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-an-ai-native-org-accelerated-code-shipping.jpg",
+  "thumbnailCredit": {
+    "name": "Juanjo Jaramillo",
+    "url": "https://unsplash.com/@juanjodev02?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/code-editor-displaying-react-source-code-mZnx9429i94?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
