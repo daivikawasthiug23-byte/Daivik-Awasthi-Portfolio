@@ -1,0 +1,32 @@
+{
+  "slug": "procedural-delft-blue-margins-for-lualatex",
+  "title": "Procedural Delft blue margins for LuaLaTeX",
+  "date": "2026-10-30",
+  "excerpt": "Lua code draws each petal, leaf and stem directly into the PDF, giving every page a unique garden.",
+  "tags": [
+    "Dev Tools",
+    "Systems"
+  ],
+  "body": "A seed of the Florilegium package produces a 45-second animation that shows stems, leaves and flowers filling the page margin. Running `make grow-6` builds that animation, and the resulting PDF demonstrates how the garden expands from an empty margin to a fully populated border. The animation visualises the same algorithm that draws every petal, leaf and stem directly in Lua while the page is being typeset.\n\nThe repository `kevinraymond/florilegium` contains a LuaLaTeX package that creates Delft-blue floral margins without any external image files. Because the layout algorithm uses a random seed, each page receives a unique garden while still being reproducible for a given seed.\n\nSource files such as `flora.lua`, `grow.lua` and `florilegium.sty` expose a handful of simple LaTeX commands. The following sections explain how the margin is generated, how initials and headings are woven into the garden, and how the growth adapts to the free space left by the body text.\n\n## How the margin is generated from random seeds\n\nThe core of the margin generation is a procedural layout that starts from a single seed value. That seed initializes a Lua random-number generator, which then decides the length of each stem, the curvature of leaves and the size of flower motifs. Because the same seed is used for every run, the garden is reproducible: seed 6 always yields the same arrangement of stems and blossoms.\n\nThe algorithm proceeds in two phases. First, stems rise from the bottom of the margin toward the top. When a stem reaches a node, a leaf is drawn at the appropriate angle, and the leaf’s lobed shape is computed from parametric curves. Second, a greedy loop searches the remaining free space for the largest empty disc.\n\nEach disc becomes the target for a new branch, and the loop repeats until no disc larger than a threshold remains. This “largest free disc” strategy is borrowed from a 1998 ornament-generation technique and guarantees that big holes are filled early, while smaller gaps are closed later.\n\nAll drawing commands are executed in Lua, which writes PDF path operators directly. The result is a watercolor-like wash with mottled blue, white streaks lifted out, and white veins on the leaves. No external assets are required; every visual element is computed on the fly.\n\n## Integrating initials and headings into the garden\n\nThe package provides macros that let the margin react to the document’s structure. `\\florilegiuminitial[5]{E}` creates a five-line-tall tile for the first letter of a paragraph. The macro reads the outline of the letter from an OpenType font, Latin Modern Bold by default, and paints it as a petal.\n\nA vine then weaves over and under the strokes, inserting leaves where they fit and flowers in the counters of the letter. The letter itself is typeset invisibly, so the paragraph text remains searchable and copy-able.\n\nWhen the `sections` option is enabled, each numbered section and subsection receives a copper-colored flower beside its heading. The flower is placed in the margin at the same vertical position as the heading, creating a visual cue that mirrors historic red-ink heading ornaments.\n\nThe macro `\\florilegiumbloom` can also be used inline: `\\florilegiumbloom` inserts a flower next to the line on which it appears, and `\\florilegiumbloom[lily]` requests a specific motif such as a lily. These marks are discovered in the page box after the page is shipped out, so they work in a single LaTeX run.\n\n## Responsive growth based on free space\n\nBecause the layout algorithm runs after the body text has been placed, the garden automatically adapts to the amount of free margin space. If the text ends early on a page, the stems continue to arch into the empty area below, as shown on the last page of the grown document. Conversely, a dense block of text leaves less room, and the greedy loop places fewer branches.\n\nThe growth is recorded once while the page is laid out. Each stem is drawn as a series of prefixes of increasing length, and each motif (leaf or flower) is rendered at several scales. When the animation is generated, a frame is emitted each time a new piece reaches its scheduled time, preserving the original painting order.\n\nAdding `EXPLAIN=1` to the `make` command draws the dashed circles that represent the largest free discs found by the greedy loop, making the growth process visible. Seasonal variations are demonstrated in the `showcase.tex` example, which presents “spring on the first page, summer, autumn on the last.” Each section highlights a different feature of the margin, and a third example in the repository shows additional capabilities such as custom motifs and alternative colour palettes.\n\n## The takeaway\n\nFlorilegium turns a random seed into a reproducible, fully procedural Delft-blue garden that fills the page margin. By using Lua to compute every curve and by letting the layout react to the free space left by the text, the package creates margins that are both decorative and context-aware. The provided macros make it easy to embed initials, heading flowers and inline blooms, giving a document a consistent ornamental style without any external image assets.",
+  "sources": [
+    {
+      "title": "Florilegium: Procedural Flowers in LaTeX",
+      "url": "https://github.com/kevinraymond/florilegium"
+    }
+  ],
+  "popularity": 24,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/procedural-delft-blue-margins-for-lualatex.jpg",
+  "thumbnailCredit": {
+    "name": "Ilya Pavlov",
+    "url": "https://unsplash.com/@ilyapavlov?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/monitor-showing-java-programming-OqtafYT5kTw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
