@@ -1,0 +1,33 @@
+{
+  "slug": "running-an-integer-neural-network-inside-a-doom-map",
+  "title": "Running an integer neural network inside a DOOM map",
+  "date": "2026-10-30",
+  "excerpt": "Doomformer compiles integer neural nets into ZDoom maps and checks every value against NumPy with zero tolerance.",
+  "tags": [
+    "AI",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A small integer neural network can run inside a DOOM map, and the Doomformer project makes that possible by compiling the network into ZDoom geometry. Voodoo dolls, copies of the player that DOOM spawns for extra player-1 starts, perform the arithmetic, while sector light levels and plane heights store intermediate sums. After the map finishes, Python reads every exposed value and checks it against a NumPy integer reference with zero tolerance; a single off-by-one causes the run to fail.\n\nThe following sections describe how Doomformer encodes arithmetic, compare its speed to a pure NumPy implementation, and walk through the handwritten-digit demo. By the end, the reader will know the concrete steps to try the demo and understand the performance trade-offs involved.\n\n## How Doomformer encodes arithmetic with voodoo dolls\n\nDoomformer translates each integer operation into a set of voodoo dolls. A doll’s position, its “use” action, and the lighting of the sector it occupies represent the operands. When a doll triggers a line-special, the engine updates the sector’s light level or plane height, effectively performing an addition or comparison.\n\nNetwork layers become clusters of these dolls. For a 784-pixel input, the map contains 1 355 dolls. The first layer writes the 784 pixel values into the level; the next layer’s dolls read those values, add weighted sums, and write the results into new sectors. Pairwise score comparisons are done by checking whether one sector’s light level exceeds another’s. The final winning digit lights a 7-segment display in the map.\n\nBecause the engine works with integer light levels, the arithmetic stays exact. After the map runs, Python reads every exposed value, inputs, hidden activations, comparisons, and outputs, and verifies them against a NumPy integer reference. The source reports a tolerance of zero; any mismatch aborts the run.\n\n## Performance compared to NumPy\n\nThe author measured a small multilayer perceptron on both backends. In pure NumPy the forward pass takes a few milliseconds of engine time. Doomformer’s engine time is about 23 000 × slower on the same network, and when the whole call is timed, including map loading and game-loop overhead, the slowdown reaches roughly 65 000 ×.\n\nThe default schedule (`--opt 0`) runs the map in real time, consuming 5 705 game tics, or about 163 seconds, to process a single handwritten digit. Enabling the highest optimization level (`--opt 3`) collapses the schedule to 273 tics, which equals 8 seconds of real-time DOOM at 35 tics per second. The speedup comes from fewer script ticks and tighter ACS code, but even the optimized run remains orders of magnitude slower than NumPy.\n\nThese numbers help decide whether Doomformer is a curiosity or a benchmark for integer-only inference. For any production workload the overhead is prohibitive, yet the project demonstrates that a classic game engine can act as a deterministic integer compute substrate.\n\n## Running the handwritten-digit demo\n\nThe repository provides a ready-made command that draws a digit inside a DOOM map and reads the network’s prediction. After installing the package, the demo launches with two short steps:\n\n```bash\npip install git+https://github.com/mottapanikeiku/doomformer\ndoomformer draw --digit 7\n```\n\n* The command builds a map, spawns the marine, and automatically presses the keys needed to draw a 3 × 3 brush of floor cells that represent the digit.\n* A `READ` line in the level script writes the 784 pixel values into the network, the 1 355 voodoo dolls compute the forward pass, and the result appears on a 7-segment panel.\n* The Python driver then reads back all 248 integer values, inputs, hidden activations, comparisons, and the ten-class scores, and verifies them against NumPy.\n\nSample output looks like this:\n\n```\nDOOM reads: 7 (right) -- the winner's doll lit it on the 7-segment display\nEXACT: all 248 values computed equal the NumPy integer reference (tolerance 0)\nREAD pass: 273 game tics = 8 s of real-time DOOM at 35 tics/s\n```\n\nRunning the same command without `--opt 3` falls back to the default schedule and takes about 163 seconds. A headless Colab notebook also works; the marine is replaced by a programmatic image feed (`doomformer mnist --image`), but the command-line version is the quickest way to see the full pipeline in action.\n\n## The takeaway\n\nDoomformer shows that a classic FPS engine can be repurposed to run an exact integer neural network by mapping arithmetic onto voodoo dolls and sector properties. The approach is dramatically slower than NumPy, tens of thousands of times, but it offers a deterministic, visual sandbox for experimenting with integer-only inference. To try it yourself, install the package and run `doomformer draw --digit 7`; the output will confirm that every computed value matches a NumPy reference with zero tolerance.",
+  "sources": [
+    {
+      "title": "Show HN: I Turned DOOM into a Transformer",
+      "url": "https://github.com/mottopanikeiku/doomformer"
+    }
+  ],
+  "popularity": 2,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/running-an-integer-neural-network-inside-a-doom-map.jpg",
+  "thumbnailCredit": {
+    "name": "Steve A Johnson",
+    "url": "https://unsplash.com/@steve_j?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-blue-background-with-a-green-and-purple-design-n9xmAOrrtyc?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
