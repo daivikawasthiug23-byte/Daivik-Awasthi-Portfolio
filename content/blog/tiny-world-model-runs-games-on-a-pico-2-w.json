@@ -1,0 +1,32 @@
+{
+  "slug": "tiny-world-model-runs-games-on-a-pico-2-w",
+  "title": "Tiny world model runs games on a Pico 2 W",
+  "date": "2026-10-30",
+  "excerpt": "A looped transformer predicts and plays simple games entirely on a Raspberry Pi Pico 2 W.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "A tiny world model can run classic arcade games on a Raspberry Pi Pico 2 W. The repo uses two neural networks that share a single transformer block, and the whole pipeline fits in the microcontroller’s RAM while still producing playable frames. Running the demo looks like this:\n\n```\nuv run python -m tinyworldformer.games.play --game pacman\n```\n\nThe command launches a terminal version of Pac-Man that is generated and played entirely on the board. The post walks through the three main tricks that make this possible and shows what to keep in mind when porting a model to a microcontroller.\n\n## Two tiny networks share a single transformer block\n\nThe system consists of a world-model network and an actor network. The world model receives the current frame and the action chosen by the actor, then predicts the next frame together with a reward signal. The actor consumes the generated frame and selects the next action. Both networks run on core 1 of the RP2350, while core 0 handles USB and the display.\n\nInstead of allocating separate transformer layers for each network, the implementation reuses one transformer block for both forward passes. The block contains an attention head and a ReLU-MLP, and the same weight set is applied repeatedly in a loop. Reusing weights saves memory, which is the tightest resource on the Pico 2 W. The author notes that looped transformers are “cheap on memory” and that the approach allows the whole world-model pipeline to stay within the microcontroller’s limits.\n\n## Patch-based token embedding for tiny game frames\n\nEach game is rendered to a small grid of token IDs. The grid is split into square patches, 2 × 2 cells for Breakout, 4 × 4 for Doom-lite, Flappy Bird and Pong, and 6 × 6 for Pac-Man. This yields between 36 and 80 tokens per frame, depending on the game.\n\nA patch’s embedding is built by summing learned vectors for each cell, using a separate lookup table for each position inside the patch. This preserves the order of cells inside the patch. In addition to the summed cell vectors, every token receives a positional vector and an action vector. The resulting token sequence is fed into the shared transformer block.\n\nThe patch-based approach keeps the token count low while still encoding enough spatial detail for the model to predict the next frame. Because the whole game state fits into a single frame, hidden state such as a ball’s heading is stored directly in the token representation.\n\n## Loop count trades speed for accuracy on the microcontroller\n\nThe transformer block is executed multiple times in a loop, with the input added back before each pass. During training the output after every pass is compared to the next real frame, so the model learns to improve its prediction with each additional loop.\n\nAt inference time the number of loops becomes a knob for the speed-accuracy trade-off. On the Pico 2 W the implementation uses two loops to keep a decent frame rate.\n\nThe author shows an animation of a held-out Doom-lite step: after one pass the model draws an extra enemy, after two passes the enemy is partly removed, and after four passes the frame is completely correct. The share of exactly correct held-out frames improves from 92 % with one loop to 0 % error with four loops.\n\nBecause each extra loop adds computation, the microcontroller’s limited CPU time forces a balance. Developers can choose fewer loops for faster but noisier predictions, or more loops for higher fidelity when the application can tolerate the slower frame rate.\n\n## The takeaway\n\nRunning a generative world model on a Pico 2 W is feasible by sharing a single transformer block between a world-model and an actor network, encoding frames as small patch-based tokens, and using a loop count to balance speed and accuracy. The approach demonstrates that even a 2 MHz microcontroller with an FPU can host a complete generate-and-play loop for classic arcade games.",
+  "sources": [
+    {
+      "title": "A tiny world model running games on a Raspberry Pi Pico 2 W",
+      "url": "https://github.com/SheepSeb/tinyworldformer"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/tiny-world-model-runs-games-on-a-pico-2-w.jpg",
+  "thumbnailCredit": {
+    "name": "JESHOOTS.COM",
+    "url": "https://unsplash.com/@jeshoots?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/two-people-playing-sony-ps4-game-console-eCktzGjC-iU?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
