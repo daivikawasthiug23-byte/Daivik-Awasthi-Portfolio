@@ -1,0 +1,33 @@
+{
+  "slug": "running-an-nes-cpu-inside-a-qwen-3-5-model",
+  "title": "Running an NES CPU inside a Qwen 3.5 model",
+  "date": "2026-10-31",
+  "excerpt": "A stock Qwen3.5 checkpoint can emulate the NES 6502 CPU by compiling the hardware into model weights.",
+  "tags": [
+    "AI",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A stock Qwen 3.5 checkpoint can run a full NES 6502 CPU, its 2 KB of RAM, and the program ROM of a cartridge without any additional training. The weights were not learned; a compiler filled every parameter so that each token the model predicts corresponds to one CPU instruction.\n\nWhen the model emits a token, a tiny host program interprets it, draws the frame, reads the controller state, and triggers the vblank interrupt. For the three bundled test ROMs the output matches a conventional 6502 emulator exactly, as the repository’s “How it was checked” section describes.\n\n## How the NES CPU is encoded in model weights\n\nThe trick comes from Qwenputer, a project that compiled a CHIP-8 and a RISC-V CPU into a Qwen 3.5-4B model. It reuses the compiler and the central idea that the model’s gated DeltaNet state acts as the machine’s memory. In nesformer the 6502 registers, the 2 KB work RAM, and the cartridge ROM are all stored inside the model’s internal state.\n\nNo training data is involved; the compiler writes each weight so that a forward pass produces the exact next CPU cycle. Because the model is a causal language model, it can emit the execution log token by token, and the host program supplies the surrounding console logic.\n\nThe repository ships a zip file named `nesformer-weights.zip`. After unzipping, the `weights/` directory sits next to the `nesformer/` Python package. The CLI looks for that location by default, but a custom path can be passed with `--weights`. A quick SHA-256 check (`shasum -a 256 -c weights/SHA256SUMS`) confirms the files unpacked correctly.\n\n## Running a game with the nesformer CLI\n\nThe command line interface handles loading the ROM, initializing the model state, and stepping through frames. After setting up a virtual environment and installing `numpy`, `scipy`, `numba`, and `pillow`, a game can be launched with a single line. The example below runs Super Mario Bros. for ten seconds, shows each frame in the terminal, and presses a series of buttons to make Mario walk and jump:\n\n```\npython -m nesformer run roms/smb.nes --frames 600 --show \\\n    --buttons \"start@60-65,right@200-600,a@250-265+300-315+360-375+420-435+480-495+540-555\"\n```\n\n`--frames 600` means 600 NES frames, which at the native 60 Hz equals ten seconds of gameplay. `--show` draws each generated frame as ASCII art in the terminal. The `--buttons` argument is a comma-separated list where each entry specifies a button (or combination) and the frame ranges during which it is held or pressed.\n\nFor instance, `right@200-600` holds the Right button from frame 200 to the end, while `a@250-265+300-315` presses A twice during the indicated intervals. The CLI saves an animated GIF named after the ROM (`smb.gif`) when the run finishes.\n\nThe first execution incurs a one-time compilation cost of about 20 seconds as `numba` JIT-compiles the host engine. After that, each frame takes roughly 1, 6 seconds to generate, so the full 600-frame run averages around 25 minutes. The repository notes that the same weights can run any NROM board (iNES mapper 0) ROM, such as Donkey Kong or Excitebike, without rebuilding. Boards other than NROM abort with a clear “Limitations” message.\n\n## Performance characteristics and limitations\n\nBecause every CPU cycle is produced by a forward pass through a language model, the throughput is far slower than a native emulator. The measured per-frame cost of 1, 6 seconds translates to roughly 10, 60 times slower than real time. The slowdown is expected: the model evaluates a transformer layer for each token, and the host program must synchronize drawing, input handling, and interrupt timing.\n\nMemory usage stays modest. The 6502’s 2 KB RAM and the cartridge ROM are stored inside the model’s state, which lives in the same tensors that would normally hold attention caches. No extra RAM is allocated for the emulated machine beyond the model’s own footprint (the repository does not list the exact size, but the weights file is about 1 GB).\n\nCompatibility is limited to games that use the NROM board. The repository explicitly states that other mappers stop with a message, and no automatic mapper support is provided. Because the compiler hard-codes the memory map into the weights, extending support would require recompiling the model with a different memory layout.\n\nAccuracy is a strong point. For the bundled test ROMs, each generated frame matches a conventional 6502 emulator’s output exactly. The verification process is described in the project’s README, and the same weights run any NROM ROM without modification, confirming that the compiled CPU behaves deterministically.\n\n## The takeaway\n\nRunning an NES CPU inside a Qwen 3.5 model works by encoding the entire machine state in the model’s weights and letting the language model emit each CPU instruction as a token.\n\nThe nesformer CLI makes it easy to load any NROM ROM, specify button presses, and watch the generated frames, though each frame costs several seconds to produce. Expect correct emulation for supported games, but plan for a slowdown of an order of magnitude and the inability to run non-NROM mappers.",
+  "sources": [
+    {
+      "title": "Show HN: A working Nintendo in ~1GB of Qwen weights",
+      "url": "https://github.com/dbreunig/nesformer"
+    }
+  ],
+  "popularity": 13,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/running-an-nes-cpu-inside-a-qwen-3-5-model.jpg",
+  "thumbnailCredit": {
+    "name": "Ravi Palwe",
+    "url": "https://unsplash.com/@ravipalwe?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/white-and-black-nintendo-game-controller-_JTF0Prc7jc?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
