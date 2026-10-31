@@ -1,0 +1,32 @@
+{
+  "slug": "why-selective-moe-offloading-isn-t-always-faster",
+  "title": "Why selective MoE offloading isn’t always faster",
+  "date": "2026-10-31",
+  "excerpt": "Benchmarks on a 16 GB RTX 4090 laptop show that traditional layer offloading can beat selective MoE offloading for some models.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "Selective MoE offloading versus traditional layer offloading  \n\nWhen a model exceeds the 16 GB VRAM of a laptop GPU, the common workaround is to move whole transformer layers to system RAM. The model fits, but the GPU spends most of its time waiting for the CPU to finish the heavy lifting.\n\nA newer idea is to offload only the Mixture-of-Experts (MoE) expert weights, leaving the non-expert parts on the GPU. The expectation is a smaller performance hit because most of the per-token work stays on the fast device.\n\nThe experiment ran on an Acer Predator laptop with an RTX 4090 (16 GB VRAM) and an Intel Core i9-14900HX (24 cores/32 threads), using llama.cpp with CUDA support and GGUF models served through llama-server. Five MoE models were benchmarked with a 4,096-token context window and a short prompt. Two strategies were compared:\n\n* Traditional layer offloading, move complete transformer layers to the CPU until the model fits in VRAM.  \n* Selective MoE offloading, keep GPU-eligible non-expert operations on the GPU while moving a chosen number of expert layers to the CPU via the `--n-cpu-moe N` flag, where *N* is the count of initial expert layers placed on the CPU.\n\n## Model-specific results and why they differ  \n\nPhi-3.5-MoE and Apex-35B both benefitted from selective offloading, achieving roughly a 40 % speed increase over traditional layer offloading. The gain comes from the fact that these models have a large total parameter count (Phi-3.5-MoE has about 42 B parameters) but only a fraction, around 6.6 B, are active per token. By keeping the active attention and feed-forward parts on the GPU, the bulk of the compute stays fast while the rarely used expert weights sit in RAM.\n\nConversely, Qwen, Gemma, and especially LFM performed better with traditional offloading. LFM was more than four times faster when whole layers were moved to the CPU. The likely cause is that these models either have fewer expert parameters or a higher proportion of work that still depends on the offloaded layers. When the expert portion is small, the overhead of shuffling weights between CPU and GPU outweighs any GPU-only compute benefit.\n\n## How expert layer count affects GPU usage  \n\nThe `--n-cpu-moe` flag lets the user decide how many initial expert layers stay on the CPU. Testing on Phi-3.5-MoE revealed a sweet spot: keeping four initial expert layers on the CPU (`--n-cpu-moe 4`) produced the highest generation speed for that model. With fewer than four layers offloaded, the GPU became a bottleneck because more expert weights competed for the limited 16 GB VRAM. With more than four layers offloaded, the CPU work grew and the speed advantage faded.\n\nThis pattern illustrates that more GPU usage does not automatically translate to better performance. When the GPU is saturated, offloading additional expert layers can free VRAM and let the remaining GPU work run unhindered, improving throughput. But once the CPU becomes the limiting factor, further offloading hurts. The optimal number of offloaded expert layers therefore depends on the model’s architecture, the ratio of expert to non-expert parameters, and the hardware balance between GPU memory and CPU compute power.\n\n## Practical guidance for trying selective offloading  \n\n1. Start with a baseline, run the model with traditional layer offloading to establish a reference speed.  \n2. Enable `--n-cpu-moe`, begin with a small number (e.g., 2) and measure generation speed.  \n3. Incrementally increase, raise the flag value until speed stops improving; note the point where CPU time starts to dominate.  \n4. Compare against the baseline, if selective offloading is slower, stick with traditional offloading for that model.  \n5. Record the sweet spot, each model will have its own optimal `--n-cpu-moe` value, as shown by Phi-3.5-MoE’s best result at `4`.\n\n## The takeaway  \n\nSelective MoE offloading can beat traditional layer offloading, but only for models where a large share of per-token work resides in the expert weights. For Phi-3.5-MoE, keeping four initial expert layers on the CPU (`--n-cpu-moe 4`) gave the best speed.\n\nFor models with fewer active experts, moving whole layers to the CPU may still be the faster path. The key is to profile each model and tune the number of offloaded expert layers rather than assuming the selective approach is universally superior.",
+  "sources": [
+    {
+      "title": "MoE Offloading Isn’t Always Faster: I Tested 5 Models on a 16GB GPU",
+      "url": "https://dev.to/sizzlebop/moe-offloading-isnt-always-faster-i-tested-5-models-on-a-16gb-gpu-498a"
+    }
+  ],
+  "popularity": 31,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-selective-moe-offloading-isn-t-always-faster.jpg",
+  "thumbnailCredit": {
+    "name": "Andrey Matveev",
+    "url": "https://unsplash.com/@zelebb?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-close-up-of-a-video-card-on-a-yellow-background-ipVMl4H6g6o?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
