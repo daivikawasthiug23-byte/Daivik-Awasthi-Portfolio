@@ -1,0 +1,32 @@
+{
+  "slug": "revisiting-moe-offloading-benchmarks-with-consistent-quantization",
+  "title": "Revisiting MoE offloading benchmarks with consistent quantization",
+  "date": "2026-10-31",
+  "excerpt": "A repeat test with all models at Q4_K_M shows selective offloading can beat traditional layer splitting on some models.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "A follow-up experiment retested the five models from the original 16 GB GPU MoE offloading study, forcing every model onto the same Q4_K_M quantization level. The earlier run mixed Q4_K_M, Q5_K_M, Q6_K and Q8_0, which made it hard to tell whether speed differences came from architecture, quantization, or the offloading strategy itself. By normalizing the quantization and interleaving three warm-up-followed measurements per configuration, the new data paint a clearer picture of when selective expert offloading actually wins.\n\nThe hardware stayed the same: an RTX 4090 laptop GPU with 16 GB VRAM paired with an Intel i9-14900HX (24 cores / 32 threads). The inference engine remained llama.cpp with CUDA and Flash Attention enabled, but the offloading flag switched from the traditional layer split (`-ngl`) to the selective expert mode (`--n-cpu-moe`).\n\nEach configuration received a warm-up request, then three runs whose median generation speed was recorded. The result set includes the original 100-token benchmark and an extended 512-token run for the most interesting models.\n\n## Selective offloading beats layer splitting on Qwen and LFM2.5, Phi-3.5 flips direction  \n\nWhen all five models ran at Q4_K_M, the 100-token test showed selective expert offloading pulling ahead of traditional layer splitting on Qwen and LFM2.5. In the original benchmarks those two models had been slower with selective offloading, while Gemma and Phi-3.5 were either tied or behind. The new run flipped the trend for Phi-3.5, which now ran faster with selective offloading than with layer splitting. Gemma ended up essentially tied between the two strategies.\n\nThe key change is the uniform quantization. The source notes that the original mix of Q4_K_M, Q5_K_M, Q6_K and Q8_0 made it difficult to isolate the cause of performance shifts. By moving every model to the same Q4_K_M representation, the experiment removes quantization as a confounding variable. The selective offloading path therefore appears to benefit Qwen and LFM2.5 under these conditions, while still delivering comparable performance for Gemma and a clear win for Phi-3.5.\n\n## Longer runs expose mixed behavior  \n\nTo probe whether the 100-token findings held for longer generations, the author extended the benchmark to 512 tokens for a subset of models. Qwen continued to favor selective offloading, reinforcing the notion that quantization level interacts strongly with offloading strategy.\n\nLFM2.5, however, showed mixed behavior: some runs stayed fast with selective offloading, but occasional spikes slowed it dramatically. The source calls out “one unusually slow LFM result” as evidence that measurement noise or thermal throttling can still affect outcomes even with interleaved runs.\n\nThe extended test also highlighted an “unusually fast” Apex result in one of the 100-token runs. By focusing on median generation speed across three interleaved runs, the methodology reduces the impact of such outliers, but the 512-token data remind readers that longer sequences can expose hidden bottlenecks, especially when CPU-offloaded experts compete for memory bandwidth.\n\n## What the revised methodology teaches  \n\n* Consistent quantization matters. Aligning all models to Q4_K_M removed a major source of variance and allowed a cleaner comparison between selective expert offloading and layer splitting.  \n* Interleaved measurements improve confidence. Warm-up requests followed by three median-taken runs per strategy reduce the influence of laptop thermals, background tasks, and random spikes.  \n* Selective offloading is not universally superior. It wins on Qwen and LFM2.5 in the short test, ties on Gemma, and flips Phi-3.5 to a win, but the 512-token runs show that performance can still swing depending on workload length and system state.  \n* The llama.cpp flag matters. `--n-cpu-moe` enables selective expert offloading, while `-ngl` triggers the traditional layer-splitting approach. The choice of flag directly maps to the observed speed differences.\n\n## The takeaway  \n\nWhen benchmarking MoE offloading, keep quantization consistent across models and interleave runs to mitigate thermal and noise effects. Under a uniform Q4_K_M setup, selective expert offloading can outperform traditional layer splitting on models like Qwen and LFM2.5, but the advantage is not guaranteed for longer generations. Use `--n-cpu-moe` in llama.cpp to test the selective path, but verify results with median-based, interleaved measurements before drawing firm conclusions.",
+  "sources": [
+    {
+      "title": "I Retested My MoE Offloading Benchmarks. Some of My Conclusions Changed.",
+      "url": "https://dev.to/sizzlebop/i-retested-my-moe-offloading-benchmarks-some-of-my-conclusions-changed-6f4"
+    }
+  ],
+  "popularity": 17,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/revisiting-moe-offloading-benchmarks-with-consistent-quantization.jpg",
+  "thumbnailCredit": {
+    "name": "Growtika",
+    "url": "https://unsplash.com/@growtika?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/an-abstract-image-of-a-sphere-with-dots-and-lines-nGoCBxiaRO0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
