@@ -1,0 +1,32 @@
+{
+  "slug": "how-gcc-decides-between-jump-tables-and-comparison-trees",
+  "title": "How gcc decides between jump tables and comparison trees",
+  "date": "2026-10-31",
+  "excerpt": "gcc uses a density threshold of about eight entries per case label to choose a jump table over a series of comparisons.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A simple `switch` that maps the values 0-4 to five different functions compiles to a tight jump table. The generated code moves the arguments, checks the index against the highest case, and then jumps through a table of 8-byte entries:\n\n```asm\ncompact:\n    mov eax, edi\n    mov edi, esi\n    cmp eax, 4\n    ja .L2\n    jmp [QWORD PTR .L4[0+rax*8]]\n.L4:\n    .quad .L8\n    .quad .L7\n    .quad .L6\n    .quad .L5\n    .quad .L3\n.L5: jmp f3\n.L3: jmp f4\n.L8: jmp f0\n.L7: jmp f1\n.L6: jmp f2\n.L2: xor eax, eax\n    ret\n```\n\nThe compiler recognized that the case values form a dense range, that the default branch is only taken when the index is larger than 4, and that a table lookup is cheaper than a chain of compares. The same pattern appears when the cases are offset by a constant, for example 97-101, after the compiler inserts a `lea eax,[rdi-97]` to normalize the index.\n\n## gcc generates jump tables for dense case ranges\n\nGCC decides to emit a jump table when the number of distinct case values is high relative to the span of the range. In practice the cutoff is around eight entries per case label. With cases 0, 1, 2, 3, 4 the span is 4 and the density is maximal, so a table is used.\n\nThe generated code follows a predictable shape:\n\n1. Move the switch operand into a register.  \n2. Compare it against the highest case value.  \n3. If it is out of range, fall through to the default path.  \n4. Otherwise index into a read-only table of absolute addresses and jump.\n\nWhen the cases are shifted by a constant, GCC adds a `lea` that subtracts the base value before the compare and the table lookup. The table itself still contains the absolute target addresses, so the runtime cost is identical.\n\n## Sparse case values trigger a comparison tree\n\nIf the case values are spread out, GCC falls back to a series of conditional branches. The function `sparse_8` in the source demonstrates this:\n\n```asm\nsparse_8:\n    mov eax, edi\n    mov edi, esi\n    cmp eax, 16\n    je .L2\n    jle .L10\n    cmp eax, 24\n    je .L7\n    cmp eax, 40\n    jne .L1\n    jmp f4\n.L10:\n    test eax, eax\n    je .L4\n    cmp eax, 8\n    jne .L1\n    jmp f1\n.L1: xor eax, eax\n    ret\n.L4: jmp f0\n.L7: jmp f3\n.L2: jmp f2\n```\n\nHere the cases are 0, 8, 16, 24, 40. The span is 40, which makes the density low enough for GCC to prefer a decision tree over a jump table. The tree narrows the range with a few compares and jumps to the appropriate target. It is not perfectly balanced, but it avoids the memory indirection of a large, mostly empty table.\n\n## The eight-entry density threshold in practice\n\nExperiments reported in the source show that the cutoff sits around eight entries per case label. A function with cases 0, 7, 14, 21, 34 (span 34) still produces a jump table, because GCC treats the pattern as “dense enough” after accounting for the fact that the table entries for the gaps can be filled with the default label. The generated table contains many `.L2` entries that all resolve to the default path.\n\nWhen the same number of cases is spread more uniformly, 0, 8, 16, 24, 40, the density drops below the threshold and the compiler emits a comparison tree instead. The source notes that the exact cutoff is “around eight jump table entries per case label,” which matches the observed behavior.\n\n## When gcc misses simple arithmetic simplifications\n\nEven with a sparse layout, some switches can be simplified by scaling the operand before the lookup. For `sparse_8`, dividing `x` by 8 would collapse the cases to a compact range and enable a small jump table. The source explicitly states that “gcc doesn’t find this simplification.” Instead of a `shr` or `idiv` followed by a table lookup, GCC builds the longer compare chain shown above.\n\nThe missed optimization illustrates a limitation: GCC’s switch lowering focuses on raw density and does not perform more aggressive arithmetic transformations that could reduce the number of branches. In cases where the pattern is a linear function of the switch variable, a manual rewrite (e.g., `x/8`) would let the compiler generate a more efficient table.\n\n## The takeaway\n\nGCC chooses a jump table when the case density exceeds roughly eight entries per label; otherwise it falls back to a comparison tree. The decision is based on the raw span of case values, not on potential arithmetic simplifications. If a switch can be expressed as a scaled index, applying that transformation manually may let GCC generate a more efficient table.",
+  "sources": [
+    {
+      "title": "Switch Lowering in GCC",
+      "url": "https://xoranth.net/gcc-switch/"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-gcc-decides-between-jump-tables-and-comparison-trees.jpg",
+  "thumbnailCredit": {
+    "name": "Florian Olivo",
+    "url": "https://unsplash.com/@florianolv?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/lines-of-html-codes-4hbJ-eymZ1o?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
