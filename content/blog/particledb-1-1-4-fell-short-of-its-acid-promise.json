@@ -1,0 +1,33 @@
+{
+  "slug": "particledb-1-1-4-fell-short-of-its-acid-promise",
+  "title": "ParticleDB 1.1.4 fell short of its ACID promise",
+  "date": "2026-10-31",
+  "excerpt": "Jepsen found dozens of crashes, data loss and isolation bugs in ParticleDB 1.1.4 despite its full ACID claim.",
+  "tags": [
+    "AI",
+    "Backend",
+    "Systems"
+  ],
+  "body": "ParticleDB 1.1.4 broke on a brand-new single-node install even though the test harness never introduced network partitions, Raft replication, or client crashes. The Jepsen analysis recorded 96 distinct problems, from outright crashes to rows that vanished after a delete, and most of them appeared with just one client talking to one server. In other words, the bugs lived in the core engine, not in any distributed layer.\n\nThe report also notes that later releases (up to 1.1.18.11.rc-22) resolved all but ten of those issues, yet the core ACID promises remained broken in 1.1.4. The following sections break down the most consequential findings and explain why they matter for any service that depends on strict consistency.\n\n## Single-node failures dominate the bug list  \n\nJepsen exercised a fresh 1.1.4 binary on a bare-metal VM, ran a mix of SQL inserts, deletes, and vector-search queries, and observed crashes, deadlocks, data loss, and malformed rows that could not be removed. The analysis explicitly states that *“most issues required just a single server, single client, and no faults.”*  \n\nBecause no replication or fault-injection was involved, the failures point directly at ParticleDB’s internal consistency mechanisms. A production service that deploys ParticleDB on a single instance, a common pattern for development, testing, or low-traffic workloads, would still be exposed to these bugs regardless of how carefully the surrounding infrastructure is built.\n\n## Isolation levels are silently downgraded  \n\nParticleDB’s marketing page claimed “Full ACID. 159K TPS.” The same page also mentioned *snapshot isolation*, which is weaker than true serializability. The Jepsen team found that the `SET TRANSACTION ISOLATION LEVEL` statement was either rejected or ignored. In many cases the engine forced users onto READ COMMITTED, a relatively weak level, without any warning.  \n\nEven when a client explicitly requested SERIALIZABLE, the engine silently fell back to a lower isolation level. The analysis includes a concrete lost-update anomaly: two concurrent transactions each read the same row, both write a new value, and the later commit overwrites the earlier one, despite the transaction being declared SERIALIZABLE. This behavior violates the strongest isolation guarantee and makes “full ACID” misleading.\n\n## Durability modes send mixed signals  \n\nParticleDB ships three write-ahead-log (WAL) sync strategies:\n\n```text\nfsync, flush on every COMMIT\ngroupsync, batch multiple commits into one flush\nnosync, skip flushing entirely\n```\n\nThe official documentation claims `fsync` offers “stronger durability” than `groupsync`. Yet the operator guide states that `groupsync` provides *“the same durability as sync,”* and the command-line help for `groupsync` says a COMMIT *“waits for flush.”* The Jepsen notes call this inconsistency *“conflicting guarantees.”*  \n\nIn practice the ambiguity can cause operators to pick `groupsync` believing it is as safe as `fsync`, only to discover committed data disappearing after a crash. Moreover, under the default optimistic concurrency control (OCC) transaction mode, ParticleDB lost committed writes during normal operation, again without any fault injection. The loss demonstrates that the durability promise is not upheld even in the simplest configuration.\n\n## The default OCC mode hides internal anomalies  \n\nParticleDB’s default transaction mode is optimistic concurrency control (OCC). Under OCC the engine assumes conflicts are rare and validates writes at commit time. The Jepsen analysis shows that, even with a single client, OCC allowed *internal anomalies* such as partially-invisible rows and strings silently turning into integers.  \n\nThese anomalies manifested without any external stress: a simple `INSERT` followed by a `SELECT` sometimes returned a row that could not be matched by its primary key, and a column defined as `TEXT` occasionally stored an integer value. The report labels these issues *“pedestrian”* but notes they are still unacceptable for any workload that expects deterministic data types.\n\n## The takeaway  \n\nParticleDB 1.1.4 cannot be trusted to deliver the ACID guarantees it advertises. It exhibits numerous bugs on a single node, silently downgrades or rejects isolation-level requests, provides contradictory durability semantics, and loses committed writes under its default OCC mode. The concrete evidence, lost writes in OCC, lost-update anomalies in SERIALIZABLE, and data-type corruption, should be enough to treat version 1.1.4 as unsuitable for workloads that depend on strict consistency.  \n\nConsider upgrading to a later release that resolves the majority of the 96 issues, or select a database with proven ACID behavior for critical applications. The Jepsen analysis of ParticleDB 1.1.4 can be read in full at the [Jepsen ParticleDB 1.1.4 report](https://jepsen.io/analyses/particledb-1.1.4).",
+  "sources": [
+    {
+      "title": "Jepsen: ParticleDB 1.1.4",
+      "url": "https://jepsen.io/analyses/particledb-1.1.4"
+    }
+  ],
+  "popularity": 21,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/particledb-1-1-4-fell-short-of-its-acid-promise.jpg",
+  "thumbnailCredit": {
+    "name": "Kevin Ache",
+    "url": "https://unsplash.com/@kevinache?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-rack-of-servers-in-a-server-room-2JJ3wBHu4_0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
