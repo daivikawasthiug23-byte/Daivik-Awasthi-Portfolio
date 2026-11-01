@@ -1,0 +1,33 @@
+{
+  "slug": "why-none-isn-t-enough-and-how-python-3-15-adds-real-sentinels",
+  "title": "Why None isn’t enough and how Python 3.15 adds real sentinels",
+  "date": "2026-11-01",
+  "excerpt": "None overloads meaning in Python, so use the new sentinel built-in to express missing values safely.",
+  "tags": [
+    "Backend",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A cache that returns `None` for a missing key looks innocent until the same `None` also means “the stored value is literally `None`”. The same ambiguity appears in a configuration flag such as `timeout=None`: does it mean “no timeout” or “keep the existing timeout”?\n\nA function that catches `TimeoutError` and returns `None` mixes error signalling with ordinary absence. The author of *Much Ado About None: Sentinel Values in Python* calls this overload of `None` a “Swiss Army knife” and shows how it bites code that needs to distinguish “not set” from “explicitly set to null”.\n\nIn the talk presented at PyConDE, EuroPython and the Swiss Python Summit in 2026, the problem is illustrated with real-world snippets. The article explains why the overload leads to extra conditionals, hidden bugs, and type-checker confusion. The reader will come away with a concrete way to replace ambiguous `None` values with proper sentinel objects, and a recipe for using the new built-in `sentinel` introduced in Python 3.15.\n\n## None overloads in everyday code\n\nIn typical Python programs `None` ends up representing at least four distinct ideas:\n\n1. A missing value, such as a cache miss.  \n2. An explicit null supplied by a caller.  \n3. A sentinel meaning “keep the current setting”.  \n4. An error signal, for example a function that swallowed `TimeoutError` and returned `None`.\n\nWhen a function receives `None` it must guess which meaning applies. The article points out that a simple cache returning `None` for both a missing key and a key that maps to `None` forces callers to add extra checks or special-case logic.\n\nThe same pattern shows up in configuration APIs where `timeout=None` can be interpreted as “disable the timeout” or “don’t change the timeout”. The author notes that this overload is a frequent source of bugs because the caller cannot rely on a single meaning.\n\n## Python’s own hidden sentinels\n\nThe standard library already avoids the overload by using dedicated sentinel objects that live outside the domain of valid values. The article lists three built-in examples:\n\n* `Ellipsis` (`...`) tells NumPy slicing to skip a dimension and also marks stub implementations.  \n* `NotImplemented` signals that an operation should be tried elsewhere, enabling double-dispatch for binary operators such as `__rsub__`.  \n* Pydantic’s `MISSING` distinguishes a field that was never sent from one that was explicitly set to `null`; it became stable in Pydantic 2.14.\n\nThese sentinels are singletons, so identity checks (`is`) work reliably, and they never collide with legitimate data because the domain of valid values never includes them. The source emphasizes that using a hidden sentinel keeps runtime behavior correct, but creating a custom sentinel with `object()` breaks static type narrowing in type checkers. Workarounds like `Literal[\"MISSING\"]` or a one-member `Enum` help the checker but add runtime complexity and can fail when the sentinel is copied or pickled.\n\n## The new sentinel built-in\n\nPEP 661, once deferred, was accepted by the Steering Council and landed in Python 3.15. The built-in `sentinel` creates a proper sentinel type that type checkers understand. The article provides this exact snippet:\n\n```python\nfrom sentinel import sentinel  # built-in in Python 3.15\n\nMISSING = sentinel(\"MISSING\")\n\ndef update_email(user_id: int, email: str | None | MISSING = MISSING) -> None:\n    if email is MISSING:\n        return  # nothing to update\n    elif email is None:\n        db.delete_email(user_id)\n    else:\n        db.set_email(user_id, email.lower())  # narrowed to str\n```\n\nWhen `email` is annotated as `str | None | MISSING`, a static checker can narrow the type after each `is` check. After `email is MISSING` the checker knows the branch is unreachable for the other two types. After `email is None` it knows the remaining branch deals with a genuine `str`. This solves the classic problem where `object()` works at runtime but leaves the checker stuck at `object`.\n\nFor projects still on older Python versions, `typing_extensions` provides a backport of `sentinel`. The source warns that type-checker support is still catching up, so developers should verify that their checker (mypy, pyright, etc.) recognises the new sentinel before relying on it.\n\n## When to prefer a library sentinel\n\nMany third-party libraries already expose their own sentinel objects. The article mentions Pydantic’s `MISSING` as a stable example. Using a library-provided sentinel has two advantages:\n\n1. It avoids the need to define a custom sentinel, eliminating the risk of identity loss when the object is copied or pickled.  \n2. It signals intent to readers familiar with the library, reducing cognitive load.\n\nIf a library does not expose a sentinel, the built-in `sentinel` is the recommended fallback. The author advises replacing ad-hoc `object()` or Enum hacks with the official sentinel to avoid the pitfalls of identity loss, pickling, and type-checker confusion.\n\n## The takeaway\n\n`None` carries too many meanings for reliable APIs. Use a dedicated sentinel, prefer the built-in `sentinel` from Python 3.15 or a library-provided one, and let static type checkers narrow the types after identity checks. Replacing ad-hoc `object()` or Enum tricks with the official sentinel keeps runtime checks simple, preserves picklability, and gives type checkers the information they need.  \n\n*Source: [Much Ado About None: Sentinel Values in Python](https://florianwilhelm.info/2026/10/sentinel_values/)*",
+  "sources": [
+    {
+      "title": "Much Ado About None: Sentinel Values in Python",
+      "url": "https://florianwilhelm.info/2026/10/sentinel_values/"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 9,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-none-isn-t-enough-and-how-python-3-15-adds-real-sentinels.jpg",
+  "thumbnailCredit": {
+    "name": "Ilya Pavlov",
+    "url": "https://unsplash.com/@ilyapavlov?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/monitor-showing-java-programming-OqtafYT5kTw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
