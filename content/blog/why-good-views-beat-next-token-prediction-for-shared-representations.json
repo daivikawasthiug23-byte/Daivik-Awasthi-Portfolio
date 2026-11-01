@@ -1,0 +1,33 @@
+{
+  "slug": "why-good-views-beat-next-token-prediction-for-shared-representations",
+  "title": "Why good views beat next token prediction for shared representations",
+  "date": "2026-11-01",
+  "excerpt": "Joint-Embedding Predictive Architectures trained on good views align far faster than language models trained on next-token prediction.",
+  "tags": [
+    "AI",
+    "Data",
+    "Systems"
+  ],
+  "body": "A recent arXiv paper shows that separate encoders trained on the same scene but with different modalities can be aligned with a single linear rotation, turning the pair into a functional image-captioner. The captioner reaches a CIDEr score that rivals many supervised systems. The result demonstrates that “good views” of the data give far stronger shared representations than the massive next-token-prediction runs that dominate language-model training.\n\n## Platonic representation theorem for JEPAs  \n\nThe authors turn the Platonic Representation Hypothesis into a formal statement they call the Platonic Representation Theorem. Joint-Embedding Predictive Architectures (JEPAs) that receive *good views*, two observations of the same underlying scene, learn representations that differ only by an orthogonal rotation, provided that the misalignment of all other pairs stays bounded.  \n\nBecause the theorem applies to any number of modalities and holds even when each encoder is trained independently, a vision encoder trained on raw images and a text encoder trained on captions converge to the same latent space up to a rotation, as long as each training pair truly reflects the same scene.  \n\nThe proof rests on two ingredients. First, the contrastive objective pulls positive pairs together while pushing unrelated pairs apart. Second, the bounded misalignment ensures that the negative pressure cannot distort the shared subspace beyond a rotation. The resulting *Platonic* representation is a single abstract view of the world that all modalities can map to.  \n\nSource: [arXiv:2610.39302](https://arxiv.org/abs/2610.39302)\n\n## Next-token prediction as a JEPA with bad views  \n\nThe paper argues that language models trained by next-token prediction fit the JEPA framework, but they operate with *bad views*. Here the positive pairs are consecutive fragments of the same document rather than two independent observations of a single scene. Because the fragments share only local context, they do not provide a clean view of the underlying world state.  \n\nEmpirically, a 109 M-parameter text JEPA aligns with DINOv2 and CLIP image encoders better than any evaluated language model up to 72 B parameters. Alignment quality is measured by cosine similarity after an optimal rotation, and the JEPA consistently outperforms next-token models even when the latter are trained on the same corpus. The authors conclude that next-token prediction is a surprisingly inefficient route to the Platonic representation.\n\n## Scaling law of alignment and sample efficiency  \n\nTraining runs ranging from 145 k caption pairs to the texts of 940 M web images let the authors fit a scaling law that predicts alignment quality as a function of training samples and model size. Two striking facts emerge:\n\n* Good views need dozens of times fewer training samples than next-token prediction to reach the same alignment level on the same data.  \n* The alignment curve for JEPAs extrapolates accurately within seed noise, allowing researchers to forecast the performance of unseen runs.\n\nThese findings suggest that the dominant factor in achieving shared representations is not sheer scale but the quality of the view provided to the model. When the view is good, modest data budgets suffice; when the view is bad, scaling alone cannot close the gap.\n\n## A concrete example: turning encoders into a captioner  \n\nThe authors train a vision encoder with DINOv2 and a text JEPA on the same set of image-caption pairs, each pair representing a *good view*. After training, they compute the optimal rotation that aligns the two latent spaces. Applying that rotation to the vision encoder’s output and feeding it to the text decoder produces captions that achieve a CIDEr score comparable to many supervised systems on COCO.  \n\nNotably, the rotation requires no paired fine-tuning on a downstream captioning benchmark. On a recent pair-free benchmark, the same text JEPA beats every zero-shot accuracy reported for language models up to 8 B parameters, reaching 64 % top-5 on ImageNet-100 compared with a maximum of 56 % from those models.\n\n## The takeaway  \n\nPrioritize data that offers true multi-modal observations of the same scene. Good views act as a direct lever for building Platonic representations, reducing sample requirements dramatically and yielding shared embeddings that scale far more efficiently than next-token prediction. A single orthogonal rotation can then align separately trained encoders, turning them into high-performing downstream systems without additional paired training.",
+  "sources": [
+    {
+      "title": "Proving and improving the Platonic Representation Hypothesis with JEPAs",
+      "url": "https://arxiv.org/abs/2610.39302"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-good-views-beat-next-token-prediction-for-shared-representations.jpg",
+  "thumbnailCredit": {
+    "name": "Markus Winkler",
+    "url": "https://unsplash.com/@markuswinkler?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-close-up-of-a-typewriter-with-a-paper-reading-machine-learning-f57lx37DCM4?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
