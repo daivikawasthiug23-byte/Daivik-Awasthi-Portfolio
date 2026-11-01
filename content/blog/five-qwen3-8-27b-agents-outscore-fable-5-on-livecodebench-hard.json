@@ -1,0 +1,33 @@
+{
+  "slug": "five-qwen3-8-27b-agents-outscore-fable-5-on-livecodebench-hard",
+  "title": "Five Qwen3.8-27B agents outscore Fable 5 on LiveCodeBench Hard",
+  "date": "2026-11-01",
+  "excerpt": "A Memdoor workflow with five Qwen3.8-27B models achieved a 9.8/10 mean score, beating the single-model Fable 5 baseline.",
+  "tags": [
+    "AI",
+    "Dev Tools",
+    "Systems"
+  ],
+  "body": "A five-agent workflow built on Memdoor ran the first ten LiveCodeBench Hard problems five times each and achieved a mean score of 9.8 out of 10. The same model, Qwen3.8-27B, scored 9.6 with the authors’ original harness and 8.0 when used alone as Fable 5. The improvement comes from structuring the work as a team of specialized agents that only exchange files on disk.\n\n## How the five-agent workflow is organized\n\nThe workflow defines five roles, planner, two ideators, solver, manager, and a repair worker, each starting from a fresh context and communicating only through files on disk. A shell script launches each role, writes its output to a shared directory, and lets the next role read that file. The planner receives the problem description, produces a high-level plan, and writes it to `plan.txt`.\n\nThe two ideators generate alternative solution sketches, each stored in its own file. The solver takes the best sketch, writes the concrete program to `solution.py`, and the manager validates the program against public tests. If validation fails, the repair worker edits the program and writes a corrected version back to disk. This strict file-based hand-off eliminates any hidden state between calls and makes the whole process reproducible.\n\n## Performance results compared to the original harness and Fable 5\n\nRebuilding the authors’ exact prompts on Qwen3.8-27B and running the loop in the Memdoor workflow produced a mean score of 9.8 over five passes on the ten selected problems. The original harness, also using Qwen3.8-27B with a 128 K reply cap, recorded 9.6 under the same conditions.\n\nBy contrast, the single-call Fable 5 baseline achieved only 8.0. All 49 of the 50 runs solved their respective problems; one run was cut by a clock timeout. The score improvement is modest numerically but consistent across every problem, indicating that the multi-agent loop reduces the variance that a single call often exhibits.\n\n## Cost, runtime and host details of the runs\n\nThe 50 runs consumed 15.3 M output tokens, costing $35.79. Including the 16 attempts that were aborted or paused raised the total to $38.77. A single run took a median of 40 minutes of model time, with the longest run lasting four hours.\n\nThe runs were executed on OpenRouter, not on a local machine. Host selection followed a priority list: Modal, CoreWeave, Parasail, Wafer. Modal slowed to 14 tokens / s, after which the remaining FP8 hosts (Wafer, Parasail, CoreWeave) handled the calls.\n\nIn total, 203 calls were served by Modal, 27 by CoreWeave, and 115 by Wafer. All FP8-hosted calls were processed by Wafer. The workflow’s token-optimizing settings matched the authors’: temperature 0.3 for planning, 0.4 for ideation, 0.2 for manager and worker, top_p 0.95, top_k 20, and a hard 128 K reply cap. Up to ten rounds were allowed, with a cut-off worker summarizing any reply that hit the token limit.\n\n## Where the loop still falls short\n\nTwo recurring gaps from the original loop persisted. In pass 5 of problem abc399_e, the manager invented a counterexample with an incorrect expected answer. The team rewrote the program, which then passed the public samples but still scored only 32 out of 44 hidden tests.\n\nThe second gap involved the planner’s handling of the problem text: the workflow’s initial version generated a task file that differed slightly from the authors’ exact LiveCodeBench text, causing the planner to produce a weaker plan (0 of 2 correct steps versus 2 of 2).\n\nFour Memdoor tweaks, adding a task-answer step, exposing top_p/top_k on the model line, marking cut-off replies, and running a dedicated four-hour clock, were required to align the workflow with the authors’ harness. Even after these fixes, the loop can still be tripped by subtle mismatches between public samples and hidden tests.\n\n## The takeaway\n\nOrganizing Qwen3.8-27B as a five-agent team that talks only through disk files yields a measurable edge over a single-call baseline. The structure improves consistency without adding significant cost, but hidden-test mismatches and overly aggressive manager reasoning can still limit the final score. Use the file-based multi-agent pattern when reproducibility and incremental reasoning are needed, and watch for edge cases where the manager’s expectations diverge from the hidden evaluation.",
+  "sources": [
+    {
+      "title": "Memdoor: A team of 5 Qwen3.8-27B models beats Fable 5 on LiveCodeBench Hard",
+      "url": "https://github.com/guregodevo/memdoor/tree/main/examples/workflows/team-solve"
+    }
+  ],
+  "popularity": 6,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 9,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/five-qwen3-8-27b-agents-outscore-fable-5-on-livecodebench-hard.jpg",
+  "thumbnailCredit": {
+    "name": "Igor Omilaev",
+    "url": "https://unsplash.com/@omilaev?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-chip-with-the-letter-a-on-top-of-it-eGGFZ5X2LnA?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
