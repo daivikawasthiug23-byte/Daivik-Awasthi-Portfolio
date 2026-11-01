@@ -1,0 +1,33 @@
+{
+  "slug": "how-email-encryption-protects-against-common-threats",
+  "title": "How email encryption protects against common threats",
+  "date": "2026-11-01",
+  "excerpt": "TLS encrypts the link to your provider and helps stop network eavesdropping, while server-to-server TLS adds protection between mail hosts.",
+  "tags": [
+    "Security",
+    "Systems",
+    "Web"
+  ],
+  "body": "Fastmail began offering inbound opportunistic TLS in April 2009 and outbound in January 2010. That early adoption shows how many providers rely on TLS to keep everyday email traffic private, even though the protection only covers part of the threat picture.\n\nFor most users the biggest worries are account compromise, spam filters swallowing important messages, malware attachments, and accidental deletion. Encryption of the network path helps with the first two, but it does not stop a stolen password or a mis-configured filter. Knowing which layer is protected lets you pick the right defenses.\n\n## Encrypting the connection to your provider\n\nWhen a mail client talks to an email service, TLS (Transport Layer Security) encrypts the entire session. Modern deployments use TLS 1.3, which forces the strongest cipher suites and removes legacy options. The encryption stops anyone on the same Wi-Fi network, the ISP, or any intermediate router from reading the traffic.\n\nTLS also depends on the public-key infrastructure (PKI). The server presents a certificate signed by a trusted Certificate Authority (CA) such as Let’s Encrypt. The client checks the signature against its built-in list of CAs, confirming that the certificate belongs to the expected domain. Certificate Transparency logs add a public record of every issued certificate, so domain owners can spot rogue certificates quickly.\n\nFastmail enforces TLS 1.3 and uses HTTP Strict Transport Security (HSTS) to force browsers to use HTTPS every time. Unencrypted IMAP, POP, and SMTP ports are closed, meaning mail apps cannot fall back to a clear-text connection. This combination of TLS, PKI, and HSTS gives strong assurance that the connection terminates at the intended provider, protecting against passive eavesdropping and simple man-in-the-middle attempts.\n\n## Opportunistic TLS between mail servers\n\nAfter the client’s message reaches the provider, it must travel to the recipient’s server. Most mail servers attempt “opportunistic TLS”: they issue the STARTTLS command and encrypt the hop if the remote server advertises TLS support. If the remote side does not support TLS, the sending server falls back to plain text.\n\nFastmail’s inbound opportunistic TLS has been active since April 2009 and outbound since January 2010. This means that, for the majority of everyday mail, the path between two providers is encrypted whenever possible. The benefit is clear: a passive observer on the internet backbone cannot read the message body or headers while it moves between servers that both support TLS.\n\nThe catch is that opportunistic TLS does not authenticate the encryption. An active attacker who can intercept traffic can strip the STARTTLS command, causing both servers to think the other does not support TLS and continue in clear text. Because the fallback is automatic, the attacker does not need to present a valid certificate; they simply prevent the encryption from being negotiated.\n\n## When encryption isn’t enough\n\nTLS protects data in transit, but it does not address threats that occur at rest or at the endpoints. A compromised password still gives an attacker full read/write access to all stored mail, regardless of how it was transmitted. Similarly, a malicious attachment can execute once the user opens it, even if the attachment traveled over an encrypted channel.\n\nFor users with higher-risk threat models, journalists, activists, or anyone facing sophisticated adversaries, additional layers are needed. End-to-end encryption (for example PGP or S/MIME) encrypts the message content on the sender’s device and only the intended recipient can decrypt it. This protects against provider-side breaches, legal compulsion, and insider threats, but it adds complexity: key management, verification of fingerprints, and the inability to search encrypted mail.\n\nEven with end-to-end encryption, the connection to the provider still needs TLS. Without TLS, the initial key exchange could be observed and tampered with, undermining the whole chain. Therefore, a solid email security strategy typically stacks TLS for transport protection, strong authentication (unique passwords, 2FA) for account safety, and end-to-end encryption for the most sensitive messages.\n\n## The takeaway\n\nTLS secures the link between your device and the provider and, via opportunistic TLS, secures most server-to-server hops. It stops passive eavesdropping but does not stop active stripping of encryption or protect compromised accounts. Pair TLS with strong authentication, and consider end-to-end encryption for high-value communications. This layered approach covers the most common threats while acknowledging the limits of each technique.",
+  "sources": [
+    {
+      "title": "Understanding Email Encryption",
+      "url": "https://www.fastmail.com/blog/email-encryption/"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-email-encryption-protects-against-common-threats.jpg",
+  "thumbnailCredit": {
+    "name": "FlyD",
+    "url": "https://unsplash.com/@flyd2069?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/red-padlock-on-black-computer-keyboard-mT7lXZPjk7U?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
