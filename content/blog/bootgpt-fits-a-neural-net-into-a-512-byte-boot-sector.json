@@ -1,0 +1,32 @@
+{
+  "slug": "bootgpt-fits-a-neural-net-into-a-512-byte-boot-sector",
+  "title": "BootGPT fits a neural net into a 512-byte boot sector",
+  "date": "2026-11-01",
+  "excerpt": "BootGPT runs an 11.5 KB int8 model from the MBR on a 386 without any OS or C runtime.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "A 512-byte master boot record (MBR) can do more than just hand control to an operating system. The bootgpt project shows a hand-written 16-bit assembly stub that loads an 11.5 KB int8 neural network from the next 23 sectors and runs it on a 386-class CPU.\n\nThe model, trained on synthetic dmesg text, “dreams” a Linux boot log with timestamps, PCI bars and ACPI events that never existed. The demo runs on real BIOS hardware or in QEMU with no OS, no C runtime and no external libraries.\n\n## How the MBR loads and runs the model\n\nThe MBR is limited to 512 bytes, of which 510 are available for code and data. bootgpt stores only the loader in this space; all strings, the vocabulary table and the quantized weights occupy the following sectors. The loader uses BIOS interrupt 13h to read the 23 sectors that contain the model, then prints characters with interrupt 10h.  \n\nInference runs entirely in 16-bit real mode. The network has 8 characters of context, a single hidden layer and a softmax output. All arithmetic is integer; the training script quantizes weights to int8 with power-of-two scales so the boot sector can perform the forward pass with a handful of `imul` instructions and a single `idiv` for the soft-clip activation.\n\nSampling uses an argmax step seeded by the timer, and any key press triggers a reboot. Because the boot sector cannot call any library code, every operation, from loading the weights to printing the generated text, is hand-coded in assembly.\n\n## Training and quantizing the tiny char-level net\n\nThe repository provides `corpus_gen.py`, which synthesizes 3 MB of fake dmesg logs. Each log contains one kernel version and one disk identifier, mimicking the repetition found in real boot logs. This repetition is what allows a model with only one hidden layer to produce plausible output.  \n\n`train.py` builds the character-level network. It creates character embeddings, trains a single hidden layer with softmax, then quantizes all parameters to int8. Quantization uses power-of-two scaling factors, enabling the boot sector to replace floating-point multiplication with integer shifts and a single signed division (`cdq/idiv`). The script also runs a full integer simulation of the forward pass, including the linear-congruential generator used for sampling, and verifies that the Python-generated logits match the assembly output character for character.\n\nThe training pipeline is fully reproducible. After setting up a virtual environment and installing NumPy, the provided `build.sh` assembles the boot sector and `run.sh` launches QEMU. The exact command line the README lists is:\n\n```\nbrew install nasm qemu python3 -m venv .venv && .venv/bin/pip install numpy ./build.sh ./run.sh\n```\n\nRunning this command creates `disk.img`, a normal boot image that can be `dd`-ed to a USB stick and booted on any BIOS-based machine. The image contains only the MBR and the data sectors; it never accesses external storage.\n\n## Running the demo on real hardware\n\nTo try the demo, write `disk.img` to a USB drive and plug it into a legacy BIOS system. The BIOS loads the 512-byte MBR, which immediately begins the assembly routine. The first BIOS call (`int 13h`) reads the 23 weight sectors into memory. Subsequent `int 10h` calls output the generated boot log to the screen, line by line. Because the model runs in real mode, it can execute on any 386 or later CPU without needing protected-mode support.\n\nThe project also includes `record.py`, which captures the QEMU output as a GIF by connecting to the monitor socket. This allows a headless demonstration without opening a graphical window. The resulting animation shows the same text that would appear on a physical machine, proving that the boot sector works identically in emulation and on real hardware.\n\n## The takeaway\n\nbootgpt demonstrates that a complete neural-network inference engine can fit inside the 510-byte code limit of an MBR, with weights stored in adjacent sectors. By quantizing to int8 and using only integer arithmetic, the model runs on a 16-bit CPU with just a few assembly instructions.\n\nThe repository provides a reproducible build and run pipeline, so anyone can assemble the boot sector, write it to a USB stick and see a tiny language model generate a fake boot log on bare metal.",
+  "sources": [
+    {
+      "title": "Show HN: A language model that lives in a boot sector",
+      "url": "https://github.com/kerlenton/bootgpt"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/bootgpt-fits-a-neural-net-into-a-512-byte-boot-sector.jpg",
+  "thumbnailCredit": {
+    "name": "Alexandre Debiève",
+    "url": "https://unsplash.com/@alexkixa?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/macro-photography-of-black-circuit-board-FO7JIlwjOtU?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
