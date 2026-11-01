@@ -1,0 +1,33 @@
+{
+  "slug": "effective-afl-fuzzing-tips-for-c-and-c",
+  "title": "Effective AFL++ fuzzing tips for C and C++",
+  "date": "2026-11-01",
+  "excerpt": "Use ASAN options, persistent mode, and proper source inclusion to get more bugs from AFL++ fuzzing.",
+  "tags": [
+    "Systems",
+    "Dev Tools",
+    "Security"
+  ],
+  "body": "A recent fuzzing run on a handful of personal utilities uncovered a crash that had been hiding for years. The program accepted arbitrary binary blobs, yet none of the existing tests exercised the edge cases that triggered the fault. After switching the build to AFL++ with a few tweaks, the same input that previously passed now caused an immediate abort, exposing a use-after-return bug that was invisible to the normal test suite.\n\nThe post walks through three concrete adjustments that make AFL++ work harder for C and C++ projects: turning on sanitizers with a tuned ASAN_OPTIONS string, using persistent mode with a small custom template, and pulling source files directly into the fuzz harness instead of relying on headers. Applying these steps to a target program usually yields more crashes per hour of fuzzing and uncovers bugs that standard builds miss.\n\n## Enable sanitizers with tuned ASAN_OPTIONS\n\nSanitizers act as automatically inserted assertions, and AFL++ benefits from their extra coverage. The author recommends compiling with both Address Sanitizer and Undefined Behavior Sanitizer:\n\n```bash\nafl-gcc-fast -g3 -fsanitize=address,undefined …\n```\n\nOut of the box, ASan’s defaults are not optimal for fuzzing. At a minimum, set the environment variable ASAN_OPTIONS to abort on the first error and disable symbolization:\n\n```bash\nexport ASAN_OPTIONS=\"abort_on_error=1:halt_on_error=1:symbolize=0\"\n```\n\nBeyond the baseline, two options improve detection of subtle memory bugs. Enabling use-after-return detection adds a small performance hit but catches errors that would otherwise slip through:\n\n```bash\nASAN_OPTIONS+=\":detect_stack_use_after_return=1\"\n```\n\nThe default pattern-fill size for newly allocated memory is only 4 KiB, which leaves larger buffers partially uninitialized. Raising the fill size to the maximum practical value forces ASan to overwrite virtually every byte, exposing bugs that rely on uninitialized data:\n\n```bash\nASAN_OPTIONS+=\":max_malloc_fill_size=$((1<<30))\"\n```\n\nWhen fuzzing C++ code that uses libstdc++, adding -D_GLIBCXX_DEBUG adds container-level checks that ASan alone cannot see. The trade-off is an ABI change, but any mismatch appears quickly during fuzzing.\n\n## Prefer persistent mode with a custom template\n\nAFL++ can instrument a program without any source changes, but persistent mode typically delivers an order of magnitude more executions per second. The author keeps a stripped-down template called fuzztmpl.c, which avoids a known flaw in the official example. The template sets up the AFL loop, allocates a buffer for each test case, and hands the data to the target code:\n\n```c\n#include <unistd.h>\n__AFL_FUZZ_INIT();\nint main(void) {\n  __AFL_INIT();\n  char *src = 0;\n  unsigned char *buf = __AFL_FUZZ_TESTCASE_BUF;\n  while (__AFL_LOOP(10000)) {\n    int len = __AFL_FUZZ_TESTCASE_LEN;\n    src = realloc(src, len);\n    memcpy(src, buf, len);\n    // ... send src to target ...\n  }\n}\n```\n\nCopy the template into a new file, add the necessary #include lines for the code under test, and compile with afl-gcc-fast or afl-clang-fast. The loop count (10 000 in the example) can be tuned based on the target’s initialization cost; a higher count reduces per-iteration overhead, while a lower count may be needed for programs that allocate large resources each iteration.\n\nPersistent mode shines when combined with the sanitizer settings above. Because the same process handles many inputs, the filled-allocation pattern and use-after-return checks stay active across iterations, providing consistent coverage without the cost of restarting the binary each time.\n\n## Include source files instead of headers\n\nTraditional builds often restrict each translation unit to a single source file and include only the corresponding header. For fuzzing, that restriction adds unnecessary indirection. The author suggests limiting the harness to at most two translation units: one for the instrumented target code and one for uninstrumented libraries such as libc or libstdc++.\n\nThe simplest approach is to paste the relevant *.c* or *.cpp* files directly into the fuzz template, just after the #include of unistd.h. This ensures the compiler sees the full implementation during instrumentation, avoiding missed coverage that can happen when only a header is compiled. It also removes the need for a separate build system step to generate a static library for the fuzz target.\n\nIn practice, the workflow looks like this:\n\n1. Identify the subset of source files that parse the input or drive the core logic.\n2. Copy those files into the same directory as the template.\n3. Add #include directives for any required standard headers at the top of the template.\n4. Compile the whole directory with afl-gcc-fast or afl-clang-fast and the sanitizer flags.\n\nBecause the harness contains the actual source, any change to the target code is immediately reflected in the next fuzzing run without rebuilding a library. The trade-off is a larger compilation unit, but the speed gain from persistent mode usually outweighs the extra compile time.\n\n## The takeaway\n\nTurn on ASan and UBSan with a tuned ASAN_OPTIONS string, enable use-after-return detection, and fill all allocations. Switch to persistent mode using a minimal custom template that loops over __AFL_LOOP and passes the buffer to the target. Finally, pull the target’s source files directly into the harness instead of compiling only headers. These three steps together raise AFL++’s crash discovery rate and surface bugs that ordinary testing misses.",
+  "sources": [
+    {
+      "title": "Tips for more effective fuzz testing with AFL++",
+      "url": "https://nullprogram.com/blog/2025/02/05/"
+    }
+  ],
+  "popularity": 2,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/effective-afl-fuzzing-tips-for-c-and-c.jpg",
+  "thumbnailCredit": {
+    "name": "Christopher Gower",
+    "url": "https://unsplash.com/@cgower?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-macbook-with-lines-of-code-on-its-screen-on-a-busy-desk-m_HRfLhgABo?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
