@@ -1,0 +1,33 @@
+{
+  "slug": "measuring-ai-generated-javascript-framework-costs",
+  "title": "Measuring AI-generated JavaScript framework costs",
+  "date": "2026-11-01",
+  "excerpt": "A benchmark compares development time, token use and Lighthouse scores across frameworks built by LLM agents.",
+  "tags": [
+    "AI",
+    "Web",
+    "Dev Tools"
+  ],
+  "body": "## Designing a reproducible Pokémon app benchmark  \n\nThe experiment began with a single, well-defined task: build a small but non-trivial Pokémon app that pulls data from the public PokéAPI. The app shows a list of Pokémon, their types, moves and game-specific stats, and supports search and filter operations. It is deliberately simple, more like a Wikipedia entry than an interactive game, so that the core of the benchmark stays focused on JavaScript-framework behavior rather than on complex UI logic.\n\nTo keep the test fair, each framework received the same specification. The author did not prescribe the rendering strategy (SSR vs CSR) or a CSS framework, only forbidding Tailwind, Bootstrap or similar component libraries.\n\nVisual consistency was enforced through a set of spec tokens, and the output was checked against a conformance suite that validates the accessibility tree rather than raw DOM structure. This avoids rewarding a framework that merely emits a different HTML shape, such as one that uses web components with shadow DOM.\n\n## How agents were instructed and evaluated  \n\nThe core of the study is an LLM-driven “agent” that receives a prompt describing the Pokémon app and the target framework. The author used Opus 5.5, a large language model, and gave it a “high effort” instruction set that included the latest stable version of the chosen framework.\n\nThe prompt explicitly told the model to avoid Tailwind, Bootstrap, or other component libraries, and to follow the provided spec tokens for visual consistency. No mention of Lighthouse or performance testing was included, so the model could not game the evaluation.\n\nAfter the model generated the code, the output was run in a sandboxed environment. First, a spec conformance suite verified that the app met functional requirements and adhered to the accessibility-tree checks. Then Lighthouse audited the live site, producing performance, accessibility, best-practice and SEO scores. The author repeated the whole process multiple times for each framework to capture the stochastic nature of LLM output and Lighthouse measurements.\n\n## What the results say about variance and performance  \n\nAcross all runs, the author observed substantial variance in every metric. Token consumption could swing wildly when the model took an unexpected tangent, producing extra boilerplate or exploring alternative architectures. Similarly, Lighthouse scores fluctuated because the tool sometimes chose a different element as the Largest Contentful Paint target between runs. The author notes that “LLMs are random-word generators,” and that “Lighthouse itself can give inconsistent results,” making single-run conclusions unreliable.\n\nDespite the noise, a pattern emerged. Frameworks that rely heavily on server-side rendering (SSR) tended to achieve higher performance scores on average, while pure client-side single-page applications (SPAs) often lagged in LCP and First Contentful Paint. The gap was not as wide as many community anecdotes suggest.\n\nFor example, a Next.js build scored only a few points higher in performance than a SvelteKit build, and both outperformed a vanilla React implementation by a similar margin. Accessibility scores were remarkably consistent across frameworks, indicating that the spec suite successfully enforced a baseline of accessible markup.\n\nLines of code varied more with the model’s interpretation of the framework’s idioms than with the framework itself. When the model used a framework’s recommended file structure and conventions, the resulting codebase was compact; when it fell back to a more manual approach, the line count rose sharply. Development time, measured as wall-clock seconds from prompt to runnable app, also reflected this stochastic behavior rather than any intrinsic speed advantage of a particular tool.\n\n## Implications for framework selection  \n\nThe experiment reinforces the author’s earlier criticism of “vibe-based” framework selection. The differences that do exist are modest, and the variance highlights how much of the outcome depends on the LLM’s random choices and on measurement noise, not on a deterministic superiority of one framework over another.\n\nWhen developers choose a framework based on anecdotal claims of speed or developer experience, they may be overlooking the fact that real-world performance can be dominated by factors outside the framework itself, such as data size, network conditions, or the quality of the generated code.\n\n## The takeaway  \n\nWhen measuring AI-generated JavaScript frameworks, run multiple iterations, use a strict functional spec, and validate with both a conformance suite and Lighthouse. Expect high variance in token usage, code size and performance numbers, and treat any single result as a noisy data point rather than proof of one framework’s dominance.",
+  "sources": [
+    {
+      "title": "The AI cost of JavaScript frameworks",
+      "url": "https://nolanlawson.com/2026/10/28/the-ai-cost-of-javascript-frameworks/"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/measuring-ai-generated-javascript-framework-costs.jpg",
+  "thumbnailCredit": {
+    "name": "Ilya Pavlov",
+    "url": "https://unsplash.com/@ilyapavlov?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/monitor-showing-java-programming-OqtafYT5kTw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
