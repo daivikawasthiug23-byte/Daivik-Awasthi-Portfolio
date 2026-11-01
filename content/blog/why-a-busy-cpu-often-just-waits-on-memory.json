@@ -1,0 +1,33 @@
+{
+  "slug": "why-a-busy-cpu-often-just-waits-on-memory",
+  "title": "Why a busy CPU often just waits on memory",
+  "date": "2026-11-01",
+  "excerpt": "A database CPU at 100% can spend most of its time stalled on slow RAM accesses.",
+  "tags": [
+    "Systems",
+    "Data",
+    "Backend"
+  ],
+  "body": "When a monitoring dashboard flashes 100 % CPU for a database node, the instinct is to blame a runaway query or a missing index. In reality the core is often sitting idle, waiting for data that lives far away in main memory.\n\nOn a recent bare-metal server the author observed a single-core query that took 3.9 seconds while the CPU counter stayed at the top of the gauge. The culprit was not the query logic but the latency of every memory fetch that missed the processor’s caches.\n\nThe post explains why memory latency dominates modern CPUs, how cache size forces databases to work on small chunks, and why a naïve hash-table implementation of `GROUP BY` can flood the memory subsystem. You will see a concrete Rust snippet, the numbers that drive the problem, and a practical rule for keeping the CPU busy.\n\n## Memory latency dwarfs instruction throughput  \n\nA modern CPU can retire roughly 4, 8 instructions per nanosecond. By contrast a load from DDR-5 RAM costs 50, 100 ns. In plain terms, the processor could finish 400, 800 instructions while it waits for a single word of data from main memory. The gap is why a core that appears fully utilized may actually be stalled most of the time.\n\nThe hardware answer is the cache hierarchy. The L1 cache sits on the same silicon die and answers a load in about 1 ns, which is 50, 100× faster than a DRAM access.\n\nThe trade-off is size: L1 holds roughly 64 KB, and even the larger L2/L3 levels only reach a few hundred megabytes on high-end chips. When a workload repeatedly touches data that does not fit in those caches, each access falls back to DRAM and the core spends cycles in a “memory stall” state.\n\n## Small-chunk processing to fit the caches  \n\nBecause caches are limited, high-performance database engines deliberately shape their work sets to stay inside them. The technique is to split the input into chunks that are small enough for the entire aggregation state to reside in L1 or L2 while the chunk is processed. When the working set fits, most loads hit the fast cache and the CPU can keep retiring instructions.\n\nIf a loop touches a structure larger than the cache line, every iteration forces a miss and the core stalls. The PivotLake engine described in the source partitions the data so that each partition can be aggregated while it lives entirely in cache. This “radix partitioning” step is cheap compared with the cost of repeatedly walking to DRAM.\n\n## Naïve hash-table `GROUP BY` blows up memory traffic  \n\nA straightforward implementation of `GROUP BY` builds a hash table keyed by the grouping column. For each incoming row the engine looks up the key, creates an entry if needed, and updates the aggregation. The approach works fine when the number of distinct groups is modest, but it collapses when the hash table grows to millions of entries.\n\nThe source points out that the ClickBench “hits” dataset contains 99 million rows and about 17 million unique `UserID`s. A hash table with that many keys cannot fit in any cache level, so every lookup becomes a “cold” access that walks all the way to DRAM. The CPU then idles on each iteration, inflating the instruction-per-byte ratio dramatically.\n\nThe author stripped the engine down to the essential loop:\n\n```rust\nfn consume(&mut self, batch: RecordBatch, _sender: &mut dyn Sender<RecordBatch>) -> unary::Result<()> {\n    let group_keys = batch.column(self.key_column).as_primitive::<Int64Type>();\n    for &key in group_keys.values() {\n        *self.counts.entry(key).or_insert(0) += 1;\n    }\n}\n```\n\nRunning the query  \n\n```sql\nSELECT count(*), UserID FROM hits GROUP BY UserID;\n```  \n\non a single core of an AMD EPYC 9124 Genoa server (16 cores, 128 GB DDR5) took 3.9 seconds. Hardware counters showed that the majority of cycles were spent in memory stalls, not in useful computation. The measurement had to run on bare metal because the counters needed are not exposed on typical cloud instances.\n\n## How radix partitioning restores cache friendliness  \n\nThe same engine, when using radix partitioning, first hashes each row into one of many small buckets. Each bucket is sized to fit comfortably in L1/L2 cache. The engine then processes each bucket independently, performing the `GROUP BY` aggregation on a hash table that now stays resident in cache. Because the working set for each bucket is tiny, the number of DRAM accesses drops dramatically and the CPU can retire many more instructions per byte of data.\n\nIn the author’s experiments the partitioned version completed the same query in a fraction of the time, with hardware counters confirming a sharp drop in memory-stall cycles. The exact speedup is not quoted, but the contrast illustrates the power of aligning data structures with cache boundaries.\n\n## The takeaway  \n\nWhen a database node shows full CPU utilization, the first diagnostic step is to look at memory-stall counters rather than query plans. Keep aggregation state small enough to fit in L1/L2 caches, radix partitioning is a proven way to achieve that.\n\nAvoid hash tables that grow beyond a few megabytes; once they exceed cache capacity the CPU will spend most of its cycles waiting for RAM, and the apparent 100 % usage is misleading. By shaping work sets to stay cache-friendly, a stalled core can be turned into a productive one.",
+  "sources": [
+    {
+      "title": "It's the Memory Latency, Stupid",
+      "url": "https://pivotlake.io/blog/its-the-memory-latency-stupid/"
+    }
+  ],
+  "popularity": 13,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-a-busy-cpu-often-just-waits-on-memory.jpg",
+  "thumbnailCredit": {
+    "name": "Franck V.",
+    "url": "https://unsplash.com/@possessedphotography?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/sodimm-ram-stick-nuc3NFB_6po?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
