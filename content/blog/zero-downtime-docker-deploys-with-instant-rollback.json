@@ -1,0 +1,33 @@
+{
+  "slug": "zero-downtime-docker-deploys-with-instant-rollback",
+  "title": "Zero downtime Docker deploys with instant rollback",
+  "date": "2026-11-02",
+  "excerpt": "Learn how Levelrail checks readiness, holds the old release, and rolls back a bad Docker deploy in a single command.",
+  "tags": [
+    "Backend",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A recent deploy of a Docker-based service on Levelrail illustrated the full zero-downtime flow. The platform launched a fresh container, waited for its `/healthz` endpoint to succeed twice, let the process run for ten seconds, then cut traffic over. When the new version misbehaved, a single command  \n\n```bash\nlevelrail-cli apps deploys rollback-to web dep_abc123\n```  \n\nswitched back to the previous release in seconds. The guide below breaks down the three safeguards that make that possible and shows how to rehearse each step.\n\n## Readiness gate validates a new container before traffic\n\nLevelrail inserts a readiness gate that must be cleared before any request reaches a new container. The gate checks the health endpoint defined in the app spec, for example  \n\n```yaml\nhealth:\n  readiness:\n    path: /healthz\n    interval: 5s\n    timeout: 2s\n```  \n\nThe controller requires the probe to succeed twice in a row (`APP_DEPLOY_SUCCESS_THRESHOLD`) and then stay up for a stable window of ten seconds (`APP_DEPLOY_STABLE_WINDOW`). If the container exits, restarts, or is OOM-killed during that window, the gate fails and the old release continues serving.\n\nWhen the gate fails, Levelrail records a reason such as ReadinessFailed, ExitedDuringReadiness, or OOMKilledDuringStableWindow. Only a successful gate triggers the cutover and starts draining the old release (the default drain timeout is at least fifteen seconds). The only exception is the *recreate* strategy, which stops the old release first.\n\n## Pinned image digests stop tag drift\n\nFloating tags like `nginx:latest` can mask a mismatch between the image that was built and the one that is actually running. Levelrail resolves the tag to its content digest at deploy time and pins the reference, for example `nginx:latest@sha256:3f1c…`. The controller then verifies that the running container’s image ID matches the pinned digest. If the digest differs, the app reports Ready: False with the reason ImageDigestMismatch, and the old release stays live.\n\nDeploying with the `--pull` flag forces a fresh pull from the registry, avoiding a cached fallback when the registry is unavailable. Because Levelrail tracks builds by the local image ID, rebuilding the same commit on a newer base image creates a new container that still passes through the readiness gate.\n\n## Rollback deploy replays the exact previous release\n\nEach history row stores the pinned image reference, environment variables, port settings, health checks, replica count, and resource limits. When a rollback is requested, Levelrail creates an ordinary deploy that reuses that stored data. Secrets and database references keep their current values, but everything else is restored exactly as it was.\n\nThe rollback also runs through the same readiness gate, guaranteeing that the previous version is still healthy before traffic is switched back. The dashboard offers a “Roll back to this” action on every history row, and the CLI command shown above triggers the same path.\n\n## Holding the previous release for instant rollback\n\nAfter a successful cutover, Levelrail does not terminate the old container immediately. It holds the previous release for the longest of three timers:\n\n* `APP_DEPLOY_PREVIOUS_RELEASE_HOLD` (default three minutes)  \n* the drain timeout (default fifteen seconds)  \n* the post-deploy watch window (default five minutes)\n\nWith default settings the hold lasts about five minutes. During that window a rollback needs no image pull and incurs no cold start because the container is already running. The hold also gives operators a chance to verify that the new release is stable before discarding the old one.\n\n## Ordering guarantees prevent stale builds from winning\n\nWebhooks from a git provider can arrive out of order. Levelrail assigns each automatic deploy a per-app sequence number that reflects the commit ordering. A deploy triggered earlier than one already applied becomes superseded, and a push whose commit predates the deployed one is ignored.\n\nManual deploys and explicit rollbacks are never rejected; they advance the sequence, so an older build in flight cannot undo a rollback. Deploys of a single app run one at a time, and queued deploys survive a control-plane restart.\n\n## The takeaway\n\nZero-downtime Docker deploys on Levelrail rest on three concrete safeguards: a readiness gate that validates health before cutover, pinned image digests that eliminate tag drift, and a short-lived hold of the previous release that enables an instant rollback with a single CLI command. By rehearsing the flow, watching the readiness probe, confirming the pinned digest, and testing a rollback, teams can ship changes confidently and revert in seconds if something goes wrong.  \n\n*Source: [Zero Downtime Deploy for Docker Apps, With Rollback](https://dev.to/thegdsks/zero-downtime-deploy-for-docker-apps-with-rollback-1909)*",
+  "sources": [
+    {
+      "title": "Zero Downtime Deploy for Docker Apps, With Rollback",
+      "url": "https://dev.to/thegdsks/zero-downtime-deploy-for-docker-apps-with-rollback-1909"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 9,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/zero-downtime-docker-deploys-with-instant-rollback.jpg",
+  "thumbnailCredit": {
+    "name": "Rubaitul Azad",
+    "url": "https://unsplash.com/@rubaitulazad?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-golden-docker-logo-on-a-black-background-HSACbYjZsqQ?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
