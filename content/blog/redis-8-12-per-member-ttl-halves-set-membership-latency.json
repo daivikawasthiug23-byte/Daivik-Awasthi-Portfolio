@@ -1,0 +1,33 @@
+{
+  "slug": "redis-8-12-per-member-ttl-halves-set-membership-latency",
+  "title": "Redis 8.12 per-member TTL halves set membership latency",
+  "date": "2026-11-02",
+  "excerpt": "Redis 8.12 RC2 adds SEXPIRE so a single SISMEMBER call replaces a SISMEMBER plus ZSCORE lookup, cutting latency by about 50%.",
+  "tags": [
+    "Backend",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A Redis 8.12 RC2 server can now store a separate expiry for each member of a set. The author of the dev.to post built Redis from source, created two 2 000-member sets, gave every member the same TTL, and measured the cost of a membership check. The latency dropped from roughly 585 µs to 290 µs, about half the time, because the extra sorted-set lookup disappeared.\n\nThe benchmark also showed that writing a per-member TTL is not faster than the old side-index pattern, and that the internal encoding can swell dramatically when a set gains its first expiring member. The post walks through each of those effects.\n\n## Per-member TTL commands added to sets\n\nRedis 8.12 RC2 introduces a family of commands that attach an expiry to individual set members: `SEXPIRE`, `SPEXPIRE`, `SEXPIREAT`, `SPEXPIREAT` for setting, `SPERSIST` for clearing, and `STTL`, `SPTTL`, `SEXPIRETIME`, `SPEXPIRETIME` for reading. The author pieced the syntax together from the command docs because an official reference page is not yet published.\n\nA concrete example from the article sets a 3 000 ms TTL on the member `\"x\"`:\n\n```\nSEXPIRE myset MEMBERS 1 x 3000   // set a 3000 ms TTL on member \"x\"\n```\n\nThe command finds the member inside the set’s internal structure, possibly converts the whole set encoding to hold per-member metadata, and schedules the member for expiration.\n\n## Membership checks become a single round trip\n\nBefore per-member TTLs, validating a member required two commands: `SISMEMBER` to see if the value existed, followed by a `ZSCORE` lookup against a side-index sorted set that stored the expiry timestamps. The client then compared the score to the current time.\n\nWith `SEXPIRE`, the server automatically removes expired members, so a plain `SISMEMBER` tells you whether the member is still valid. The author ran 2 000 validity checks three times on loopback. Each run showed a steady reduction from ~585 µs to ~290 µs per call, a 50 % cut. The author notes that on a real network the benefit would be larger, even though only loopback numbers were measured.\n\n## Write side sees no speed gain and higher memory use\n\nBenchmarking the write path revealed that `SEXPIRE` is never faster than a plain `ZADD` into a side index; one run was a quarter slower. The extra work of locating the member, possibly converting the set encoding, and adding the member to the active-expiry scheduler outweighs any advantage.\n\nIf an application only writes expiring members and never re-checks them, the feature adds overhead without any payoff. The author emphasizes that the savings are entirely on the read side, where the side index can be eliminated.\n\n## Memory impact of converting encodings\n\nA set that has never stored per-member TTLs uses the most compact encoding possible: an intset for small integer sets, or a listpack for short strings. As soon as any member receives a TTL, Redis must allocate a slot for every member’s expiry, even those without a TTL, and switches the encoding.\n\nFor a listpack-encoded set of short strings, converting to the TTL-aware “listpackex” format increased memory usage by 42-75 %. The effect is worse for smaller sets because the per-entry overhead is proportionally larger.\n\nThe impact is dramatic for integer sets. A set of 300 plain integers occupies 636 bytes as an intset. After calling `SEXPIRE` on a single member, the encoding jumps to a full hash table of 10 388 bytes, an increase of 9 752 bytes, or +1 533 %.\n\nThat is a 15-times memory blow-up for giving one out of 300 members an expiry. The encoding does not revert when the TTL is cleared with `SPERSIST`; the set stays in the larger representation until the key is rewritten by some other operation.\n\n## The takeaway\n\nPer-member TTLs cut the read path in half by removing a round trip, but they do not speed up writes and can inflate memory dramatically, especially for small integer sets. Use the feature when frequent membership checks on expiring members outweigh the extra write cost and memory footprint.",
+  "sources": [
+    {
+      "title": "Redis 8.12 RC2's SEXPIRE command cuts a set membership check from two round trips to one",
+      "url": "https://dev.to/alexgeorgiev17/redis-812-rc2s-sexpire-command-cuts-a-set-membership-check-from-two-round-trips-to-one-2mi4"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/redis-8-12-per-member-ttl-halves-set-membership-latency.jpg",
+  "thumbnailCredit": {
+    "name": "Taylor Vick",
+    "url": "https://unsplash.com/@tvick?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/cable-network-M5tzZtFCOfs?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
