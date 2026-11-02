@@ -1,0 +1,32 @@
+{
+  "slug": "nibnib-image-format-delivers-4bpp-compression-with-ultra-fast-decode",
+  "title": "Nibnib image format delivers 4bpp compression with ultra-fast decode",
+  "date": "2026-11-02",
+  "excerpt": "Nibnib compresses images to 4 bits per pixel and decodes two pixels per byte, fitting within a 6-cycle budget on RP2350 microcontrollers.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A microcontroller-class display often runs at a strict budget of about six CPU cycles per pixel. That constraint leaves just enough time for a fetch, a palette lookup, and a store into the line buffer. The nibnib format was born from an experiment to see how much image quality and speed could be squeezed out of that budget on an RP2350 running DVI output.\n\nThe result is a 4 bpp format that decodes two pixels from a single byte and fits comfortably inside the six-cycle window. The post explains how the decoder stays that fast, why the palette is built around deltas, why the encoder lags behind, and what to remember when trying nibnib in a project.\n\n## How nibnib achieves extreme decompression speed\n\nNibnib’s decoder works on pixel pairs. The previous pixel is duplicated, a byte is read, and the byte indexes a 32-bit entry in a 256-entry palette. That entry is added to the duplicated pixel, producing two 16-bit RGB565 values. The low half becomes the left pixel, the high half the right pixel. No loops, no branches, just a handful of integer operations.\n\nBecause each input byte yields two output pixels, the decoder runs at roughly half the work of a traditional 8 bpp palette lookup. On the RP2350 the inner loop looks like this (a direct adaptation from the Rust source):\n\n```rust\n// first two pixels copied from src[0..4]\nfor x in 1..(width / 2) {\n    let inp = src[x + 3];\n    pix = ((pix >> 16) * 0x10001).wrapping_add(pal[inp as usize]);\n    out[x * 2] = pix & 0xffff;\n    out[x * 2 + 1] = pix >> 16;\n}\n```\n\n`pix` holds the duplicated previous pixel, `pal` is the 256-entry delta palette, and the multiplication by `0x10001` spreads the high half of `pix` into both halves before the addition. The whole sequence compiles to a few integer adds and shifts, easily fitting into the six-cycle budget per pixel.\n\n## Palette design and delta encoding for quality\n\nA standard palette stores absolute colors, which works well for flat regions but struggles with smooth gradients. Nibnib stores a *delta*, the difference between the current pixel pair and the previous pixel pair, in each 32-bit entry. By adding the delta to the duplicated previous pixel, the format can represent subtle changes without needing a large number of distinct absolute colors.\n\nThe palette is seeded with two groups of values:\n\n* A cube of small delta values that guarantees reachable colors near 0 and full scale, preventing overflow artifacts.\n* A block of random values drawn from weighted Gaussian distributions, providing a richer set of possible deltas.\n\nThe source notes that without the cube entries the decoder produces noticeable artifacts, especially in very dark or very bright areas. The random Gaussian entries were tuned manually; a smaller delta favors smoother regions at the expense of edge sharpness, while larger deltas preserve edges but can introduce noise.\n\nBecause the palette is fixed for a given image, the decoder never needs to compute anything beyond a table lookup and an addition. The quality boost comes from the fact that each delta is applied to the already-decoded pixel pair, effectively performing a form of error diffusion without extra passes.\n\n## Why encoding is much slower than decoding\n\nEncoding nibnib is an exhaustive search problem. For each pixel pair the encoder tries all 256 palette entries, computes the resulting error, and selects the entry with the smallest error. After choosing an entry, the encoder distributes the error to neighboring pixels using Floyd-Steinberg weights, then proceeds to the next pair.\n\nThis “try-all-options-and-diffuse” loop is conceptually simple but computationally heavy. The source describes the encoder as “orders of magnitude slower than decoding.” In contrast, JPEG’s DCT and quantization steps are mathematically invertible, so encoding and decoding run at comparable speeds.\n\nTwo dimensions dominate the encoder’s workload:\n\n1. Palette selection, The current implementation uses a static palette; a future adaptive palette could cut the search space but would add its own overhead.\n2. Codeword selection, For each pair, the encoder evaluates every palette entry, then performs error diffusion, effectively running a mini optimization for every two pixels.\n\nThe result is a decoder that can run in a few cycles per pixel while the encoder may take seconds for a modest-size image on a desktop CPU. That asymmetry is intentional: nibnib targets scenarios where decode time is the critical path, such as real-time video on low-power hardware.\n\n## The takeaway\n\nNibnib trades heavy encoding work for a decoder that fits inside a six-cycle per-pixel budget by decoding two pixels from one byte and using a delta-based palette. The format delivers 4 bpp compression with quality that rivals traditional palettes, but expect the encoder to be much slower than the decoder. When low-latency display is the bottleneck, nibnib’s design makes it a practical choice.",
+  "sources": [
+    {
+      "title": "Nibnib: Image compression with extreme decompression speed",
+      "url": "https://github.com/raphlinus/nibnib"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/nibnib-image-format-delivers-4bpp-compression-with-ultra-fast-decode.jpg",
+  "thumbnailCredit": {
+    "name": "Vishnu Mohanan",
+    "url": "https://unsplash.com/@vishnumaiea?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/microchip-placement-on-circuit-board-zs4gtT8thO0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
