@@ -1,0 +1,33 @@
+{
+  "slug": "abortsignal-only-works-with-postgres-js-4-0-0",
+  "title": "AbortSignal only works with postgres.js 4.0.0",
+  "date": "2026-11-02",
+  "excerpt": "Only postgres.js 4.0.0 honors AbortSignal; pg, mysql2, mariadb and older postgres.js ignore it.",
+  "tags": [
+    "Backend",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A quick test with twelve Node.js clients walking away from their queries on a four-connection pool showed the pool saturating for about six seconds. The first healthy `SELECT 1` had to wait 5.7 seconds behind the abandoned work. The experiment also revealed that only one of the drivers under test actually honored an `AbortSignal`, the newly released postgres.js 4.0.0 with its `query.signal()` method.\n\nThe post walks through how each driver reacts to cancellation, why abandoned queries hurt a small pool, what changed in postgres.js 4.0.0, and why the older 3.4.9 version left four promises hanging forever. By the end you’ll know which driver to pick for reliable abort handling and how to avoid the hidden latency that abandoned queries introduce.\n\n## AbortSignal support across drivers\n\nThe author tested five driver versions against PostgreSQL 18.6 and MySQL 8.4.13: `pg` 8.23.1, `mysql2` 3.24.6, `mariadb` 3.5.4, `postgres.js` 3.4.9 and `postgres.js` 4.0.0. Only the last one read an `AbortSignal` on a query. The others ignored the signal entirely, even when the signal was passed as a query option.\n\nIn the original test, the author also tried each driver’s native cancel route (for example `pg_cancel_backend` for `pg`). Those native routes stopped the work on the server, but the client-side promise still resolved only after the server reported the query as idle.\n\nBecause the test measured both client-side timers and server-side activity (via `pg_stat_activity` or `SHOW FULL PROCESSLIST`), the conclusion is clear: `query.signal()` is the only built-in way to let a driver react to an `AbortSignal`. The other drivers require a separate cancel call and still leave the original promise pending until the server finishes.\n\n## Impact of abandoned queries on a small pool\n\nWhen twelve requests abandon their work, each one holds a connection for roughly six seconds. With only four connections available, the pool stays fully occupied and any new request queues behind it. The author recorded about 24 connection-seconds of tagged query activity, meaning every connection was busy for the entire test duration.\n\nThe first healthy query (`SELECT 1`) waited 5.7 seconds, almost the full length of the abandonment window. This demonstrates a classic “pool starvation” scenario: a few runaway queries can block the entire service, even if the rest of the code is well-behaved. The effect is amplified on Windows, where the author saw wait times of 1, 107 ms for the other drivers when cancellations were applied correctly, compared with the six-second delay caused by abandoned queries.\n\n## How postgres.js 4.0.0 handles cancellation\n\nVersion 4.0.0 introduced a new `query.signal()` method that accepts an `AbortSignal`. In the author’s follow-up test, every query was blocked on the same lock, and the abort signal was sent after the query started. With `query.signal()`, the first healthy query completed in 1, 3 ms on both Windows and Linux, effectively eliminating the pool-starvation effect.\n\nThe code change is minimal: replace a plain query call with one that passes the signal, for example:\n\n```js\nawait db.query('SELECT pg_sleep(3)', { signal })\n```\n\nWhen the signal aborts, postgres.js sends a cancellation packet to PostgreSQL, and the client promise settles immediately. The author notes one edge case, a fast query that had already been sent behind a running one was not rejected at the abort. In practice, however, the latency improvement is dramatic compared with the six-second wait seen with older drivers.\n\n## The lingering promises in postgres.js 3.4.9\n\nIn the 3.4.9 version, the author observed a consistent trap: with a warm pool, four of the twelve cancelled promises never settled. This happened on both Windows and Linux, and the unresolved promises persisted across every run. Because the promises never resolved or rejected, any code awaiting them would hang indefinitely, potentially causing memory leaks or further pool blockage.\n\nReserving a dedicated connection per request avoided the issue in the author’s test, but that defeats the purpose of a shared pool. The problem did not appear in 4.0.0, indicating that the new cancellation path also fixed the promise-settlement bug. The source does not provide a deeper technical explanation, only the empirical observation that 3.4.9 leaves cancelled promises dangling.\n\n## The takeaway\n\nOnly postgres.js 4.0.0 reads an `AbortSignal` via `query.signal()`. Using it prevents pool starvation and ensures promises settle promptly. Older drivers either ignore the signal or leave cancelled promises hanging, which can block a small connection pool for seconds. When cancellation matters, upgrade to postgres.js 4.0.0 and pass an `AbortSignal` to each query.",
+  "sources": [
+    {
+      "title": "Does AbortSignal Cancel a Node.js Database Query? 4 Drivers Tested",
+      "url": "https://dev.to/shubhradev/does-abortsignal-cancel-a-nodejs-database-query-4-drivers-tested-al0"
+    }
+  ],
+  "popularity": 20,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/abortsignal-only-works-with-postgres-js-4-0-0.jpg",
+  "thumbnailCredit": {
+    "name": "Growtika",
+    "url": "https://unsplash.com/@growtika?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/cloud-icon-with-data-and-padlock-8zB4P0eafrs?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
