@@ -1,0 +1,32 @@
+{
+  "slug": "targeted-dns-zone-builds-cut-memory-and-delay",
+  "title": "Targeted DNS zone builds cut memory and delay",
+  "date": "2026-11-02",
+  "excerpt": "A planner that picks the smallest safe build reduced peak memory by 85% and halved DNS build delay.",
+  "tags": [
+    "Systems",
+    "Backend"
+  ],
+  "body": "A zone-setting change used to force the Zone Builder to rebuild the entire DNS zone, even when the zone held tens of millions of records. The rebuild read every record, encoded it, compared it with the existing edge data, and kept the whole zone in memory. For the biggest zones the memory requirement exceeded what a single builder could hold, and the build time grew into minutes.\n\nThe new targeted-build planner looks at each incoming event, decides exactly which part of the zone must be refreshed, and runs the smallest possible safe build. The result is a 40 % reduction in full builds, an 85 % cut in peak memory usage, and a halving of the end-to-end build delay.\n\nIn the following sections you’ll see why full zone rebuilds became a bottleneck, how the planner picks the minimal safe work, and what the memory and latency gains look like in practice.\n\n## Why full zone rebuilds became a bottleneck\n\nWhen a DNS record changes, the builder already knew how to limit work to that record. In 2022 per-record builds were on average 150 times faster than full builds, and on a test zone with one million records they were 4,250 times faster. The speed gap came from avoiding a full read of every record and the massive memory pressure of holding the whole zone.\n\nZone-setting events are different. They can originate from many Cloudflare products, may not explain why the zone changed, and sometimes affect data that is shared across many zones with the same name.\n\nBecause the original builder always performed a full rebuild, a single setting change could trigger the same heavyweight process that a record change would not. As the number of zones grew to over 20 million records each, the full rebuild cost became a dominant factor in the pipeline’s latency and memory consumption.\n\n## How the targeted build planner decides the minimal safe work\n\nThe planner first maps each incoming event to the smallest build type that can guarantee correctness. For a record event the mapping is straightforward: rebuild only that record’s keys. For a zone-setting event the planner must answer three safety questions:\n\n1. Can shared metadata or the list of published zones change?  \n2. What previous state must be removed from Quicksilver?  \n3. What new keys need to be written?\n\nTo answer them, the planner analyses the specific setting that changed. For example, toggling Universal SSL updates metadata and may alter CAA records at the zone apex. The planner knows that only the apex records and the related metadata need updating, so it schedules a targeted build that touches just those keys instead of the entire zone.\n\nThe planner also groups events for the same zone that arrive close together. A new scheduler combines those events into a single build, preventing duplicate work. By proving that the reduced set of keys is sufficient, the system avoids both over-building (wasting capacity) and under-building (leaving stale data).\n\n## Resulting memory and latency improvements\n\nWith the targeted planner in place, full builds dropped by roughly 40 %. More importantly, peak memory usage fell by 85 % because the builder no longer needed to load every record of a multi-million-record zone into RAM. The freed memory gave the pipeline extra headroom, allowing the resilience-related wait times to be shortened safely. Overall, the time from a DNS change arriving in the pipeline to the data being written to Quicksilver was cut in half.\n\nThe concrete performance numbers from the earlier per-record tests illustrate the scale of the gain: a per-record build on a one-million-record zone ran 4,250 times faster than a full rebuild. While the new planner does not always achieve that extreme factor, the reduction in memory pressure and the elimination of unnecessary full builds produce a similar order of magnitude improvement for the largest zones.\n\n## The takeaway\n\nTargeted DNS zone builds replace costly full rebuilds with the smallest provably correct work. By mapping each setting change to the exact keys that need updating and batching events per zone, the system cuts peak memory by 85 % and halves the build delay. The practical result is faster propagation of DNS changes and more efficient use of builder resources.",
+  "sources": [
+    {
+      "title": "We halved DNS build delay and cut memory use by 85%",
+      "url": "https://blog.cloudflare.com/dns-targeted-zone-builds/"
+    }
+  ],
+  "popularity": 2,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 6,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/targeted-dns-zone-builds-cut-memory-and-delay.jpg",
+  "thumbnailCredit": {
+    "name": "Domaintechnik",
+    "url": "https://unsplash.com/@fslfsl?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/server-rack-with-blinking-green-lights-VHmBX7FnXw0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
