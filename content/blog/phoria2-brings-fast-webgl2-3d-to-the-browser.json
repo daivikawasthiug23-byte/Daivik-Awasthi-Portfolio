@@ -1,0 +1,27 @@
+{
+  "slug": "phoria2-brings-fast-webgl2-3d-to-the-browser",
+  "title": "Phoria2 brings fast WebGL2 3D to the browser",
+  "date": "2026-11-02",
+  "excerpt": "Phoria2 is a small, dependency-free ES module library that adds PBR materials, instancing and glTF support to WebGL2 with instant-draw updates.",
+  "tags": [
+    "Web",
+    "Dev Tools"
+  ],
+  "body": "phoria2 is a tiny WebGL 2 library that replaces the 2013 canvas-based phoria.js renderer. The new code lives on a single page, ships with no runtime dependencies, and supports modern features such as PBR materials, instancing, labels, picking, shadows, particles and glTF model loading. All of this is available as plain ES modules under an MIT licence, with the source, documentation and a React demo hosted on GitHub [kevs3d.co.uk/phoria2](https://kevs3d.co.uk/phoria2/).\n\nThe post walks through why phoria2 is positioned as a drop-in upgrade, the lightweight capabilities it brings, and the steps needed to add it to a project with npm.\n\n## Why phoria2 replaces the old canvas library\n\nThe original phoria.js rendered every vertex transformation and rasterisation in JavaScript on a 2-D canvas context. That approach quickly became a bottleneck as scene complexity grew. By targeting WebGL 2, phoria2 moves those calculations to the GPU while preserving the same high-level API, so existing code can be ported with minimal changes.\n\nBecause phoria2 is delivered as plain ES modules with no runtime dependencies, it can be imported directly in modern bundlers or loaded in a browser without pulling in a large framework. Every option is validated at runtime; an invalid flag triggers an error that describes the exact fix. This “tell-you-what-to-write” behavior reduces the trial-and-error loop that often plagued the canvas version, especially for tools that generate code automatically.\n\nA second practical benefit is the draw-on-change model. Instead of repainting on every animation frame, phoria2 tracks changes to scene objects and issues a draw call only when a property actually changes. On a dashboard that updates once per second, this can keep GPU usage low on modest hardware.\n\n## Features that keep 3D scenes lightweight\n\n- PBR materials, Physically based rendering gives realistic shading with a small set of ready-made material definitions, avoiding the need to write custom shaders for each object.  \n- Instancing, Multiple copies of the same mesh share a single GPU buffer, reducing memory traffic when rendering hundreds of identical objects such as particles or repeated UI elements.  \n- Points, lines and labels, Beyond solid meshes, phoria2 supports primitive drawing modes and on-screen text labels, useful for charts and dashboards that require annotations.  \n- Picking, A built-in ray-cast routine returns the object under the cursor, eliminating the need for a separate hit-test layer.  \n- glTF model loading, The library can ingest glTF assets directly, allowing designers to export from tools like Blender without additional conversion steps.\n\nAll capabilities sit behind a single, validated API surface. When a developer passes an invalid flag, the library throws an error that describes the exact fix, which is especially helpful for code-generating agents that need clear feedback.\n\n## How to get started with the npm package\n\nThe library is published on npm under the name phoria2. Adding it to a project requires a single command:\n\n```bash\nnpm install phoria2\n```\n\nAfter installation, import the core renderer and create a scene:\n\n```js\nimport { Renderer, Scene } from 'phoria2';\n\nconst renderer = new Renderer({ canvas: document.getElementById('glcanvas') });\nconst scene = new Scene();\n\n// add a PBR sphere\nscene.add({\n  type: 'mesh',\n  geometry: 'sphere',\n  material: { type: 'pbr', albedo: [0.2, 0.5, 0.8] }\n});\n\n// start the render loop; it will only redraw when something changes\nrenderer.render(scene);\n```\n\nThe GitHub repository includes a full React example that shows how to wrap the renderer in a component, handle resizing, and hook into state changes. Because the library uses plain ES modules, the same code works in Vite, Next.js, or plain HTML setups without additional polyfills.\n\nDocumentation lives alongside the source and lists every option with type information and example values. The error-validation layer means that a misspelled property produces a clear message such as “Invalid material type ‘pbrr’, did you mean ‘pbr’?” This immediate feedback speeds up onboarding for new developers and for automated tools that generate scene descriptions.\n\n## The takeaway\n\nphoria2 swaps the old canvas-only approach for a minimal WebGL 2 engine that validates input, redraws only on change, and bundles modern features like PBR and glTF loading. Install it with `npm install phoria2`, import the ES modules, and you have a fast, dependency-free foundation for charts, dashboards, or product viewers that runs entirely in the browser.",
+  "sources": [
+    {
+      "title": "Show HN: I rebuilt my old canvas 3D library as a small WebGL 2 library – phoria2",
+      "url": "https://kevs3d.co.uk/phoria2/"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/phoria2-brings-fast-webgl2-3d-to-the-browser.jpg"
+}
