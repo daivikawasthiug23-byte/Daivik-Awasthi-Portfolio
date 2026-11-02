@@ -1,0 +1,35 @@
+{
+  "slug": "why-battery-checks-cause-minute-long-grid-spikes",
+  "title": "Why battery checks cause minute-long grid spikes",
+  "date": "2026-11-02",
+  "excerpt": "Large-scale battery storage systems run a power-check each minute, creating a brief demand spike that shows up in grid frequency data.",
+  "tags": [
+    "Systems"
+  ],
+  "body": "Why the European grid shows a tiny dip every 60 seconds\n---------------------------------------------------------\n\nTenneT Germany, the country’s largest transmission system operator, has recorded a small but repeatable dip in grid frequency at the start of each minute for several years. The dip never threatens stability, yet it appears in every high-resolution frequency trace. Early explanations pointed to market-driven plant cycling or the flicker of renewable output, but none accounted for the strict one-minute rhythm.\n\nA research team led by Dirk Witthaut at Forschungszentrum Jülich traced the pattern to a routine performed by many large-scale battery storage systems. The discovery is described in the press release “Mystery of 60-Second Fluctuations in Power Grids Solved” [[source]](https://www.fz-juelich.de/en/news/archive/press-release/2026/mystery-of-60-second-fluctuations-in-power-grids-solved). The article explains how the insight could help keep the electricity supply more reliable.\n\nIn this post you will learn what the routine is, how the team measured it, why it matters for turbines and data-centres, and what a simple software change could do to smooth the load.\n\n## Battery storage systems run a minute-based power-check\n\nLarge-scale batteries need to know their state of charge at all times. The Jülich team found that most manufacturers have built a diagnostic that runs at the start of every minute. Because no binding standard exists, the 60-second interval has become a de-facto default. When the check fires, the battery draws a brief burst of power to verify voltage, current and internal health.\n\nThe researchers installed measuring points on end devices at 80 locations across the Living Lab Energy Campus in Jülich. Every site that hosted a battery storage unit showed the same spike in consumption exactly at the top of the minute.\n\nOne unit displayed a clear increase in draw “at the start of every minute due to the power check,” according to the authors. When dozens or hundreds of batteries across the grid perform the check simultaneously, the modest diagnostic pulse adds up to a measurable load step that appears as a frequency dip.\n\n## The pattern is not limited to Europe\n\nThe team compared data from other continents and found the same one-minute signature in North America, Asia and Australia. The authors conclude that the phenomenon is global, not a peculiarity of the European market. While other digitally controlled appliances, such as air-conditioners, heat pumps, washing machines or dishwashers, could in theory exhibit similar behaviour, the battery data alone explains the observed grid-wide effect.\n\nBecause each installation operates independently, the checks line up naturally on the minute hand. The result is an unintended synchronization that turns many tiny pulses into a single, observable load spike.\n\n## Turbine wear and the Irish case study\n\nHydroelectric turbines feel the minute-long demand spikes as a brief slowdown. The extra load forces the turbine to decelerate for a fraction of a second, then accelerate back to its nominal speed once the check ends. This repeated micro-stress adds wear and tear, shortening component life.\n\nIn Ireland, data centres equipped with large-scale battery storage currently account for roughly a fifth of national electricity demand. The authors report that the amplitude of the one-minute signal there quadrupled between 2016 and 2021. As storage technologies expand, the cumulative effect could become more pronounced if the checks remain synchronized.\n\n## Simple mitigation: randomize the checks\n\nThe researchers propose a straightforward fix: distribute the checks randomly rather than always starting them at the same instant. If each battery schedules its diagnostic pulse at a random offset within the minute, the aggregate load becomes smooth instead of spiky.\n\nImplementing the change requires only a software update to the battery-management system; no hardware modifications are needed. Coordinated standards from manufacturers or grid operators could mandate staggered check intervals, keeping the collective impact below the threshold that triggers turbine stress.\n\n## The takeaway\nA minute-based diagnostic pulse in many battery storage units creates the regular grid-frequency dip observed across Europe and beyond. Randomizing the timing of those checks spreads the load, reduces turbine wear and helps keep the supply more stable. Updating battery-management software to stagger checks is a low-cost, high-impact step for grid operators and manufacturers alike.",
+  "sources": [
+    {
+      "title": "Mystery of 60-Second Fluctuations in Power Grids Solved",
+      "url": "https://www.fz-juelich.de/en/news/archive/press-release/2026/mystery-of-60-second-fluctuations-in-power-grids-solved"
+    },
+    {
+      "title": "One-minute frequency disturbances from synchronization in power systems",
+      "url": "https://www.nature.com/articles/s41560-026-02144-0"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-battery-checks-cause-minute-long-grid-spikes.jpg",
+  "thumbnailCredit": {
+    "name": "Sergio Martins",
+    "url": "https://unsplash.com/@smartins20?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/wall-mounted-solar-power-and-energy-storage-system-7WzD2mTRWK8?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
