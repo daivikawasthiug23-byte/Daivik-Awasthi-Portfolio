@@ -1,0 +1,32 @@
+{
+  "slug": "sqlite-3-54-skips-expression-index-writes-when-values-stay-the-same",
+  "title": "SQLite 3.54 skips expression index writes when values stay the same",
+  "date": "2026-11-02",
+  "excerpt": "SQLite 3.54 reduces WAL writes by 76% for no-op updates on expression indexes, matching the cost of a table without the index.",
+  "tags": [
+    "Systems",
+    "Backend"
+  ],
+  "body": "A 200 000-row users table stored email addresses with mixed case and an expression index on the lower-cased value:\n\n```sql\nCREATE TABLE users(\n    id INTEGER PRIMARY KEY,\n    email TEXT,\n    unrelated TEXT,\n    n INTEGER\n);\nCREATE INDEX idx_email_lower ON users(lower(email));\n```\n\nA typical maintenance pattern is to rewrite the `email` column in a different case while the lower-cased form stays the same. The author ran the following update on the first 50 000 rows:\n\n```sql\nUPDATE users\nSET email = upper(email)\nWHERE id BETWEEN 1 AND 50000;\n```\n\nBefore SQLite 3.54 the index entry for every touched row was rewritten even though `lower(email)` did not change. The 3.54 changelog added the line *“when doing an UPDATE on a table that has expression indexes, do not change the expression index if the value being indexed is unchanged.”* The experiment measured how many write-ahead-log (WAL) pages that change saved.\n\n## How expression indexes behaved before 3.54  \n\nIn SQLite 3.53 and earlier the b-tree write path did not verify whether the computed expression value differed from the existing one. An UPDATE that modified any column referenced by an expression index triggered a delete-then-insert on the index leaf page for each affected row.\n\nThe operation therefore consumed the same amount of WAL pages as a genuine value change, even when the new expression evaluated to the same string. The extra work showed up as more WAL pages and a longer wall-clock time.\n\n## The 50 000-row no-op update test  \n\nTwo identical database copies were prepared, one built with SQLite 3.53.0 and the other with SQLite 3.54.1 (the point release that also fixed an unrelated 32-bit buffer bug). Both runs executed the `UPDATE … upper(email)` statement and immediately called `PRAGMA wal_checkpoint(PASSIVE)` to capture the number of WAL pages written before any automatic checkpoint could hide the activity.\n\n* SQLite 3.53.0 wrote 2 143 WAL pages.  \n* SQLite 3.54.1 wrote 511 WAL pages.\n\nThe 511-page figure matches the cost of the same UPDATE on a table without the expression index. In other words, 3.54 eliminated the index-maintenance work entirely when the indexed expression did not change. The reduction was identical across three fresh runs, confirming that the deterministic b-tree path, not cache effects, was responsible.\n\n## When the indexed value really changes  \n\nTo verify that the optimisation only applies to unchanged values, a second UPDATE forced a genuine change to the indexed expression:\n\n```sql\nUPDATE users\nSET email = 'new' || id || '@example.com'\nWHERE id BETWEEN 1 AND 50000;\n```\n\nBoth SQLite 3.53.0 and SQLite 3.54.1 wrote 2 294 WAL pages, exactly the same number. Timing runs showed overlapping ranges (0.150 s, 0.175 s for 3.53.0, 0.146 s, 0.219 s for 3.54.1), indicating no measurable speed difference once the index entry moved. The extra comparison required to detect “no change” does not add a noticeable overhead at this scale.\n\n## Disk usage and full-table updates  \n\nThe savings appear only while the statement is in progress. After a full checkpoint, the main-database file size was identical for both versions (17 862 656 bytes, page_count = 4361). The feature does not shrink the final database; it merely reduces the amount of WAL data flushed during the operation.\n\nWhen the same no-op UPDATE touched the entire 200 000-row table, the gap narrowed because the base-table writes dominate total I/O. Nevertheless, a measurable reduction remained, confirming that the optimisation scales with the proportion of rows that only trigger index maintenance.\n\n## The takeaway  \n\nSQLite 3.54 skips rewriting an expression index when the computed value does not change, cutting WAL traffic to the same level as if the index were absent. The optimisation has no effect when the indexed expression actually changes, and it does not alter final file size. For workloads that frequently run case-normalising or otherwise idempotent updates on columns covered by expression indexes, upgrading to 3.54 can reduce write amplification and improve latency without any trade-off.  \n\n*Source: [SQLite 3.54 stops rewriting an expression index when the indexed value hasn't changed](https://dev.to/alexgeorgiev17/sqlite-354-stops-rewriting-an-expression-index-when-the-indexed-value-hasnt-changed-56bb).*",
+  "sources": [
+    {
+      "title": "SQLite 3.54 stops rewriting an expression index when the indexed value hasn't changed",
+      "url": "https://dev.to/alexgeorgiev17/sqlite-354-stops-rewriting-an-expression-index-when-the-indexed-value-hasnt-changed-56bb"
+    }
+  ],
+  "popularity": 13,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/sqlite-3-54-skips-expression-index-writes-when-values-stay-the-same.jpg",
+  "thumbnailCredit": {
+    "name": "Markus Spiske",
+    "url": "https://unsplash.com/@markusspiske?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/computer-coding-screengrab-hvSr_CVecVI?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
