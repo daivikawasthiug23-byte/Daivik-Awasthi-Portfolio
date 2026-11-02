@@ -1,0 +1,33 @@
+{
+  "slug": "running-gemma-4-on-a-tpu-from-rust",
+  "title": "Running Gemma 4 on a TPU from Rust",
+  "date": "2026-11-02",
+  "excerpt": "A Rust crate reads Gemma 4’s checkpoint and runs all 35 layers on a Colab v5e-1 TPU using TorchTPU kernels.",
+  "tags": [
+    "AI",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A Rust crate can read a Gemma 4 E2B checkpoint, unpack its 4-bit weights, run all 35 layers and drive the decode loop on a single TPU v5e-1 in Colab.\n\nThe author verified that the Rust version writes exactly the same tokens as the compiled Python baseline, but does it at roughly half the streaming speed and with less than half the peak memory usage. The notebook shows the whole flow from installing Rust to verifying the output on the chip.\n\nIn the following sections you’ll see how Rust reaches the TPU, how the full decode loop is executed, and how the performance and memory compare with the Python reference. By the end you’ll know the concrete steps to run Gemma 4 on a TPU from Rust and what trade-offs to expect.\n\n## How Rust talks to TorchTPU\n\nTorchTPU 0.2.0 does not expose a C++ API, so the Python process must host the runtime. Importing `torch_tpu` registers the TPU kernels on libtorch’s dispatcher. The `tch` crate, which provides Rust bindings for libtorch, then calls the same dispatcher, meaning a Rust call on a TPU tensor lands on a TorchTPU kernel.\n\nThe bridge between Rust and Python is built with PyO3 0.30. PyO3 compiles the crate as a native Python module named `torchtpu_rs` and turns Rust functions into Python-callable objects. The `tch` crate’s `python-extension` feature converts a Python `torch.Tensor` to a `tch::Tensor` and back using two tiny helpers, `take` and `give`. The source shows a minimal example:\n\n```rust\n#[pyfunction]\nfn matmul_sum(py: Python<'_>, x: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {\n    let x = take(x)?;\n    give(py, x.matmul(&x).sum(Kind::Float))\n}\n```\n\nThe function receives a Python tensor, unwraps it with `take`, performs an ATen `matmul` followed by `sum`, and wraps the result with `give`. When the call runs on the TPU, the result stays on `tpu:0` and the bfloat16 precision survives the round-trip.\n\nBecause `tch::Device` lacks a `tpu` variant, the code moves tensors by type rather than by explicit device name. The helper `on` follows the device of an existing tensor:\n\n```rust\nfn on(t: &Tensor, like: &Tensor) -> Tensor {\n    t.type_as(&like.to_kind(t.kind()))\n}\n```\n\nPython creates a seed tensor with `torch.zeros(1, device=\"tpu\")`; every subsequent tensor inherits that device via `type_as`. The author warns against calling `Tensor::device()` on these tensors because the method is not reliable for TPU tensors.\n\nThe crate builds against PyTorch 2.13.0, which TorchTPU 0.2.0 supports. The `tch` bindings for 2.14.1 fail to compile (`'qr' is not a member of 'torch'`), so the build pins `LIBTORCH_USE_PYTORCH=1` to the 2.13.0 libtorch provided by the Colab image.\n\n## Running the full Gemma 4 decode loop on a v5e-1 chip\n\nThe notebook’s step 3 clones the repository, installs Rust, and builds the crate in release mode:\n\n```\nFinished `release` profile [optimized] target(s) in 1m 44s\nrustc 1.99.1 (58cf8f9c3 2026-10-13)\n```\n\nA small Python script launches the compiled binary inside the same Python process:\n\n```bash\ngit clone https://github.com/xbill9/torchtpu-dev\ncd torchtpu-dev/colab\nmake setup\npython3 tools/verify_on_tpu.py 06_e2b_rust_on_torchtpu\n```\n\nThe verification script runs the Rust engine on the real v5e-1 chip and writes the output to a notebook file. The author reports:\n\n* The Rust engine produces the same 64 greedy tokens as the compiled Python model.\n* All three long-prompt answers match token-for-token.\n* The prompt length is 19 tokens, the context window is 33 024 tokens, and the decode loop generates 64 tokens.\n\nBecause each Rust run starts in a fresh Python process, no compiled state leaks between runs. The same checkpoint, same chip, and same prompt are used for both Rust and Python, ensuring a fair comparison.\n\n## Performance and memory comparison with Python\n\nThe author measured streaming speed and peak memory on the v5e-1 chip for both implementations. The Rust version streams at about half the rate of the compiled Python baseline, but its peak memory consumption is also less than half. The exact numbers are not quoted in the source, but the relative comparison is clear.\n\nBoth implementations use the same TorchTPU kernels, the same checkpoint (`xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text`), and the same hardware. The difference stems from the Rust binary’s tighter memory layout and the lack of Python-level overhead in the decode loop. The Python baseline runs on PyTorch 2.14.1, while the Rust binary targets PyTorch 2.13.0; the notebook swaps versions deliberately to keep the TorchTPU backend compatible.\n\nThe author also notes that the Rust way avoids JAX entirely. The entire pipeline, checkpoint loading, weight unpacking, layer execution, ring cache handling, and token generation, runs through `torch_tpu` kernels, demonstrating that a non-Python model can fully occupy the TPU.\n\n## The takeaway\n\nRunning Gemma 4 on a TPU from Rust is possible by building a PyO3 extension that talks to `torch_tpu` through the `tch` bindings. The Rust engine matches the Python model token-for-token, streams at about half the speed but uses less than half the memory. Use the provided repository, follow the notebook steps to set up a v5e-1 runtime, and remember to compile against PyTorch 2.13.0, which is the version supported by TorchTPU 0.2.0.",
+  "sources": [
+    {
+      "title": "Gemma 4 in Rust on TorchTPU: Hands On With Colab",
+      "url": "https://dev.to/gde/gemma-4-in-rust-on-torchtpu-hands-on-with-colab-44hi"
+    }
+  ],
+  "popularity": 9,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 7,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/running-gemma-4-on-a-tpu-from-rust.jpg",
+  "thumbnailCredit": {
+    "name": "Krishna Pandey",
+    "url": "https://unsplash.com/@krishna2803?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/text-KNZHyTpre18?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
