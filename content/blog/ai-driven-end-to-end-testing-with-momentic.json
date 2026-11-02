@@ -1,0 +1,33 @@
+{
+  "slug": "ai-driven-end-to-end-testing-with-momentic",
+  "title": "AI-driven end-to-end testing with Momentic",
+  "date": "2026-11-02",
+  "excerpt": "Momentic lets coding agents verify app flows in parallel, cutting test authoring time by three times.",
+  "tags": [
+    "AI",
+    "Dev Tools",
+    "Web"
+  ],
+  "body": "A startup recently added Momentic to its pipeline and saw a single checkout flow go from a manual hour-long verification to a 14-minute automated run. The team kicked off the test in five seconds, watched it finish in parallel across six workers, and got a green CI result that let them merge with confidence.\n\nThe source describes this speedup as “6.3x parallel” and “3x faster” test authoring, and it highlights how the AI QA engineer, Mo, turns a plain-English prompt into a full end-to-end (E2E) test suite.\n\nIn the following sections you’ll learn how Momentic converts natural-language prompts into runnable tests, how it executes those tests in parallel while healing UI changes on the fly, and how to hook the Momentic CLI into a CI job so every pull request is verified before it lands. By the end you’ll have a clear picture of the steps needed to make AI-driven testing a reliable part of your development workflow.\n\n## How Momentic turns prompts into end-to-end tests\n\nMomentic’s core offering is an AI QA engineer named Mo. You describe a user flow in plain English, add any expected outcomes, and Mo generates a YAML file that the platform can run against your app. The YAML format is intentionally simple: each step is either a reusable module, an action written in natural language, or an assertion that checks a condition.\n\n```yaml\nid: standard-user-checkout\nurl: https://shop.momentic.ai\nsteps:\n  - module: ./log-in-username-password.module.yaml\n  - act: add the momentic backpack to the cart and go to checkout\n  - module: ./fill-out-personal-info.module.yaml\n  - assert: the item total matches the amount listed for each item\n```\n\nThe example above shows a typical checkout flow. The `module` entries point to reusable pieces that Mo can call again in other tests, while the `act` line is a free-form description that Mo translates into the necessary UI interactions. The final `assert` verifies that the calculated total matches the displayed per-item amounts.\n\nMo also consults a Knowledge base that teams can populate with terminology, expected behavior, and test guidance. As the test runs, Mo looks up relevant entries to resolve ambiguities, ensuring the generated steps stay aligned with product specifications. This approach lets developers write tests in the same language they use for requirements, reducing the friction between specification and verification.\n\n## Parallel execution and automatic healing of UI changes\n\nOne of the biggest pain points in traditional E2E testing is the time spent waiting for a single test suite to finish. Momentic claims a “6.3x parallel” execution speed, meaning that a suite that would normally take many minutes can finish in a fraction of that time. The platform distributes test steps across multiple workers, each handling a separate browser instance. Because Mo generates the steps as independent actions, the parallelism does not require additional test authoring effort.\n\nUI churn is another source of flakiness. When a button moves or a selector changes, a test that relied on a hard-coded locator fails, even though the user flow still works. Momentic mitigates this by “permanent healing.” During a run, Mo attempts to locate the control again using visual cues and context.\n\nIf it succeeds, it proposes a repair to the YAML file, which the team can review and commit. This automatic healing reduces the maintenance burden that typically forces teams to pause development while they chase down broken selectors.\n\nThe source notes that the platform can classify failures into three buckets: true application bugs, test flakiness, or environment issues. Screenshots and execution traces are attached to each failing step, giving engineers a quick way to decide whether a bug needs a code fix or a test tweak.\n\n## Integrating the CLI into CI for reliable merges\n\nMomentic provides a command-line interface (CLI) that can be invoked from any CI system. The typical workflow is to add a step that runs `momentic test run <path>` before the build is marked successful. The CLI returns a non-zero exit code if any assertion fails, which CI can treat as a required check. This makes the test suite a gatekeeper for every pull request, ensuring that new code does not break critical flows.\n\nBecause the CLI runs the same parallelized engine used in the web UI, the speed gains translate directly to CI. Teams reported that running the full suite for each PR “has a measurable impact on sleep quality,” indicating that the fast feedback loop prevents last-minute firefighting.\n\nThe source also mentions that the CLI can be paired with a coding agent that writes a test, checks it in a live session, and stores the YAML alongside the source code, keeping test and implementation versioned together.\n\nTo set this up, a repository typically includes:\n\n1. A `momentic.yaml` configuration file that points to the Knowledge base and sets parallelism.  \n2. A folder of YAML test files like the checkout example above.  \n3. A CI step that installs the Momentic CLI, runs the test command, and fails the job on a non-zero exit code.\n\nOnce in place, every merge request automatically validates the defined user flows, and any UI change that breaks a test triggers the healing workflow rather than a hard failure.\n\n## The takeaway\n\nMomentic lets teams describe user flows in plain English, turns them into parallel, self-healing E2E tests, and plugs those tests into CI with a simple CLI. The result is faster test authoring, quicker feedback on PRs, and less manual maintenance when the UI evolves. Adopt the YAML-based flow, enable parallel runs, and use the CLI as a required CI check to keep verification fast and reliable.",
+  "sources": [
+    {
+      "title": "Launch HN: Momentic (YC W24) – Agents that catch bugs by using your app",
+      "url": "https://momentic.ai/"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 5,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/ai-driven-end-to-end-testing-with-momentic.jpg",
+  "thumbnailCredit": {
+    "name": "Ilya Pavlov",
+    "url": "https://unsplash.com/@ilyapavlov?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/monitor-showing-java-programming-OqtafYT5kTw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
