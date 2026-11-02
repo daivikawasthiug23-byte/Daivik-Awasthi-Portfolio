@@ -1,0 +1,31 @@
+{
+  "slug": "why-bidirectional-ev-charging-isn-t-ready-for-outages",
+  "title": "Why bidirectional EV charging isn’t ready for outages",
+  "date": "2026-11-02",
+  "excerpt": "Current EVs can power a home during a blackout, but they can’t recharge while the grid is down.",
+  "tags": [
+    "Systems"
+  ],
+  "body": "A recent comment on a solar-battery forum asked why anyone would buy a small home-backup battery when an electric car already carries a large pack that could keep the lights on. Jeff TK’s post “Bidirectional charging during grid outages” shows that most manufacturers still treat vehicle-to-home (V2H) as a discharge-only feature. The car can feed the house, but it cannot be recharged until the grid returns, which makes a dedicated home battery the most reliable short-term solution.\n\nThe article walks through the current state of four major players, points out where bidirectional charging fails, and explains why a purpose-built backup battery remains the pragmatic choice. The sections below summarize those findings and end with a single actionable takeaway.\n\n## GM’s V2H stops at discharge\n\nGM’s Energy Home Hub documentation spells out the outage sequence:\n\n* The hub disconnects the home from the utility grid.  \n* Power flows from the GM EV through the inverter to the house.  \n* When utility power is restored, the EV automatically ends the discharge session and begins charging.\n\nNo clause permits the car to receive power while the home is still isolated. Because the hub does not route solar or grid electricity back to the vehicle, a prolonged outage leaves the car’s battery steadily depleting. In short, GM’s current V2H bundle can keep lights on, but it cannot keep the car topped up.\n\n## Ford and Kia lack outage-charging support\n\nFord marketed the F-150 Lightning with “automatic home backup power,” yet the required hardware, the Ford Charge Station Pro, has been discontinued. Even when it was available, the system did not support bidirectional charging during a blackout. The only path today is a traditional transfer switch that supplies house power from the EV without letting the EV charge.\n\nKia’s situation is more confusing. Wallbox’s Quasar 2 charger advertises V2H capability, but customers report trouble getting it to work with current Kia models. The vendor explicitly states that “Solar Charging cannot be used simultaneously with … V2H,” which eliminates the possibility of topping up the car from rooftop panels while the house is offline. As a result, Kia owners cannot rely on their EV to both power the home and recharge during an outage.\n\n## Tesla Powershare with Cybertruck is the only end-to-end option, but it is pricey\n\nTesla’s Powershare system, when paired with a Cybertruck, is the sole configuration the source identifies that can both supply backup power and recharge the vehicle while the grid is down. The specification requires a UL 1741-listed solar system that is included in the backup circuit, allowing the Cybertruck to draw solar energy even when the utility is offline.\n\nThe author calls this solution expensive because it hinges on buying a Cybertruck, whose price far exceeds that of a conventional EV or a dedicated home battery such as the Enphase 10C. For most homeowners the cost-to-benefit ratio does not justify the purchase, especially when a smaller, purpose-built battery can be installed for a fraction of the price.\n\n## Enphase’s bidirectional charger is still years away\n\nEnphase announced a bidirectional EV charger with a target of volume production in Q4 2026. The announcement caveats that “projected vehicle compatibility and bidirectional functionality will depend on automaker enablement, vehicle software, applicable standards, and final product specifications.” The source predicts the product will likely slip into 2027, with limited availability in Massachusetts and a requirement to buy a specific new EV to use the charger.\n\nBecause the timeline is uncertain and the hardware will only work with a narrow set of vehicles, the author does not consider Enphase’s charger a viable short-term backup solution. The post’s author plans to install a smaller, emergencies-only battery rather than wait for a charger that may not arrive until well after the next major outage season.\n\n## The takeaway\n\nMost automakers provide V2H only as a one-way discharge mode, leaving the EV unable to recharge during a grid failure. Tesla’s Powershare with a Cybertruck offers a complete solution, but its cost and vehicle requirement make it impractical for most homeowners. Until Enphase’s bidirectional charger becomes widely available, a dedicated home battery remains the most reliable way to ensure backup power without depending on an electric vehicle’s limited V2H capabilities.",
+  "sources": [
+    {
+      "title": "Bidirectional charging during grid outages",
+      "url": "https://www.jefftk.com/p/bidirectional-charging-during-grid-outages"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-bidirectional-ev-charging-isn-t-ready-for-outages.jpg",
+  "thumbnailCredit": {
+    "name": "CHUTTERSNAP",
+    "url": "https://unsplash.com/@chuttersnap?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/electric-vehicle-charging-cable-plugged-into-car-xJLsHl0hIik?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
