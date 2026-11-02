@@ -1,0 +1,32 @@
+{
+  "slug": "omnidiff-brings-fast-content-aware-diffs-to-the-terminal",
+  "title": "Omnidiff brings fast, content-aware diffs to the terminal",
+  "date": "2026-11-02",
+  "excerpt": "Omnidiff is a Rust-based diff tool that handles many file types quickly and accurately, with prebuilt binaries for all major OSes.",
+  "tags": [
+    "Dev Tools",
+    "Systems"
+  ],
+  "body": "A recent commit to the OmniDiff repository shows the tool handling a PDF diagram where a single box was renamed and a web font where twenty icons were redrawn. In both cases the diff view highlighted the actual content change instead of dumping a massive blob of binary data. The result reads like a code review, even for non-text assets.\n\nThe author describes OmniDiff as a fast, accurate, content-aware diffing tool written in Rust. According to the README, 98.8 % of changes are processed with type-specific algorithms, and speed numbers come from a test on a T14s laptop with an Intel i7-1370P and 32 GB of RAM. This post walks through installing OmniDiff, explains how it treats PDFs, fonts, and images, and shows the headless mode that makes the tool script-friendly.  \n\nReaders will come away with a concrete install command for their platform, a sense of what “content-aware” really means, and a recipe for using OmniDiff in CI pipelines.\n\n## Install OmniDiff with Cargo or a package manager\n\nThe quickest way to try OmniDiff on a development box is the Rust package manager. The repository provides the exact command:\n\n```bash\ncargo install --locked omnidiff\n```\n\nThe `--locked` flag forces the build to use the exact dependency versions recorded in the lock file, matching the environment used for the published benchmarks. The first run takes a few minutes because Cargo compiles every tree-sitter grammar from C and applies an LTO = \"fat\" release profile.\n\nPrebuilt binaries are attached to every GitHub release for Linux, macOS (Intel and Apple Silicon), and Windows. Linux users can also use a Homebrew tap:\n\n```bash\nbrew install ivankovic/omnidiff/omnidiff\n```\n\nDebian and Ubuntu users have a signed APT repository. Adding the key and source list looks like this:\n\n```bash\nsudo install -d -m 0755 /etc/apt/keyrings\ncurl -fsSL https://ivankovic.github.io/omnidiff/apt/omnidiff-archive-keyring.gpg \\\n  | sudo tee /etc/apt/keyrings/omnidiff-archive-keyring.gpg > /dev/null\necho \"deb [signed-by=/etc/apt/keyrings/omnidiff-archive-keyring.gpg] \\\n  https://ivankovic.github.io/omnidiff/apt stable main\" \\\n  | sudo tee /etc/apt/sources.list.d/omnidiff.list > /dev/null\nsudo apt update && sudo apt install omnidiff\n```\n\nNix users can run the tool directly without installing anything else:\n\n```bash\nnix run github:ivankovic/omnidiff\n```\n\nIf flakes are not enabled, the command needs the extra experimental flag described in the repository. Arch and Gentoo also have packaging scripts in the `packaging/` directory, though the README notes that those distributions open and close their repositories to new packages sporadically.\n\n## Content-aware diffing works on PDFs, fonts, and images\n\nTraditional diff tools treat binary files as opaque blobs, producing either a single “binary files differ” line or a massive dump of unreadable bytes. OmniDiff parses the file format first, then applies a type-specific algorithm. For PDFs, it extracts page objects and compares their structural representation, so renaming a diagram label shows up as a single line change.\n\nWhen it comes to web fonts, the tool examines glyph outlines; the example in the repo shows twenty icons redrawn, and the diff highlights only the altered outlines. Images receive a pixel-wise comparison that can be rendered as a side-by-side view or a simple textual description of changed regions.\n\nThe README includes a browser view that displays twenty real code changes side by side with a Unix `diff` output. The visual diff is far more informative because it respects the content model of each file type. This approach reduces the noise that usually forces reviewers to open the binary in an external viewer.\n\n## Use headless mode for scripts and CI\n\nWhen OmniDiff’s standard output is not a terminal, it automatically switches to headless mode. The same effect can be forced with `--headless` or its synonym `--batch`:\n\n```bash\nomnidiff --headless old_version.pdf new_version.pdf\n```\n\nIn headless mode the tool prints a plain-text diff, optionally colored, instead of launching the full-screen TUI. This makes it suitable for CI pipelines, where a diff can be captured in logs or fed into a review bot. The repository notes that the headless mode starts automatically when stdout is redirected, for example when piping into `less` or writing to a file.\n\nA typical CI step might look like:\n\n```yaml\n- name: Install omnidiff\n  run: cargo install --locked omnidiff\n- name: Check binary diffs\n  run: omnidiff --headless ${{ github.event.before }} ${{ github.event.after }} > diff.txt\n```\n\nThe resulting `diff.txt` can be uploaded as an artifact or posted as a comment on a pull request. Because the diff is content-aware, the CI output stays readable even when the changed files are PDFs or fonts.\n\n## The takeaway\n\nOmniDiff brings type-specific diffing to the terminal without sacrificing speed; install it with `cargo install --locked omnidiff` or a prebuilt package, then let it handle PDFs, fonts, and images the way a human would. Use `--headless` in scripts or CI to get clean, color-aware text output that stays useful even for binary assets.  \n\nSource: [OmniDiff GitHub repository](https://github.com/ivankovic/omnidiff).",
+  "sources": [
+    {
+      "title": "Show HN: OmniDiff – Opensource, super fast, content aware Git difftool, in Rust",
+      "url": "https://github.com/ivankovic/omnidiff"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/omnidiff-brings-fast-content-aware-diffs-to-the-terminal.jpg",
+  "thumbnailCredit": {
+    "name": "Markus Spiske",
+    "url": "https://unsplash.com/@markusspiske?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/text-JBfE4vFLCis?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
