@@ -1,0 +1,33 @@
+{
+  "slug": "building-a-semantic-graph-layer-with-nvidia-auto-ontology",
+  "title": "Building a semantic graph layer with NVIDIA Auto Ontology",
+  "date": "2026-11-03",
+  "excerpt": "Auto Ontology adds a deterministic query and context layer for LLM agents using enterprise metadata.",
+  "tags": [
+    "AI",
+    "Data",
+    "Backend"
+  ],
+  "body": "A data platform team at a large enterprise recently ran an automated scan of its data lake, data warehouse, and reporting layer. Within minutes the scan produced a graph that linked a sales-order table, a customer-profile view, and a finance-revenue metric.  \n\nThe graph also captured that “Revenue” in the finance system meant “gross sales after discounts” while the marketing dashboard used the same term for “net sales after refunds”. The mismatch stayed hidden from analysts until the auto-generated ontology highlighted it.  \n\nNVIDIA Auto Ontology turns raw metadata into a deterministic, graph-based reasoning layer. The Python framework discovers entities, metrics, and relationships from existing catalogs, reconciles conflicting definitions, and exposes the resulting knowledge graph through a command-line interface (MCP CLI) and a REST API. The result is a semantic layer that LLM-driven agents can query with confidence and that can be refined over time as users correct definitions.  \n\nIn the sections that follow, the discovery process, validation of generated queries, and exposure of context to downstream agents are examined. A concrete example shows how the built-in reranking model `nvidia/llama-nemotron-rerank-vl-1b-v2` improves result relevance.  \n\n## Discover enterprise ontologies from metadata  \n\nAuto Ontology begins by ingesting metadata from relational sources, data catalogs, and existing semantic models. The ingestion worker (FastAPI on port 3002) reads table schemas, column comments, and lineage information stored in Postgres + pgvector. Nodes are created for entities such as *Customer*, *Order*, and *Revenue*, and edges describe relationships like *Customer → places → Order*.  \n\nExternal ontologies that a company already maintains can also be connected. By merging those with the freshly generated graph, an AI-ready knowledge graph spans the entire data estate. The catalog lives side-by-side with the source metadata in the same Postgres instance, making updates atomic and searchable.  \n\nDeterminism is a core property: the same set of source files always yields the same graph structure. Predictable mapping from natural-language questions to canonical queries reduces hallucinations when agents generate SQL.  \n\n## Validate queries against certified definitions  \n\nOnce the ontology is in place, every generated query is checked against certified definitions and lineage information. When an LLM translates “What was the total revenue for Q2?” into SQL, the framework verifies that the *Revenue* metric referenced in the query matches the definition stored in the graph. If the finance system defines *Revenue* as “gross sales after discounts” while the marketing view uses a different definition, the validation step flags the mismatch.  \n\nProvenance metadata accompanies each answer, including the source system, the exact definition used, and a link to the lineage record. Downstream consumers can assess trustworthiness without digging through raw logs. If validation fails, the framework can rewrite the query to use a certified metric or surface an error for the user to resolve.  \n\n## Expose context through MCP CLI and API  \n\nThe completed ontology is served to any agent harness via the MCP command-line interface and a FastAPI-based REST API (backend on port 3001). The CLI lets developers explore the graph, list available entities, and retrieve definition provenance with simple commands such as:\n\n```bash\nmcp ontology list-entities\nmcp ontology describe Revenue\n```\n\nThe API mirrors these capabilities, returning JSON that includes the node ID, definition text, and related metrics. Because the service runs behind Better Auth and can be paired with HashiCorp Vault for credential storage, access control follows the enterprise’s existing RBAC policies.  \n\nAgents that need context call the API before generating a query. The response is folded back into the prompt, ensuring the LLM works with the exact business meaning the organization has certified. Corrections made through the web UI (Next.js 16 frontend on port 3000) are written back into the Postgres catalog, closing the feedback loop.  \n\n## Rerank results with NVIDIA NIM  \n\nAuto Ontology uses NVIDIA NIM endpoints for inference, defaulting to the hosted API catalog at `integrate.api.nvidia.com`. The reranking model `nvidia/llama-nemotron-rerank-vl-1b-v2` is configured via the `DEFAULT_MODELS_ENDPOINT` and related environment variables. When the ontology returns multiple candidate answers, the reranker scores each candidate and returns the most relevant one. In practice, this step improves answer relevance for ambiguous queries such as “Show revenue trends for the last two quarters” by preferring the definition that matches the certified finance metric.  \n\n## The takeaway  \n\nAuto Ontology builds a deterministic, provenance-rich semantic graph from existing metadata, validates generated queries against certified definitions, and makes the context available through MCP CLI and a REST API. Grounding LLM agents in a vetted ontology reduces hallucinations and boosts trust in AI-driven analytics. Deploy the built-in reranking model `nvidia/llama-nemotron-rerank-vl-1b-v2` to prioritize the most relevant results when the ontology returns multiple candidates.  \n\n*Source: [NVIDIA auto-ontology GitHub repository](https://github.com/NVIDIA/auto-ontology).*",
+  "sources": [
+    {
+      "title": "Nvidia – open-source auto-ontology",
+      "url": "https://github.com/NVIDIA/auto-ontology"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/building-a-semantic-graph-layer-with-nvidia-auto-ontology.jpg",
+  "thumbnailCredit": {
+    "name": "Luke Chesser",
+    "url": "https://unsplash.com/@lukechesser?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/graphs-of-performance-analytics-on-a-laptop-screen-JKUTrJ4vK00?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
