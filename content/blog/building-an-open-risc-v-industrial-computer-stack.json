@@ -1,0 +1,32 @@
+{
+  "slug": "building-an-open-risc-v-industrial-computer-stack",
+  "title": "Building an open RISC-V industrial computer stack",
+  "date": "2026-11-03",
+  "excerpt": "ERICI defines a reference stack that boots a partitioned hypervisor and Linux on real RVA23 hardware.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A recent release of RVA23 silicon shows the hardware is finally ready, but no complete industrial computer exists yet. The European RISC-V Industrial Computing Initiative (ERICI) has assembled a tested reference stack that ties firmware, a partitioning hypervisor, a real-time partition and a Linux partition together on actual RVA23 boards.\n\nThe stack is verified on a SpacemiT K3 PicoITX board, and the initiative publishes the exact interfaces it uses so that any compliant chip can be swapped in without rewriting the whole system.\n\nReaders will learn how the reference stack fixes the gaps between layers, how the hypervisor lets real-time control and Linux coexist, and why the open-source nature of every component matters for a machine that must run for a decade or more. By the end, the needed pieces to build a RISC-V industrial computer that can be maintained long-term will be clear.\n\n## Reference stack fixes interfaces between firmware, hypervisor and OS\n\nThe reference stack is built in strict layers. Firmware runs first, performing power-on self-test (POST) and exposing a UEFI-compatible setup interface. Once that is done, the firmware hands control to a UEFI boot loader, which can start either a bare-metal OS or a hypervisor together with its guest operating systems. ERICI documents the exact data structures passed from firmware to loader, and from loader to hypervisor, ensuring that each layer only depends on the contract below it.\n\nA partitioning hypervisor respects the RVA23 mandatory hypervisor and vector extensions. It receives a boot package in the form of a CPIO archive, exactly the same format the Linux kernel expects for its initrd. The archive contains the kernel image and initramfs for every partition.\n\nWhen the hypervisor loads the package, it assigns each partition its own set of CPUs, memory regions and device trees, then starts the real-time and Linux partitions side by side. This clear hand-off eliminates the ad-hoc wiring that has plagued earlier RISC-V prototypes.\n\n## Partitioned hypervisor runs real-time and Linux side by side\n\nBecause the hypervisor enforces strict isolation, the real-time control partition can run with deterministic latency while the Linux partition provides the operator interface, networking stacks and higher-level services. The two partitions never share CPUs or memory, and the hypervisor’s IOMMU guarantees that each partition sees only its own devices. This arrangement mirrors the dual-OS approach that many x86 and Arm industrial boxes already use, but it is now available on open RISC-V hardware.\n\nA concrete illustration is the gRouvr boot flow. gRouvr is loaded like a Linux kernel with its initrd; its boot package is a CPIO archive that holds the kernel and initramfs image of every partition. The mr-bml bootloader, as well as GRUB, can load this package.\n\nAfter loading, gRouvr distributes CPUs, memory and a device-tree description to each partition, then launches the real-time and Linux sides simultaneously. The result is a single SoC delivering both hard-real-time I/O (for EtherCAT, CAN-FD, etc.) and a full Linux user environment without the two stepping on each other’s toes.\n\n## Open-source components enable long-term maintenance\n\nEach layer of the reference stack is released under a permissive or copyleft license that encourages community contributions and independent audits. The firmware, called HFI BIOS, is GPL-2.0 and derived from U-Boot. The bootloader mr-bml is GPL-3.0, while gRouvr and the surrounding QSOE code are Apache 2.0. Because the source is openly available, any organization can rebuild, patch or extend the stack without waiting for a single vendor’s roadmap.\n\nLong-term industrial deployments often span fifteen years or more. Relying on a proprietary instruction-set license or a single vendor’s support model would expose a system to roadmap changes or geopolitical restrictions.\n\nRISC-V’s open governance, combined with ERICI’s open stack, means that when a new RVA23-compatible SoC appears, whether from the current Chinese vendors or future suppliers, only the firmware, hypervisor drivers and board-specific code need updating. The real-time application and the Linux side can be moved unchanged, preserving investment in software development.\n\n## The takeaway\n\nERICI’s reference stack stitches together firmware, a partitioning hypervisor and both real-time and Linux partitions through well-defined, open interfaces. The gRouvr CPIO boot package shows how the hypervisor can launch multiple isolated OS images from a single archive.\n\nBecause every component is open source, the stack can be maintained, audited and ported across RVA23 chips for the lifetime of an industrial computer. Building a RISC-V industrial system now means adopting this stack, verifying it on real hardware, and relying on its open nature for future upgrades.",
+  "sources": [
+    {
+      "title": "European RISC-V Industrial Computing Initiative",
+      "url": "https://erici.eu"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/building-an-open-risc-v-industrial-computer-stack.jpg",
+  "thumbnailCredit": {
+    "name": "Eswatini Photography",
+    "url": "https://unsplash.com/@proudlyswazi_free?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/an-exterior-view-of-the-esric-building-uTi9vqy8Pho?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
