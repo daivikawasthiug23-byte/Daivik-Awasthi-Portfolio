@@ -1,0 +1,33 @@
+{
+  "slug": "room-scale-cable-robot-that-reaches-a-whole-room-for-800",
+  "title": "Room-scale cable robot that reaches a whole room for $800",
+  "date": "2026-11-03",
+  "excerpt": "Stringman uses four ceiling-mounted motors to move a gripper anywhere in a 7 × 7 × 3 m room for under a thousand dollars.",
+  "tags": [
+    "AI",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A 7 × 7 × 3 m room can be covered by a single robot that costs about $800. The Stringman system from Neufangled Robotics hangs a gripper from four cables anchored in the ceiling corners, and with only four motors it can reach any point in the space, even the floor.\n\nThe source notes that the design delivers roughly 500 × the work-area-per-dollar of a desktop arm while still handling a 2 kg payload. This post shows how the cable architecture expands the work volume, why payload scales with shared motor torque, and how the open-source stack lets developers plug in local AI.\n\nStringman reaches an entire room with four motors, hanging its gripper from lines anchored in the ceiling corners. Working from above, it reaches floors too cluttered for any wheeled or legged robot. Because the lifting force is shared by all motors, payload capacity scales with their combined torque instead of a single actuator’s, peaking near the center of the room where the lines share the load most evenly.\n\n## How the cable architecture expands work volume\n\nTraditional desktop arms are limited to a fixed radius because the links are attached to a base. Stringman replaces the base with four ceiling anchors and lets the gripper swing from lines that converge overhead.\n\nThe anchors define a four-sided volume, and the cables can be tensioned to any point inside that box. Since the cables are anchored at the corners, the robot can reach the floor as well as the ceiling, something wheeled or legged platforms struggle with in cluttered spaces.\n\nThe source highlights that this cable-driven approach gives “the work area volume per dollar of this type of robot is completely unmatched.” With a 7 × 7 × 3 m room the system can move objects anywhere inside, a capability that would require many more actuators on a mobile platform. Calibration takes about five minutes and automatically adapts the geometry to the specific room.\n\n## Payload scaling with shared motor torque\n\nIn most robots the payload is limited by the torque of a single actuator. Stringman’s design shares the lifting force across all four motors, so the effective payload capacity is the sum of their torques.\n\nEach motor uses a DM-H6215 1 N·m direct-drive actuator, and the line-tension limit is 28 N. Ignoring the weight of its own links, a 0.75 m serial arm attached to the same actuators would have a much lower payload because it relies on a single motor’s torque.\n\nBecause the cables intersect near the room’s center, the load is distributed most evenly there, giving the highest payload capacity at that point. Near the walls the tension becomes uneven, but the system still benefits from the combined torque of all four motors. Adding a fifth or sixth motor (if the room geometry allowed) would directly increase the payload, unlike a wheeled robot where extra wheels add complexity without proportional lift.\n\n## Open-source control and local AI integration\n\nStringman is OSHWA certified and all design files, mechanical CAD, PCBs, and control software are published. The control stack runs on a local computer, a Mac with an NPU or GPU works great, and the UI is served over a private Wi-Fi network. No data leaves the network, and the UI can be accessed from any device on that network.\n\nThe system includes a Python API and an MCP server designed for autonomous agents. This makes it straightforward to script motions or integrate machine-learning models that run on the same hardware. A short snippet from the project connects to the robot and moves it to a target point:\n\n```python\nimport stringman\nrobot = stringman.connect()\nrobot.move_to(x=2.0, y=1.5, z=0.8)\n```\n\nThe API works with local AI models such as Pi.05, JEPA, and Multitask DiT. Training new behaviors can be done from the UI, and as few as 50 episodes may be enough for certain models to learn a task. Because the robot can run “air gapped,” users keep full control over their data and can revoke remote access at any time.\n\n## The takeaway\n\nStringman shows that a room-scale work envelope can be achieved with just four ceiling-mounted motors and an $800 budget. The cable-driven architecture expands the reachable volume dramatically, and sharing torque across motors lets the system lift near-center loads comparable to larger robots. With fully open-source hardware and a local-only Python API, developers can integrate custom AI without exposing data, delivering a low-cost, high-reach robot that moves parts across an entire room while staying under the user’s direct control.",
+  "sources": [
+    {
+      "title": "Stringman, an $800 open-source room scale gripper robot",
+      "url": "https://neufangled.com/"
+    }
+  ],
+  "popularity": 28,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/room-scale-cable-robot-that-reaches-a-whole-room-for-800.jpg",
+  "thumbnailCredit": {
+    "name": "Sufyan",
+    "url": "https://unsplash.com/@blenderdesigner?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-robotic-arm-is-connected-to-a-computer-mouse-JUJzjthZnYU?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
