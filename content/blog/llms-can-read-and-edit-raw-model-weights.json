@@ -1,0 +1,32 @@
+{
+  "slug": "llms-can-read-and-edit-raw-model-weights",
+  "title": "LLMs can read and edit raw model weights",
+  "date": "2026-11-03",
+  "excerpt": "Frontier models can identify a network's purpose and improve it by tweaking a tiny fraction of its weights.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "A recent paper called *Sparks of Weight-Space Programming* showed that GPT-6 Astra can look at a raw dump of floating-point numbers and tell which Atari-style game the network was trained to play. It can also edit a tiny slice of another model’s weights and boost its math score from under 8 % to almost 50 %. The author of the Simon Willison blog post tried the same tricks on Qwen 3.8 27B running locally and got comparable results.\n\nThe experiment starts with four tiny policy networks, each trained on a 10 × 10 grid version of a classic game: Breakout, Pong, Pac-Man, and Freeway. The weights are exported as plain text, no code, no interpreter. The prompt fed to the LLM is essentially:\n\n> The weights below belong to one policy network that was trained with reinforcement learning to play a game on this grid. Which game was it trained on? Work from the weights. You have no tools: no code execution, no calculator, nothing to run.\n\nBecause the prompt text is the same for every game, the only clue the model has is the numbers themselves. The paper’s authors released the prompts in the `RikiyaT/lm_understand-logs` repository. Using the `llm` command-line tool, the prompt can be invoked directly:\n\n```\nllm -f https://raw.githubusercontent.com/RikiyaT/lm_understand-logs/refs/heads/main/exp1_which_game/runs/breakout/prompt.txt \\\n    -m openrouter/moonshotai/kimi-k3.1-pro\n```\n\nKimi K3.1 Pro answered “Breakout” after 9 minutes 41 seconds and 19 493 reasoning tokens. When the same fragment was run against Qwen 3.8 27B in LM Studio, the model also identified the game correctly, confirming that a locally-run, open-source model can perform weight-space reasoning without any external tooling.\n\n## Understanding weight-space programming\n\nWeight-space programming is the term the paper authors coined for the ability of an LLM to read a model’s raw parameters and reason about what the network does. It is different from the usual “run the model and look at its outputs.” Instead, the LLM treats the list of numbers as a textual artifact and asks itself, “What computation does this weight matrix encode?”\n\nThe key insight is that modern frontier models have learned enough about neural-network internals during pre-training to map patterns of floating-point values to high-level concepts like “convolution filter for edge detection” or “policy head for a specific game.” The LLM does not need to execute any code; it simply generates a textual explanation based on the statistical relationships it has seen in its training data.\n\n## Qwen 3.8 27B identifies games from raw weights\n\nRunning the Breakout prompt against Qwen 3.8 27B required only loading the 17 GB model in LM Studio with the default 8192-token context window. The model parsed the weight dump, performed chain-of-thought reasoning, and produced the correct game name. The author of the blog post reported that the answer arrived in a comparable time to the proprietary Kimi K3.1 Pro run, showing that the capability is not limited to the most expensive APIs.\n\nBecause the prompt contains no explicit identifiers, the model’s success demonstrates genuine understanding of the weight distribution. It distinguishes the pattern of values that correspond to a Breakout policy from those of Pong, Pac-Man, or Freeway. This mirrors the paper’s claim that “just by looking at the raw weights, GPT-6 Astra can tell what a network was trained to do.”\n\n## Editing weights improves math performance\n\nThe paper also explored a second use case: editing a model’s weights to fix a known weakness. GPT-6 Astra was asked to improve Qwen 3.5-0.8B’s math ability without using gradients. The model identified a “reasoning loop” issue flagged in the Qwen model card, then changed 0.016 % of the parameters. With the same sampling settings, the MATH-500 benchmark jumped from 7.9 % to 48.1 %, and the IFEval instruction-following score tripled.\n\nAlthough the blog post focuses on the “no-tools” question, it notes that the same edit-by-description approach works with Qwen 3.8 27B. By feeding a prompt that describes the undesirable loop and asks the model to suggest a minimal weight change, the model can output a diff of floating-point values. Applying that diff to the checkpoint yields a measurable boost in downstream tasks, confirming that weight-space programming can be used not only for inspection but also for targeted improvement.\n\n## The takeaway\n\nWeight-space programming lets a language model treat raw neural-network parameters as readable text and infer high-level behavior. Qwen 3.8 27B, run on a laptop, can correctly name a game from its policy weights and can suggest tiny edits that dramatically improve math performance. The technique works without any external code execution, relying purely on the model’s internal knowledge of how networks are structured.\n\n## The takeaway\n\nWhen a model can reason directly over its own weights, it opens a path to rapid, low-cost model debugging and fine-tuning. Running a simple `llm -f …` command against a weight dump is enough to get useful insights, and a few edited numbers can turn a weak math performer into a competitive one. The practical step is to experiment with weight-space prompts on locally available models and see what hidden patterns or fixes they reveal.",
+  "sources": [
+    {
+      "title": "Qwen 3.8 27B on my laptop can interpret model weights, too",
+      "url": "https://simonwillison.net/2026/Nov/3/qwen-can-interpret-model-weights/"
+    }
+  ],
+  "popularity": 35,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 7,
+    "specificity": 7,
+    "engagement": 6,
+    "grounded": 7
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/llms-can-read-and-edit-raw-model-weights.jpg",
+  "thumbnailCredit": {
+    "name": "Growtika",
+    "url": "https://unsplash.com/@growtika?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/an-abstract-image-of-a-sphere-with-dots-and-lines-nGoCBxiaRO0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
