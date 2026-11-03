@@ -1,0 +1,33 @@
+{
+  "slug": "interactive-llm-course-that-teaches-from-tokens-to-agents",
+  "title": "Interactive LLM course that teaches from tokens to agents",
+  "date": "2026-11-03",
+  "excerpt": "A free, browser-based course lets you explore LLM concepts with scroll-driven animations and live Python cells.",
+  "tags": [
+    "AI",
+    "Web",
+    "Dev Tools"
+  ],
+  "body": "A few weeks ago a developer hit a wall trying to recall why the attention formula divides by √dₖ. The same frustration appeared with “GQA”, “MLA”, “MoE”, “LoRA”, “HNSW” and other buzzwords that vanished after a couple of days of reading.  \n\nTo solve that problem the creator of LLM Explained assembled a free, scroll-driven course that lets you see each concept, tweak a knob, and watch the math update in real time. The result is a hands-on path from “tokens” to “agents” that stays inside a single browser tab.  \n\nThe following sections show three of the most useful features, an attention visualizer, a depth switch that layers intuition, mechanics, and math, and editable in-browser Python cells, so you can decide whether the resource fits your learning style.\n\n## Explore attention with scroll-driven matrices  \n\nThe attention module starts with a 5-token matrix that fills in cell by cell as you scroll. Queries, keys, and values appear as blue, orange, and green arrows, and the same colors are used in the equation shown beside the animation. Because the numbers are tiny, 4-dimensional embeddings and 3-5 token sentences, every value stays on screen and you can verify each step manually.  \n\nA concrete widget on this page is the “remove √dₖ” toggle. Turning it off drops the scaling factor from the softmax denominator, and the softmax output saturates: a few entries shoot toward 1 while the rest collapse to 0. The source notes that this toggle “shows softmax saturating when you drop the scaling factor, illustrating why the division by √dₖ is needed.” No separate notebook is required.  \n\nOther controls let you pause, step back, or scrub to any frame, so you can freeze the exact moment that looks confusing. If reduced-motion mode is on, the animation becomes a series of numbered static frames, preserving accessibility while still showing the matrix fill-in.\n\n## Switch between intuition, mechanics and maths depth  \n\nEvery page offers a depth switch with three levels: Intuition, Mechanics, and Maths. At the top of the switch a short, picture-first description explains the concept in plain language. Flipping to Mechanics adds the algorithmic steps that turn the picture into numbers. Flipping again to Maths reveals the full equations, with the same colour coding used in the animation.  \n\nThe author describes this as the favourite feature because it lets a learner start with a high-level story, return later, and immediately see deeper details without hunting for a new resource.\n\nFor example, the attention page’s Maths depth shows the query-key dot product, the scaling by √dₖ, and the softmax, all lined up with the animation’s blue, orange, and green vectors. A parameter counter on the same page checks the 12·d² rule against GPT-2 and GPT-3, giving a concrete sense of how model size scales with hidden dimension.\n\nBecause each depth level builds on the previous one, you can jump into a module you already know well and still get something new by flipping the switch. The source notes that “you can read a page at Intuition level, come back a week later and flip to Mechanics. The page grows with you.”\n\n## Run editable Python cells directly in the browser  \n\nMost modules include a “Run it yourself” cell powered by Pyodide, which brings a full NumPy environment into the browser. The cell is editable, so you can change a constant, hit Run, and watch the figure update instantly. No local Python installation is required; the computation happens client-side, and the result appears next to the animation.  \n\nOne example is the KL-divergence explorer in the capstone. The cell lets you modify the two distributions, recompute the divergence, and see the closed-form RLHF optimum shift on the plot. Another module runs a byte-level BPE tokenizer; you can paste Hindi text, hit Run, and watch the token count climb in real time. These cells turn passive observation into an active experiment, reinforcing the link between code and visual intuition.  \n\nThe source emphasizes that “every number on screen is computed in your browser” and that the pages clearly label whether a figure is a simulation or an illustrative sketch. This honesty helps avoid the common pitfall of mistaking a toy example for production behavior.\n\n## The takeaway  \n\nScroll-driven pages let you watch attention matrices fill in, while the depth switch layers intuition, mechanics, and full math on the same visual foundation. In-browser Python cells turn observation into experimentation. Together they provide a concrete, self-contained path from tokens to agents without juggling multiple tabs or external notebooks.  \n\nLive site: <https://llm-explained-lovat.vercel.app/>  \nSource code: <https://github.com/amananandrai/llm-explained>",
+  "sources": [
+    {
+      "title": "I Built LLM Explained: 43 Interactive Pages That Take You From Tokens to AI Agents",
+      "url": "https://dev.to/amananandrai/i-built-llm-explained-43-interactive-pages-that-take-you-from-tokens-to-ai-agents-2n37"
+    }
+  ],
+  "popularity": 11,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/interactive-llm-course-that-teaches-from-tokens-to-agents.jpg",
+  "thumbnailCredit": {
+    "name": "Compare Fibre",
+    "url": "https://unsplash.com/@comparefibre?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/person-in-red-shirt-wearing-black-and-gray-headphones-Y8TiLvKnLeg?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
