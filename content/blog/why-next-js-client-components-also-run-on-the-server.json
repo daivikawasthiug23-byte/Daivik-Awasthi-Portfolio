@@ -1,0 +1,33 @@
+{
+  "slug": "why-next-js-client-components-also-run-on-the-server",
+  "title": "Why Next.js client components also run on the server",
+  "date": "2026-11-03",
+  "excerpt": "Client components are rendered on the server first, then hydrated in the browser, which explains the “window is not defined” error.",
+  "tags": [
+    "Web",
+    "Backend",
+    "Dev Tools"
+  ],
+  "body": "A component that reads `window.innerWidth` will throw `ReferenceError: window is not defined` during the build step, even though the file starts with `\"use client\"`. The error happens because Next.js renders that component on the server before any browser code runs. The source explains that this is expected: client components are also executed during the initial server-side render.\n\nAfter reading, the audience will see the difference between bundling and execution, understand what the server does for the first request, and know how hydration connects the server-generated HTML to the client-side JavaScript.\n\n## Execution vs. bundling in the App Router  \n\nIn the App Router every file is a Server Component by default. Adding the literal line `use client` does not tell Next.js to skip server execution. Instead, it creates a module boundary that marks everything exported from that file, and everything it imports, as code that must be compiled into a browser bundle. The same component still runs once on the server to produce HTML, then runs again in the browser after hydration.\n\nBecause the component is evaluated on the server, any reference to browser-only globals crashes the build. The source gives the concrete example:\n\n```js\n\"use client\"\nexport default function UserProfile() {\n  // crashes during build or initial page load on the server\n  const screenWidth = window.innerWidth\n  return <div>Screen width: {screenWidth}px</div>\n}\n```\n\nNode.js evaluates the file during the initial render, finds `window` undefined, and throws. The directive only guarantees that the component will later run in the browser; it does not prevent the first server execution.\n\n## What happens on the first request  \n\nWhen a user visits a route, Next.js performs a full server-side pre-render. The steps are:\n\n1. All Server Components run on the server. They can read databases, files, and secret environment variables, then emit a stream of structured UI instructions called the RSC payload.  \n2. Client Components are also invoked on the server, but only to produce static HTML markup. Their render functions run once, generating semantic tags such as `<div class=\"profile\">…</div>`.  \n3. The server sends two pieces in the response: raw HTML for immediate paint and the RSC payload that describes the component tree. No JavaScript for the client component is sent yet.\n\nThe browser can display the pre-rendered HTML right away, giving an instant First Contentful Paint while the JavaScript bundle downloads in the background.\n\n## Hydration and the RSC payload  \n\nAfter the HTML lands in the browser, the JavaScript bundle compiled from every file marked with `use client` starts loading. React then hydrates the page:\n\n* It parses the RSC payload, which contains a virtual representation of the component tree.  \n* It matches the existing DOM nodes to the virtual nodes.  \n* It attaches event listeners, runs `useEffect` hooks, and activates `useState` logic.\n\nOnly at this point does the client component run in the browser environment, where `window` and other browser APIs exist. Hydration does not re-execute the server-side render; it merely wires up interactivity on top of the already-present HTML. This two-phase flow explains why the “window is not defined” error appears early: the component’s render function was already evaluated on the server to produce HTML. The later browser execution is safe, but the initial server run must avoid browser-only code.\n\n## Practical rules for `\"use client\"` modules  \n\nTreat `\"use client\"` as a bundling hint, not an execution guard. Keep any reference to `window`, `document`, or other browser globals inside `useEffect` or guard them with `typeof window !== \"undefined\"`. Remember that the component’s render function runs once on the server, so it should contain only pure, side-effect-free logic. Export only the UI needed for the initial HTML; heavy logic can stay in Server Components that have full access to the backend.\n\n## The takeaway  \n\nClient components are bundled for the browser but still render once on the server to generate HTML. Understanding the SSR + hydration pipeline lets developers write components that survive both phases without crashing. Treat `\"use client\"` as a bundling directive, guard browser-only code, and keep server-side logic in Server Components.",
+  "sources": [
+    {
+      "title": "Next.js Doesn't Render Pages Anymore. It Streams Something Stranger.",
+      "url": "https://dev.to/smtahosin/nextjs-doesnt-render-pages-anymore-it-streams-something-stranger-11ij"
+    }
+  ],
+  "popularity": 24,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 7,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-next-js-client-components-also-run-on-the-server.jpg",
+  "thumbnailCredit": {
+    "name": "Christopher Gower",
+    "url": "https://unsplash.com/@cgower?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-macbook-with-lines-of-code-on-its-screen-on-a-busy-desk-m_HRfLhgABo?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
