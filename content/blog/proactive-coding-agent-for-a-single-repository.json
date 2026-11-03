@@ -1,0 +1,33 @@
+{
+  "slug": "proactive-coding-agent-for-a-single-repository",
+  "title": "Proactive coding agent for a single repository",
+  "date": "2026-11-03",
+  "excerpt": "dsh-superagent is a research prototype that listens to GitHub and can open work items, code, and submit pull requests with minimal human input.",
+  "tags": [
+    "AI",
+    "Dev Tools",
+    "Systems"
+  ],
+  "body": "A prototype called dsh-superagent lives in a single GitHub repository and can act on its own when a developer asks it to. The agent watches GitHub events and, optionally, Feishu messages. When a request arrives, it opens a work item, runs in its own directory, and eventually replies with a pull request or a status update. The design tries to keep human interruptions to a minimum while still delivering useful results.\n\nThe repository’s `README.md` describes the project as a “proactive coding agent for one GitHub repository”. Packaged for DeepSeek Harness, it is presented as research code rather than a production-ready product. Source files are organized under `src/`, `scripts/`, and `skills/`, while `SETUP.md` drives the installation process. Feishu integration is optional but supported.\n\nThe following sections explain how the agent talks to GitHub and Feishu, when it decides to take action, how the setup is driven by the agent itself, and the key takeaway for teams considering a similar approach.\n\n## How the agent interacts with GitHub and Feishu\n\nGitHub webhooks are registered for the repository the agent owns. Whenever a new issue, comment, or pull-request event arrives, the webhook payload is delivered to the agent’s HTTP endpoint. The payload includes the actor, the action type, and a short description.\n\nAfter receiving the payload, the agent parses it and checks whether the actor is “allowed”, a rule defined in the repository’s configuration. If the rule matches, the agent creates an internal work item and starts a new session in its own workspace directory.\n\nWhen Feishu integration is enabled, the agent also registers a bot with the Feishu API. The bot receives messages in a designated chat group, extracts the same “allowed” flag, and mirrors the GitHub request. This dual-channel design lets a team use either platform to trigger work while keeping the underlying logic identical.\n\nAll replies travel back through the channel that initiated the request. For a GitHub comment, the agent posts a reply that may include a link to a newly created pull request. For a Feishu message, the bot sends a reply in the chat. The reply logic lives in `src/agent.ts`, where the agent formats a markdown message and calls either the GitHub REST API or the Feishu message endpoint.\n\n## When the agent decides to act\n\nThe prototype follows a “minimal interruption” philosophy described in `docs/000-philosophy.md`. Two conditions trigger action:\n\n1. Explicit request, a human directly asks the agent to perform work, such as “run the test suite” or “fix the lint error”. The request must come from an allowed user.  \n2. Rule-driven trigger, the team writes a rule in the repository that permits the agent to act automatically. An example rule might be “run type checking on every push to `main`”. The rule is stored as a JSON file under `skills/` and evaluated before the agent starts a session.\n\nIf neither condition holds, the agent stays idle. This guardrail prevents the agent from consuming the whole team’s attention, a risk noted in the repository’s description. Output is limited to actionable results, such as a ready-to-merge pull request or a clear failure that needs human triage.\n\n## Setup driven by the agent itself\n\nSetting up the prototype is intentionally interactive. The `SETUP.md` file contains a step-by-step guide, and the agent can execute those steps on demand. A developer can type:\n\n```text\nRead SETUP.md in this repository and set up dsh-superagent with me.\n```\n\nThe agent then asks a short clarification question, presents the full plan, and proceeds to install dependencies, configure webhooks, and generate any required secrets. Each step follows the numbered documents in the repo, ensuring that later steps run only after earlier ones succeed.\n\nDuring the setup, the agent runs `pnpm check` to perform three verification stages:\n\n* Typecheck, runs the TypeScript compiler in `noEmit` mode.  \n* Tests, executes the Vitest suite defined in `vitest.config.ts`.  \n* Build, produces the JavaScript bundle using the `tsdown` configuration.\n\nIf any stage fails, the agent reports the error back to the user and aborts further steps. Successful completion is recorded in a local state file, so subsequent runs know the repository is ready for the agent to start listening to events.\n\nBecause the agent itself performs the installation, the risk of human error is reduced and the repository ends up in a reproducible state. The interactive nature of the setup also means a new developer can be guided through the entire process without leaving the chat platform.\n\n## The takeaway\n\nA proactive coding agent can live inside a single repository, listen to GitHub (and optionally Feishu), and act only when an explicit request or a team-written rule permits it. The agent drives its own setup by following `SETUP.md` and validates the codebase with `pnpm check`. Teams that want to experiment with autonomous agents should start by defining clear “allowed” rules and let the agent handle the repetitive setup and verification steps.",
+  "sources": [
+    {
+      "title": "deepseek-ai/dsh-superagent-prototype: Towards a More Autonomous Agent System",
+      "url": "https://github.com/deepseek-ai/dsh-superagent-prototype"
+    }
+  ],
+  "popularity": 100,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/proactive-coding-agent-for-a-single-repository.jpg",
+  "thumbnailCredit": {
+    "name": "Juanjo Jaramillo",
+    "url": "https://unsplash.com/@juanjodev02?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/code-editor-displaying-react-source-code-mZnx9429i94?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
