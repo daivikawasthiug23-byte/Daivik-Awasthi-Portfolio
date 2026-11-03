@@ -1,0 +1,32 @@
+{
+  "slug": "toit-v2-0-0-arrives-after-four-years-of-alpha-development",
+  "title": "Toit v2.0.0 arrives after four years of alpha development",
+  "date": "2026-11-03",
+  "excerpt": "Toit v2.0.0 ships with a refactored peripheral API, broader hardware support and a rewritten package manager after over 2,000 commits.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "After more than four years of alpha development, Toit finally reached a public 2.0 release. The repository now shows over 2,000 commits, more than 500,000 lines changed, and more than 200 alpha releases.\n\nThe announcement notes that the project began as closed-source software built by Toitware, opened up later, and kept improving after the company shut down in 2024. Volunteers added board definitions and test suites that made the new silicon support possible. The source for these facts is the official blog post [Toit v2.0.0](https://toit.io/blog/toit-v2-0-0/).\n\nReaders will come away with three concrete takeaways: a broader hardware palette, a unified command-line experience that feels like a desktop scripting language, and a peripheral API that accepts raw pin numbers. The sections below examine each improvement and show how they affect day-to-day development.\n\n## Broader hardware support across ESP32 and EC618  \n\nThe original Toit runtime focused on a narrow set of ESP32 chips. The new version adds “almost all” ESP32 variants and, for the first time, an Arm-based EC618 processor. Developers can now target devices that were previously out of reach without rewriting low-level bindings. Community effort after Toitware’s shutdown supplied the extra board definitions and test suites that let the SDK compile for the new silicon.\n\nIn practice, a project that once required a separate firmware fork for an ESP32-S2 can now be built with the same `toit compile` command for an ESP32-C3, an ESP32-S3, or an EC618 board. The broader support reduces the need for multiple code bases and lowers the barrier for IoT teams that need to ship on heterogeneous hardware. It also shortens the testing cycle because a single CI pipeline can run against one set of source files.\n\n## Unified `toit` command and desktop-scripting improvements  \n\nThe `toit` command-line tool has been consolidated into a single entry point. Previously, developers used separate sub-commands for flashing, running scripts, and managing packages, which led to a fragmented workflow. The unified command now handles all of those actions and adds features that make Toit behave more like a traditional desktop scripting language. For example, the interpreter can read a script file from standard input and execute it without first creating a temporary package.\n\nA rewritten package manager provides faster dependency resolution and a clearer output format. These changes let a developer open a terminal, type `toit run my_script.toit` and see the result instantly, just as with Python or Node. The improvement shortens the edit-run-debug loop, which is especially valuable when prototyping sensor logic on a laptop before deploying to a device.\n\n## Refactored peripheral APIs accept pin numbers directly  \n\nOne of the last breaking changes slated for the release was a refactor of the peripheral libraries. Earlier versions required callers to construct a `gpio.Pin` object before passing it to functions such as `digitalWrite` or `spi.transfer`. The new API lets the same functions take a raw integer pin number. The concrete effect is that code like:\n\n```toit\npin = gpio.Pin 5\ndigitalWrite pin, true\n```\n\ncan now be written as:\n\n```toit\ndigitalWrite 5, true\n```\n\nRemoving the intermediate `gpio.Pin` object eliminates a line of boilerplate for every peripheral call and reduces the chance of mismatched pin configurations, because the pin’s mode is set implicitly by the peripheral function. Existing projects can adopt the new style by deleting the `gpio.Pin` constructors; the compiler will accept the integer directly. This refactor was the final major breaking update the team needed to ship before labeling the release v2.0.0.\n\n## Ongoing work and future roadmap  \n\nOpen pull requests still exist for a code formatter, compiler-resolution tweaks, and support for additional architectures. The team has accepted that the moment when every important feature is finished will never arrive. Those contributions will appear in future releases, keeping the momentum alive. The roadmap signals that Toit will continue to evolve from a stable core into a more polished desktop-scripting platform while retaining its IoT focus.\n\n## The takeaway  \n\nToit v2.0.0 expands the hardware list to include most ESP32 chips and the EC618, streamlines the command-line experience for desktop scripting, and simplifies peripheral code by accepting raw pin numbers. Updating to the new version means fewer device-specific forks, a tighter edit-run cycle, and cleaner I/O calls. Adopt the release to reduce boilerplate and broaden the range of boards you can support.",
+  "sources": [
+    {
+      "title": "Toit v2.0.0",
+      "url": "https://toit.io/blog/toit-v2-0-0/"
+    }
+  ],
+  "popularity": 6,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/toit-v2-0-0-arrives-after-four-years-of-alpha-development.jpg",
+  "thumbnailCredit": {
+    "name": "Glenn Carstens-Peters",
+    "url": "https://unsplash.com/@glenncarstenspeters?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/person-using-macbook-pro-npxXWgQ33ZQ?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
