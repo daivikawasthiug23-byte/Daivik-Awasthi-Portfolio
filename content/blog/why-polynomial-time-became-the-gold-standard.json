@@ -1,0 +1,32 @@
+{
+  "slug": "why-polynomial-time-became-the-gold-standard",
+  "title": "Why polynomial time became the gold standard",
+  "date": "2026-11-03",
+  "excerpt": "The post explains how Edmonds’ quest for a “good” algorithm led to the polynomial-time definition of efficiency.",
+  "tags": [
+    "Systems",
+    "Data"
+  ],
+  "body": "The blossom algorithm’s O(n⁴) bound was the first concrete yardstick for “efficient” in graph theory. When Jack Edmond Edmonds announced his matching procedure in 1965, he wrote that the number of operations never exceeds *n*⁴, where *n* is the number of vertices.\n\nHe also defined the problem size as vertices + edges and declared any algorithm whose running time is bounded by a function of that size “good.” That single quartic bound became the benchmark that later generations would stretch into the whole class of polynomial-time algorithms.\n\n## How Edmonds formalized “good”\n\nEdmonds first pointed out the naïve approach: enumerate every possible matching, pick the largest, and stop. The number of matchings grows exponentially with the graph size, so the procedure is hopeless for anything but the tiniest instances. To avoid such “not good” algorithms, he wrote two pages of definition.\n\n1. Input size, measured as the sum of vertices and edges, guaranteeing a uniform scale for every graph.  \n2. Running-time bound, a well-defined function of that size that must hold for *any* instance, no matter how large.\n\nHe then demonstrated the definition with his blossom algorithm, proving an explicit O(n⁴) upper bound. The source notes that Edmonds did not provide a deeper justification; he simply labeled exponential time “bad” and polynomial time “good.”\n\n## From a quartic bound to the polynomial paradigm\n\nBefore Edmonds, “efficient” was a vague dictionary entry meaning “adequate in operation.” After the O(n⁴) claim, the community began to treat any polynomial bound, *n*, *n*², *n*³, *n*⁴, and so on, as a reasonable standard. The reasoning was concrete:\n\n* Linear time matches the length of the input.  \n* Quadratic time mirrors the hand-multiplication algorithm taught in school.  \n* A quartic bound, while larger, is still far below the exponential blow-up of enumerating all matchings.\n\nLater researchers such as Richard Karp adopted the term polynomial time to capture this intuition. The resulting dichotomy, polynomial = good, exponential = bad, gave rise to complexity theory, whose central task is to prove that problems admit polynomial-time solutions or, conversely, to show that certain problems are unlikely to have them.\n\n## The exponential-time hypothesis (ETH) as a modern extension\n\nThe exponential-time hypothesis formalizes the intuition that some problems truly require exponential time. It posits that solving *k*-SAT cannot be done in sub-exponential time in the number of variables. Although unproven, ETH provides a working assumption that guides contemporary research. When a new algorithm improves a known exponential bound, researchers check whether the improvement would contradict ETH; if it would, the result is considered unlikely.\n\nETH therefore turns the historical polynomial-vs-exponential split into a concrete hypothesis. Even for NP-hard problems, ETH supplies an exponential baseline against which progress is measured. Lower-bound proofs that are “ETH-based” show that any faster algorithm would violate the hypothesis, keeping the polynomial benchmark relevant in modern work.\n\n## A tiny illustration\n\nBelow is a minimalist Python implementation of Edmonds’ blossom idea for a tiny graph. The code is not meant for production; it simply shows the O(n⁴) structure, four nested loops over the vertex set.\n\n```python\ndef blossom_match(G):\n    # G is an adjacency matrix of size n x n\n    n = len(G)\n    match = [-1] * n\n    for a in range(n):\n        for b in range(n):\n            if G[a][b] and match[a] == -1 and match[b] == -1:\n                # try to grow an augmenting path of length up to 4\n                for c in range(n):\n                    if G[b][c] and match[c] == -1:\n                        for d in range(n):\n                            if G[c][d] and match[d] == -1:\n                                match[a] = b\n                                match[b] = a\n                                match[c] = d\n                                match[d] = c\n    return match\n```\n\nThe four nested loops give a worst-case running time proportional to *n*⁴, matching Edmonds’ original claim. Modern implementations replace these loops with sophisticated data structures, but the quartic bound remains the historical reference point.\n\n## The takeaway\n\nEdmonds’ explicit O(n⁴) bound, anchored to the input size “vertices + edges,” created the first concrete benchmark for algorithmic efficiency. That benchmark expanded into the polynomial-time paradigm, while the exponential-time hypothesis carries the same intuition forward as a formal barrier for exponential-time problems. Remember: an algorithm whose cost grows polynomially with a well-defined input size is deemed “good”; anything requiring exponential growth is “bad,” and ETH explains why the latter is a hard limit.",
+  "sources": [
+    {
+      "title": "Efficient algorithms, the Exponential Time Hypothesis, and losing the plot",
+      "url": "https://www.argmin.net/p/galactus-the-devourer"
+    }
+  ],
+  "popularity": 2,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 7,
+    "specificity": 7,
+    "engagement": 6,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/why-polynomial-time-became-the-gold-standard.jpg",
+  "thumbnailCredit": {
+    "name": "Juanjo Jaramillo",
+    "url": "https://unsplash.com/@juanjodev02?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/code-editor-displaying-react-source-code-mZnx9429i94?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
