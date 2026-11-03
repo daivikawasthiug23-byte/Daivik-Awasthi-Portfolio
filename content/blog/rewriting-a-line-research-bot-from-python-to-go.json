@@ -1,0 +1,37 @@
+{
+  "slug": "rewriting-a-line-research-bot-from-python-to-go",
+  "title": "Rewriting a LINE research bot from Python to Go",
+  "date": "2026-11-03",
+  "excerpt": "The author replaced a Python Managed Agents bot with a Go ADK implementation to remove sandbox limits and Pre-GA uncertainty.",
+  "tags": [
+    "AI",
+    "Backend",
+    "Systems"
+  ],
+  "body": "## From a sandbox-bound Python bot to a Go ADK service  \n\nThe original LINE Research Planner Bot accepted a single message, generated 4, 8 keyword sets, ran Google Search + URL Context, and emitted a Traditional Chinese Markdown report. It was built with Python 3.11, FastAPI, and the pre-GA Managed Agents API. The bot stored three files (`plan.json`, `sources.json`, `report.md`) in the sandbox filesystem and relied on a manual background-polling loop to survive long stages.\n\nAfter a few weeks the author identified three concrete pain points: the Managed Agents endpoint carried no SLA and used versioned names that hinted at future breakage; the sandbox’s `gsutil` was mocked, forcing a full JSON round-trip for every report; and the polling loop required constant timeout tuning. The decision was to replace the hosted Managed Agent with a self-controlled ADK Agent written in Go v1.9.0, while keeping the Cloud Run environment unchanged.\n\n## Exact configuration copy as migration foundation  \n\nThe first step was to capture the live service configuration with  \n\n```bash\ngcloud run services describe <service-name>\n```  \n\nThe command returned the service account, eleven environment variables, Secret Manager bindings, memory limits, and request timeout. By preserving these values, the Go version could be dropped in without touching any deployment settings. This 1:1 migration approach eliminated the risk of environment drift.\n\n## Feasibility probe proved the ADK could handle a single request  \n\nBefore rewriting thousands of lines, the author compiled a 30-line probe program. The probe called the Go ADK on Vertex AI and asked for Google Search, URL Context, and an OutputSchema in a single request. The response contained both search results and contextual snippets, confirming that a single ADK call could replace the multi-step Python workflow. The source notes this probe as the key feasibility check.\n\n## Modular code layout mirrors the three-stage pipeline  \n\nThe repository was reorganized under the module path `github.com/kkdai/line-research-bot-go`. The code base grew to roughly two thousand lines, split into clear packages:\n\n* `cmd/server`, sets up dependency injection, the HTTP server, and graceful shutdown.  \n* `internal/research`, wraps the three ADK “llm-agents” (plan, search-compare, write-report), the runner, and the session-state prompts.  \n* `internal/worker`, orchestrates the pipeline stages and handles publishing, deepening, and retry logic.  \n* `internal/server`, implements the webhook endpoint, task runner, and readiness probe.  \n* `internal/state`, stores user and report data in Firestore, preserving compatibility with the Python version while adding a new workspace model.\n\nEach stage is represented by an ADK agent that receives a prompt, calls Vertex AI, and returns a structured response. Because state lives in Firestore instead of the sandbox filesystem, the bot no longer depends on mocked `gsutil` and can survive restarts or scaling events.\n\n## Deployment without downtime  \n\nThe same Cloud Run service definition captured earlier was reused. Environment variables such as `LINE_CHANNEL_SECRET`, `LINE_CHANNEL_TOKEN`, and the Vertex AI project ID were injected unchanged. The container image was built with standard Go flags, producing a statically linked binary under 30 MB. After pushing the image, the service rolled out with zero downtime because the endpoint signatures remained identical.\n\nVerification steps recorded in Issue #1 included:\n\n1. Sending the original “Research the selection of SOTA open-source vector databases” message.  \n2. Confirming that a Flex card appeared with a summary and a “Read Full Report” button.  \n3. Sending “Go deeper into Chapter 2, add Japanese sources” and observing a new version created while the previous snapshot persisted in Firestore.\n\nThe final comparison between Python and Go implementations showed that, despite a larger line count, the Go bot eliminated the three earlier concerns: no reliance on a pre-GA Managed Agent, no sandbox filesystem quirks, and no manual background polling.\n\n## The takeaway  \n\nA faithful 1:1 migration starts with an exact copy of the live service configuration, then validates the new platform with a minimal probe. Using the Go ADK removes sandbox limitations, eliminates polling complexity, and stores state in a durable store, making the bot more reliable while keeping the deployment unchanged.",
+  "sources": [
+    {
+      "title": "[AI in Practice] Rewriting a LINE Research Bot from Python Managed Agents to Go ADK v1.9.0: From Sandbox Files to Session State,",
+      "url": "https://dev.to/gde/ai-in-practice-rewriting-a-line-research-bot-from-python-managed-agents-to-go-adk-v190-from-4c50"
+    },
+    {
+      "title": "[AI in Action] Rewriting a Daily LINE Bot from Python to Go 1.26 on Cloud Run: 1/4 Resource Usage, Google ADK v1.9.0, and Zero-D",
+      "url": "https://dev.to/gde/ai-in-action-rewriting-a-daily-line-bot-from-python-to-go-126-on-cloud-run-14-resource-usage-2o62"
+    }
+  ],
+  "popularity": 3,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/rewriting-a-line-research-bot-from-python-to-go.jpg",
+  "thumbnailCredit": {
+    "name": "Fotis Fotopoulos",
+    "url": "https://unsplash.com/@ffstop?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/smartphone-and-computer-monitors-with-code-6sAl6aQ4OWI?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
