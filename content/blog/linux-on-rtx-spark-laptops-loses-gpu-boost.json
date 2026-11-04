@@ -1,0 +1,32 @@
+{
+  "slug": "linux-on-rtx-spark-laptops-loses-gpu-boost",
+  "title": "Linux on RTX Spark laptops loses GPU boost",
+  "date": "2026-11-04",
+  "excerpt": "Linux runs on RTX Spark laptops but the GPU stalls at 780 MHz, dropping token throughput to about 14 per second.",
+  "tags": [
+    "AI",
+    "Systems"
+  ],
+  "body": "A dual-boot of Linux on an MSI Prestige N16 Flip AI Plus shows the GPU locked to roughly 780 MHz when the laptop is plugged into wall power. The same chip runs near 2.2 GHz on Windows, so a model that can generate about 65 tokens / s on Windows drops to under 14 tokens / s on native Linux. The cause is an encrypted power-table firmware component that only the Windows driver can decode.\n\nThe source explains that a hidden “Nvidia Platform Controllers and Framework” module lives in Windows-only code. Without it Linux cannot read the power-delivery tables, so the GPU never receives the boost it needs. The result is a dramatic slowdown that turns a laptop marketed for AI developers into a modest-performance machine when running Linux directly.\n\nThe article walks through why the clock collapses, how the unified-memory split hides RAM from Linux, why Windows Subsystem for Linux (WSL) sidesteps the problem, and ends with a single actionable takeaway.\n\n## Why the GPU clock collapses on Linux\n\nWhen the laptop is on AC power, the firmware supplies a power table that tells the GPU how fast it may run. That table is encrypted; the Windows driver decrypts it, but the open-source Nvidia driver used on Linux cannot. Consequently the driver falls back to a safe default of roughly 780 MHz.  \n\nOn Windows the same hardware reaches about 2.2 GHz, which translates to more than four times the inference throughput. The source notes that the Linux driver “locks” the clock to the low frequency, and that this lock persists even if the user forces higher clocks via `nvidia-smi`. The only known fix is a driver change from Nvidia that would incorporate the platform controller’s power-management logic.\n\n## Memory split limits Linux visibility\n\nThe RTX Spark laptops ship with up to 128 GB of unified memory shared between CPU and GPU. By default the firmware reserves 96 GB for the GPU, leaving only a sliver for the system. Linux sees just the portion not earmarked for the GPU. The source reports that after a fresh Debian install only 28 GB of the 128 GB total were visible.  \n\nWindows provides a UI to shrink the GPU reservation down to 4 GB, which then frees the rest for the OS. Linux has no comparable tool because the setting lives in the Windows-only firmware interface. Without adjusting the split, Linux runs with a tiny memory pool, further throttling AI workloads that depend on large buffers.\n\n## Why WSL remains the practical choice\n\nWSL runs Linux user-space on top of the Windows kernel and, crucially, uses the Windows Nvidia driver stack. Because the driver can read the encrypted power table, the GPU retains its full boost whether the laptop is plugged in or on battery. The source shows benchmark numbers that illustrate the gap:\n\n- Windows native: 65.4 tokens / s  \n- WSL: 65.1 tokens / s  \n- Nvidia DGX Spark (desktop): 61 tokens / s  \n- Native Linux on the same laptop: 13.9 tokens / s  \n\nWSL therefore delivers Windows-level performance while letting developers run Linux-first tools such as vLLM or SGLang. The article calls WSL “the practical middle ground today” for anyone who needs the AI software ecosystem that prefers Linux but cannot accept the GPU throttling.\n\n## The takeaway\n\nLinux on RTX Spark laptops suffers from an encrypted power-table that caps the GPU at ~780 MHz and a firmware-only memory split that hides most RAM. Until Nvidia ports the platform-controller logic to its Linux driver, using WSL provides full GPU boost and the expected AI throughput. The immediate step is to run workloads under WSL rather than a native Linux install on these machines.",
+  "sources": [
+    {
+      "title": "Nvidia RTX Spark encrypted firmware slows inference speed to 35% on Linux",
+      "url": "https://www.mindstudio.ai/blog/linux-nvidia-rtx-spark-laptop"
+    }
+  ],
+  "popularity": 22,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/linux-on-rtx-spark-laptops-loses-gpu-boost.jpg",
+  "thumbnailCredit": {
+    "name": "Martin Sanchez",
+    "url": "https://unsplash.com/@martinsanchez?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/laptop-with-vibrant-neon-keyboard-G78c3DPmD_A?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
