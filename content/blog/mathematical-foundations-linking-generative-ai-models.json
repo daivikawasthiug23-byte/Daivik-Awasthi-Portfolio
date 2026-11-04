@@ -1,0 +1,32 @@
+{
+  "slug": "mathematical-foundations-linking-generative-ai-models",
+  "title": "Mathematical foundations linking generative AI models",
+  "date": "2026-11-04",
+  "excerpt": "A concise primer walks through PCA to diffusion models, showing how each builds on the previous theory.",
+  "tags": [
+    "AI",
+    "Data"
+  ],
+  "body": "A recent preprint walks through generative modeling as a chain of mathematical ideas, starting with the classic linear technique and ending with the most flexible energy-based approaches. The author, Tianhua Chen, builds each step from the previous one, showing how a simple eigen-decomposition blossoms into a whole zoo of deep models.\n\nBy following that route, a reader can see why diffusion samplers look like a continuous-time version of a variational autoencoder, and how normalising flows turn a Gaussian into any distribution with a tractable Jacobian.\n\n## From PCA to probabilistic PCA\n\nPrincipal component analysis (PCA) finds a low-dimensional subspace that captures most variance in a dataset. The book treats PCA as a deterministic projection, then adds a Gaussian noise term to obtain probabilistic PCA.\n\nThis small stochastic extension gives a proper likelihood and makes the model amenable to maximum-likelihood estimation via an EM algorithm. The shift from a fixed projection to a latent variable model is the first hint that generative ideas live in the space of probability distributions rather than just point estimates.\n\n## Variational autoencoders and diffusion models\n\nWith a latent variable in hand, the next step is to replace the linear decoder of probabilistic PCA with a neural network. The resulting variational autoencoder (VAE) retains the probabilistic framing: an encoder approximates the posterior, a decoder defines the likelihood, and the evidence lower bound (ELBO) provides a tractable training objective. The book derives VAEs directly after probabilistic PCA, highlighting the continuity of the mathematics.\n\nFrom there, the text shows diffusion models as a continuous-time limit of those VAEs. By interpreting the VAE’s stochastic encoder as a single step of a Markov chain and letting the step size shrink to zero, the model becomes a stochastic differential equation that gradually adds noise to data and learns to reverse that process. This perspective explains why diffusion samplers need many small denoising steps: they are approximating the same variational objective in the limit of infinitesimal time.\n\n## Normalising flows, autoregressive factorisations and GANs\n\nNormalising flows take a different route. Starting from a simple Gaussian, a sequence of invertible, differentiable transformations reshapes the density into the target distribution. Because each transformation has a tractable Jacobian determinant, the exact likelihood remains computable, unlike the ELBO used for VAEs.\n\nThe book contrasts this with autoregressive factorisations, where the joint density is broken into a product of conditionals, each modeled by a neural network that predicts the next element given the previous ones. Autoregressive models excel at exact likelihood evaluation but generate samples sequentially, which can be slower than the parallel draws possible with flows.\n\nGenerative adversarial networks (GANs) abandon explicit likelihoods altogether. A generator network maps a noise vector to data space, while a discriminator learns to distinguish real from generated samples. Training becomes a two-player game that pushes the generator toward the data distribution without ever computing a density. The book positions GANs as a complementary approach to likelihood-based models, useful when sample quality matters more than exact probability estimates.\n\n## Energy-based and Wasserstein GANs\n\nEnergy-based models (EBMs) define an unnormalized density via a scalar energy function, typically a neural network. Sampling requires Markov chain Monte Carlo, which can be costly, but the formulation is flexible enough to represent any distribution. The text links EBMs to GANs by noting that the discriminator in a vanilla GAN can be viewed as an energy function that assigns low energy to real data and high energy to fakes.\n\nWasserstein GANs modify the original game by replacing the Jensen-Shannon divergence with the Earth-Mover distance. This change yields a smoother training signal and mitigates mode collapse. The book explains the mathematical justification: the Wasserstein distance provides a meaningful gradient even when the generator and data distributions have disjoint support, something the original GAN loss lacks.\n\n## The takeaway\n\nThe primer stitches together a clear mathematical lineage: start with linear PCA, add probabilistic noise, upgrade to neural VAEs, take a continuous-time limit for diffusion, then explore exact-likelihood flows, sequential autoregressives, and adversarial games. Understanding each link lets a practitioner choose the right tool for a given problem and see how new architectures inherit assumptions from their ancestors.",
+  "sources": [
+    {
+      "title": "The Little Book of Generative AI Foundations: An Intuitive Mathematical Primer",
+      "url": "https://arxiv.org/abs/2605.29713"
+    }
+  ],
+  "popularity": 26,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 7,
+    "specificity": 7,
+    "engagement": 6,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/mathematical-foundations-linking-generative-ai-models.jpg",
+  "thumbnailCredit": {
+    "name": "Steve A Johnson",
+    "url": "https://unsplash.com/@steve_j?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-circuit-board-with-a-brain-on-it-_0iV9LmPDn0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
