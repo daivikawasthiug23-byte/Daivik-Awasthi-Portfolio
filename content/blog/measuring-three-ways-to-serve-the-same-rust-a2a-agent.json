@@ -1,0 +1,33 @@
+{
+  "slug": "measuring-three-ways-to-serve-the-same-rust-a2a-agent",
+  "title": "Measuring three ways to serve the same Rust A2A agent",
+  "date": "2026-11-04",
+  "excerpt": "A benchmark compares the official SDK, an exec wrapper, and an ADK coordinator for a Lucas-Lehmer Rust program.",
+  "tags": [
+    "Backend",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A recent benchmark runs the same Lucas-Lehmer implementation against three different Rust agents using the A2A CLI. The agents share identical code but are served in three distinct ways: the official a2a-rs SDK, a tiny stdin/stdout program wrapped by `a2a server --exec`, and an ADK coordinator on Gemini. By timing both the Go-based CLI and a native Rust client, the test isolates the overhead introduced by each serving method.\n\nThe article walks through the setup, presents the measured latencies, and explains what the numbers mean for real-world deployments. Readers will come away with a clear picture of how much extra time each layer adds and which approach makes sense for low-latency versus centrally managed workloads.\n\n## Benchmark setup and serving methods\n\nThe repository [The A2A CLI and Rust: The Same Code, Three Ways to Serve It](https://dev.to/gde/the-a2a-cli-and-rust-the-same-code-three-ways-to-serve-it-4el0) contains a single Cargo project with four binaries: the SDK agent, the stdin/stdout program, the benchmark client, and a shared library that holds the Lucas-Lehmer code.\n\nA helper script `scripts/start-all.sh` rebuilds the project, stops any existing agents, and launches the SDK agent on port 8104 and the `a2a server --exec` wrapper on port 8105. The ADK coordinator is started separately with the ADK CLI, which registers the wrapped program as a remote A2A agent behind Gemini on port 8106.\n\nThe CLI test script `scripts/test-cli.sh` issues the same `a2a send` command against each address, records the median round-trip time, and verifies that the reply contains the expected prime exponents. The Rust benchmark client performs the same JSON-RPC calls in a tight loop, measuring per-call overhead for each serving method. All agents advertise A2A Protocol v1.0 in their agent cards, and the CLI itself reports version v0.3.1 built with Go 1.26.3.\n\n## Raw latency numbers from the CLI and Rust client\n\nA single `a2a send` to the SDK agent on 8104 takes a median 20.74 ms when run from the CLI. About 7.62 ms of that is the time the CLI spends starting up, leaving roughly 13 ms for the actual round-trip.\n\nWhen the native Rust client talks to the same SDK agent, the per-call overhead ranges from 0.55 ms to 1.40 ms. The wrapped stdin/stdout program adds a bit more: the Rust client measures between 3.33 ms and 5.05 ms per call.\n\nThe ADK coordinator is dramatically slower. On the Gemini 3.5-flash instance the median round-trip is 1328 ms, and on Gemini 3.8-flash it rises to 2283 ms. Every call with N = 26 still returns the correct prime count, confirming functional parity across the three approaches.\n\n## Why the SDK agent is the fastest baseline\n\nThe official SDK agent runs as a native JSON-RPC server built on the a2a-rs crates. Its sub-millisecond overhead when called from Rust matches expectations for a local, in-process service. The higher CLI number stems from the Go binary launching a new process for each `a2a send`. That startup cost dominates the total CLI latency, but the underlying network round-trip remains low.\n\nBecause the SDK agent communicates directly over HTTP/JSON-RPC, there is no extra serialization layer or intermediate process. The result is the smallest possible latency for a Rust-based A2A service on a single host.\n\n## What the `a2a server --exec` wrapper adds\n\nWrapping a 30-line stdin/stdout program with `a2a server --exec` introduces a fixed extra hop. The Go server reads the request from its socket, writes it to the child process’s stdin, waits for the child to finish, and then writes the response back to the client. That I/O indirection accounts for the three-to-five-millisecond increase over the SDK agent.\n\nThe wrapper shines when an existing command-line tool needs to be exposed as an A2A agent without rewriting it in Rust. The latency penalty is modest, so for quick prototypes or low-throughput workloads the trade-off can be worthwhile.\n\n## Practical implications for choosing a serving method\n\n- When sub-millisecond latency matters, run the agent directly with the official a2a-rs SDK. The Rust client numbers show less than two milliseconds per call, and the CLI overhead can be avoided by invoking the JSON-RPC endpoint directly.  \n- When an existing CLI tool must be reused, the `a2a server --exec` wrapper offers a simple bridge. The added three to five milliseconds are predictable and may be acceptable for batch jobs or occasional queries.  \n- When remote orchestration or multi-tenant management is required, the ADK coordinator provides the necessary infrastructure at the cost of seconds of latency. Reserve this path for workloads where the computation itself dwarfs the communication delay.\n\n## The takeaway\n\nRunning the agent directly with the official a2a-rs SDK yields the lowest latency, under two milliseconds per call from a Rust client. Wrapping a simple stdin/stdout program adds only a few milliseconds, which can be acceptable for prototypes. Using an ADK coordinator on Gemini introduces seconds of overhead, so it should be reserved for scenarios that need centralized management rather than fast round-trips.",
+  "sources": [
+    {
+      "title": "The A2A CLI and Rust: The Same Code, Three Ways to Serve It",
+      "url": "https://dev.to/gde/the-a2a-cli-and-rust-the-same-code-three-ways-to-serve-it-4el0"
+    }
+  ],
+  "popularity": 10,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/measuring-three-ways-to-serve-the-same-rust-a2a-agent.jpg",
+  "thumbnailCredit": {
+    "name": "Ilya Pavlov",
+    "url": "https://unsplash.com/@ilyapavlov?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/monitor-showing-java-programming-OqtafYT5kTw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
