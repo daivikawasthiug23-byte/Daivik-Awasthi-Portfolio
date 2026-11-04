@@ -1,0 +1,32 @@
+{
+  "slug": "c-26-contracts-rejected-by-iso-vote",
+  "title": "C++26 contracts rejected by ISO vote",
+  "date": "2026-11-04",
+  "excerpt": "The ISO DIS for C++26 failed to reach the required two-thirds majority, marking the first standard disapproval in C++ history.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "On October 23 2026 the ISO vote that was meant to seal C++26 ended in a surprise. After a twelve-week Draft International Standard (DIS) ballot the result was “Disapproved”. The DIS stage requires a two-thirds majority of the National Bodies (NBs); the vote fell short, marking the first time a C++ language standard has failed at this point since the process began in 1998.\n\nThe immediate fallout hits toolchains, libraries, and projects that were gearing up for a C++26 release. Those relying on the new Contracts feature must now treat the code as non-portable until the standardization path is clarified. ISO offers a handful of remediation routes that WG21 will have to choose from.\n\nReaders will come away with a clear picture of why the vote failed, what the possible next steps are, and which option is most likely to get Contracts back on track.  \n\n## Why the DIS ballot fell short  \n\nComments submitted by the NBs focus almost entirely on Contracts. Several bodies argued that the feature is not yet ready for production use. While WG21 approved Contracts for C++26 with a comfortable margin in the March 2026 vote, the NB level broke from its historic practice of voting “no” only when new information or clear errors appear. That shift produced enough “no” votes to miss the required two-thirds super-majority.\n\nThe source notes that this is the first DIS failure for a C++ language standard. The only other DIS that was not approved was ISO/IEC DIS 26926, the C++/CLI Language Specification from 2006, which was subsequently halted. The contrast highlights how unusual the October 2026 outcome is.  \n\n## What the rejection means for the draft  \n\nBecause the DIS ballot failed, C++26 cannot be published as an ISO standard in its current form. The standard-approval process does not revert to the previous released version; instead ISO provides a set of remediation options. Until WG21 selects a path, the draft remains in limbo and the name “C++26” may be dropped or postponed.\n\nIn practical terms, any code that already uses the proposed contract syntax must be treated as non-portable. A simple contract example that appeared in the C++26 draft looks like this:\n\n```cpp\n[[expects: x > 0]]\nint sqrt_int(int x) {\n    return static_cast<int>(std::sqrt(x));\n}\n```\n\nIf a compiler implements this syntax before the standard is finalized, developers will have to guard the code with feature-test macros or fallback implementations, because the feature’s status is uncertain.  \n\n## ISO’s remediation options  \n\nThe ISO website lists four routes for a DIS failure. All of them require a fresh majority within WG21, which already demonstrated strong support for Contracts in earlier votes.\n\n1. Submit a revised draft for a new DIS vote, address the NB concerns and run another twelve-week ballot. The timeline stays similar, but the two-thirds threshold must be met again.  \n2. Submit a revised draft to the committee for the CD (Committee Draft) phase, moving the draft back one step and allowing WG21 to make changes before re-entering DIS. This adds at least one more round of internal review.  \n3. Publish a revised draft as a Technical Specification (TS), shipping Contracts without full ISO endorsement and giving implementers early access while the standardization process continues in parallel.  \n4. Abandon the feature for the current cycle, drop Contracts from C++26 entirely and revisit it in a later standard. This avoids further delays but discards years of work by the study group and the Evolution Working Group.  \n\nThe source emphasizes that the real hurdle is convincing enough NBs that Contracts are mature enough to satisfy the two-thirds requirement.  \n\n## Likely next steps for WG21  \n\nWG21 already voted to move C++26 with Contracts into the DIS phase with more than the required two-thirds majority. The committee’s internal vote suggests that a revised DIS or a CD route is the most plausible.\n\nPublishing a TS would give implementers a way to experiment, but it would not resolve the ISO standard status. Dropping Contracts would be a drastic step that contradicts the effort invested since the 2019 Cologne meeting, where the feature was first discussed for C++20 and later removed.\n\nGiven the strong internal support, the most likely path is to submit a revised draft that addresses the specific NB comments, perhaps by tightening the wording of contract clauses or providing additional implementation guidance, and then run a second DIS ballot.  \n\n## The takeaway  \n\nThe DIS ballot for C++26 failed because the required two-thirds majority was not reached, primarily due to NB concerns over Contracts. ISO now offers four remediation routes, all of which need WG21 approval. The immediate action is to watch WG21’s decision, prepare for a possible revised DIS or CD phase, and keep any roadmaps that depend on Contracts flexible until the feature’s status is settled.  \n\n*Source: [C++26 Disapproved, how does C++ survive?](https://andreasfertig.com/blog/2026/11/cpp26-dis-failed-how-does-cpp-survive/)*",
+  "sources": [
+    {
+      "title": "C++26 Disapproved",
+      "url": "https://andreasfertig.com/blog/2026/11/cpp26-dis-failed-how-does-cpp-survive/"
+    }
+  ],
+  "popularity": 17,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 9,
+    "specificity": 9,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/c-26-contracts-rejected-by-iso-vote.jpg",
+  "thumbnailCredit": {
+    "name": "Florian Olivo",
+    "url": "https://unsplash.com/@florianolv?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/lines-of-html-codes-4hbJ-eymZ1o?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
