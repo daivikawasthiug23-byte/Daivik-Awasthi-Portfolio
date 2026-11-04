@@ -1,0 +1,33 @@
+{
+  "slug": "understanding-postgresql-internals-and-recent-updates",
+  "title": "Understanding PostgreSQL internals and recent updates",
+  "date": "2026-11-04",
+  "excerpt": "A quick guide to key PostgreSQL subsystems and the latest documentation changes since 2015.",
+  "tags": [
+    "Backend",
+    "Systems",
+    "Data"
+  ],
+  "body": "A recent update to the PostgreSQL documentation notes that version 19-beta added a “WAL segment file size” entry in Section 9.2. That change is one of several that illustrate how the project evolves its internals while keeping the core mechanisms stable.\n\nThe following sections walk through three areas that received attention in the last couple of years: concurrency control, logical replication in its beta form, and asynchronous I/O. By the end, you’ll know which knobs to look at when tuning a modern PostgreSQL cluster.\n\n## Concurrency control mechanisms\n\nPostgreSQL’s concurrency model still revolves around MVCC (multiversion concurrency control), which guarantees atomicity and isolation by keeping multiple tuple versions. The documentation explains that this mechanism is essential for preserving consistency when many transactions run in parallel. Recent revisions did not overhaul the algorithm, but they did clarify how lock granularity interacts with newer features such as parallel query execution (the “PARALLEL option” added in Section 6.1).  \n\nThe source notes that the buffer page lock mechanism is excluded from the 19-beta coverage, meaning the classic heavyweight lock still governs page-level access. For a developer debugging contention, the key takeaway is to watch for lock waits on the same page rather than on individual rows.\n\nThe documentation also mentions that the “cleaning up indexes” phase, described in Section 6.1, now has a clearer relationship to concurrent updates: index entries are removed only after all visible transactions have finished. This reduces the chance of phantom reads when long-running queries coexist with heavy write workloads.\n\n## Logical replication beta version\n\nChapter 12 of the documentation, published on 1 May 2026, introduced logical replication as a beta feature. Unlike physical streaming replication, logical replication ships changes at the level of individual DML statements, allowing selective table replication and cross-version upgrades. The beta status means the feature is usable but still subject to change; the documentation explicitly labels it as such.  \n\nThe author describes the replication flow: a publisher writes changes to the WAL, a decoder extracts logical changes, and a subscriber applies them. Because the decoder works on a per-transaction basis, conflicts can arise when the subscriber already has a row that the publisher tries to insert. Section 11.2.4, added on 14 Dec 2024, details how to handle such conflicts, typically by using “ON CONFLICT” clauses or by configuring conflict resolution policies.  \n\nOne practical tip from the source is to start with a small set of tables and verify that the subscriber’s schema matches the publisher’s. Since the feature is still beta, the documentation advises monitoring the replication slot size; unchecked growth can exhaust disk space, especially when the subscriber lags behind.\n\n## Asynchronous I/O improvements\n\nSection 8.5, published on 28 Jun 2026, covers asynchronous I/O in PostgreSQL. The change introduces a non-blocking path for reading and writing WAL files, which reduces the time a backend thread spends waiting for the operating system. The documentation points out that the improvement is most noticeable on systems with high-latency storage, such as network-attached disks or SSDs under heavy load.  \n\nThe asynchronous I/O path works by issuing an I/O request and immediately returning to the executor, which can continue processing other work. When the I/O completes, a callback wakes the original backend. This design mirrors the approach used in other high-performance servers, but the source emphasizes that PostgreSQL’s implementation still respects the existing checkpoint and recovery logic.  \n\nA concrete impact is seen in the checkpoint process: the “Removal of prior checkpoint in PostgreSQL 11” (Section 9.7.2) combined with async I/O means that checkpoints no longer need to pause write activity as aggressively. The result is smoother throughput during heavy write phases, though the documentation cautions that tuning checkpoint intervals remains important to avoid excessive WAL growth.\n\n## The takeaway\n\nPostgreSQL’s internals continue to be refined without breaking the core guarantees that users rely on. The recent addition of a “WAL segment file size” entry in Section 9.2, the beta rollout of logical replication, and the async I/O enhancements each target a specific pain point, storage sizing, selective data distribution, and I/O latency.\n\nWhen tuning a cluster, check the concurrency lock behavior, experiment with logical replication on a limited set of tables, and enable asynchronous I/O on storage that benefits from non-blocking operations. These steps align with the documented changes and keep the system running efficiently.\n\n[The Internals of PostgreSQL](https://www.interdb.jp/pg/index.html)",
+  "sources": [
+    {
+      "title": "The Internals of PostgreSQL",
+      "url": "https://www.interdb.jp/pg/index.html"
+    }
+  ],
+  "popularity": 6,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 7,
+    "engagement": 6,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/understanding-postgresql-internals-and-recent-updates.jpg",
+  "thumbnailCredit": {
+    "name": "Growtika",
+    "url": "https://unsplash.com/@growtika?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-group-of-blue-boxes-ZfVyuV8l7WU?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
