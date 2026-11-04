@@ -1,0 +1,33 @@
+{
+  "slug": "go-1-27-adds-stable-jsonv2-and-jsontext-packages",
+  "title": "Go 1.27 adds stable jsonv2 and jsontext packages",
+  "date": "2026-11-04",
+  "excerpt": "Go 1.27 ships encoding/json/v2 and encoding/json/jsontext to fix long-standing flaws in the original JSON API.",
+  "tags": [
+    "Backend",
+    "Dev Tools",
+    "Security"
+  ],
+  "body": "A Go 1.27 service that reads JSON from an external API began returning strange characters in a field that should have been pure ASCII. The payload contained a byte sequence that was not valid UTF-8. The classic `encoding/json` decoder silently accepted it, turned the bytes into a Go string, and downstream code emitted mojibake. The new `encoding/json/v2` and `encoding/json/jsontext` packages reject that input outright, matching RFC 8259’s requirement for valid UTF-8.\n\nThe blog post on the Go site explains why the original `encoding/json` package started to show its age, what the new packages bring, and how existing code can move to the stable API without a full rewrite. The reader will come away with a concrete picture of the behavioral problems, the key changes in the new API, and a step-by-step path for migration.\n\n## Why the old encoding/json fell short\n\nThe original `encoding/json` library has been reliable for more than a decade, but several behavioral quirks have accumulated. It accepts invalid UTF-8 even though the Internet Standard (RFC 8259) mandates valid UTF-8, which can corrupt data silently.\n\nIt also allows objects with duplicate member names; the spec leaves handling undefined, and the loophole has been exploited in the past (see CVE-2017-12635). When marshaling a nil slice or map, the library emits JSON `null`, while most Go users prefer an empty array or object.\n\nUnmarshaling matches struct fields case-insensitively, a surprising default that can hide bugs and introduce a subtle security surface. Finally, the common `json.NewDecoder(r).Decode(v)` pattern does not reject trailing junk after a valid value, so malformed streams can slip through. These issues affect data integrity, security, and developer ergonomics, and the source notes that “most Go users prefer that nil slices and maps are marshaled as an empty JSON array or object by default.”\n\n## What jsonv2 and jsontext change\n\nThe new `encoding/json/v2` package retains the familiar `Marshal`/`Unmarshal` signatures but adds a unified option system that can be supplied to both the high-level functions and the `Decoder`/`Encoder` types. By default, options such as `ValidateUTF8` and `RejectDuplicateNames` are enabled, so the earlier UTF-8 example now results in an error instead of silent corruption.\n\nThe companion `encoding/json/jsontext` package exposes a low-level token stream that mirrors the JSON text more closely. It lets callers work with raw bytes, preserve ordering, and handle incremental parsing without allocating intermediate Go values. This is useful for streaming large payloads or building custom validators.\n\nKey behavioral changes include:\n\n* Invalid UTF-8 triggers an error by default.  \n* Duplicate member names are rejected unless the caller explicitly opts in.  \n* Nil slices and maps are marshaled as empty arrays or objects, matching the majority preference.  \n* Field name matching is case-sensitive unless the `CaseInsensitive` option is set.  \n* Trailing data after a valid JSON value causes `Decode` to fail, preventing hidden junk.\n\nThe API also unifies the way options are passed. For example:\n\n```go\nopts := []jsonv2.Option{\n    jsonv2.ValidateUTF8,\n    jsonv2.RejectDuplicateNames,\n}\nvar v MyStruct\nif err := jsonv2.Unmarshal(data, &v, opts...); err != nil {\n    // handle error\n}\n```\n\nThis pattern replaces the older practice of creating a `Decoder`, setting fields, and then calling `Decode`, reducing boilerplate and making the intent explicit.\n\n## How to adopt the new API\n\nTransitioning does not require a complete rewrite. The stable packages are drop-in replacements for most use cases, and the migration can be performed incrementally:\n\n1. Update imports, changing `import \"encoding/json\"` to `import jsonv2 \"encoding/json/v2\"` or to `import \"encoding/json/jsontext\"` where low-level control is needed.  \n2. Add options where needed; the default option set already tightens validation, so most code will continue to work and simply become stricter. If a project relied on the old permissive behavior, such as accepting duplicate keys, add the `AllowDuplicateNames` option explicitly.  \n3. Adjust nil handling; code that checked for `null` after unmarshaling a slice may now receive an empty slice. Replace `if v == nil { … }` with a length check if the distinction matters.  \n4. Review custom `MarshalJSON`/`UnmarshalJSON` implementations, because options are now plumbed through the top-level functions. Custom implementations should accept a `jsonv2.Options` argument if they need to respect caller preferences. The source notes that the old `Decoder`’s `DisallowUnknownFields` option was lost in custom unmarshaling; the new design fixes that.  \n5. Run the test suite; the new decoder rejects more inputs, so existing tests that fed malformed JSON may now fail. Update the test data or assert the new error behavior.\n\nA practical migration path is to add a thin wrapper around the old calls:\n\n```go\nfunc Marshal(v any) ([]byte, error) {\n    return jsonv2.Marshal(v) // uses default strict options\n}\n```\n\nThen replace calls to `json.Marshal` with the wrapper. This isolates the change and lets a team adopt the new package incrementally.\n\n## The takeaway\n\nGo 1.27’s `encoding/json/v2` and `encoding/json/jsontext` packages tighten JSON handling to match the current RFC, rejecting invalid UTF-8 and duplicate keys by default. Switching to the new API is a matter of updating imports and, where needed, supplying explicit options. The result is safer, more predictable JSON processing without sacrificing the familiar `Marshal`/`Unmarshal` workflow.",
+  "sources": [
+    {
+      "title": "A new Go API for JSON",
+      "url": "https://go.dev/blog/jsonv2"
+    }
+  ],
+  "popularity": 15,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/go-1-27-adds-stable-jsonv2-and-jsontext-packages.jpg",
+  "thumbnailCredit": {
+    "name": "Christopher Gower",
+    "url": "https://unsplash.com/@cgower?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-macbook-with-lines-of-code-on-its-screen-on-a-busy-desk-m_HRfLhgABo?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
