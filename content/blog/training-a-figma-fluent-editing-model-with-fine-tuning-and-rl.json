@@ -1,0 +1,32 @@
+{
+  "slug": "training-a-figma-fluent-editing-model-with-fine-tuning-and-rl",
+  "title": "Training a Figma-fluent editing model with fine-tuning and RL",
+  "date": "2026-11-04",
+  "excerpt": "Figma built an agent that edits designs by fine-tuning LLMs on synthetic edit pairs and adding reinforcement learning.",
+  "tags": [
+    "AI",
+    "Dev Tools"
+  ],
+  "body": "A Llama 3.3 70B model trained on more than 250 000 synthetic edit examples became competitive with the top models on editing tasks. That result proved a small, focused post-training effort could close the gap to frontier models for the kind of quick, iterative changes designers make in Figma.\n\nThe post explains how supervised fine-tuning (SFT) got the model to speak Figma’s native file format, why reinforcement learning (RL) was added for better generalization, and how the team checks the output with deterministic validators and visual judges.\n\n## Using supervised fine-tuning to learn Figma syntax\n\nThe first hurdle was that frontier models did not understand Figma’s JSON-based design representation. Prompting them directly required many tokens and still produced invalid edits. The team therefore built a supervised dataset: each example paired a starting design, a synthetic edit request, and a correct change expressed in Figma’s native file format. When a task involved design-system assets, the synthetic prompts also covered theme and component changes.\n\nTraining on this data let the model learn to emit edits that could be applied back to the canvas without additional parsing. Because the edits were generated in the exact format Figma expects, the downstream system could execute them immediately, keeping the interaction fast enough for a designer’s workflow. The approach worked well enough that the earlier Llama 3.3 70B model, after seeing the 250 000 examples, matched the performance of the leading models on the internal editing benchmark.\n\n## Adding reinforcement learning for better generalization\n\nSupervised fine-tuning alone has two drawbacks. First, it teaches the model to imitate the training examples, which can limit its ability to handle novel requests that differ from the synthetic data. Second, SFT is sample-inefficient: it needs many examples to cover the wide variety of edits designers perform.\n\nTo address these issues, the team introduced reinforcement learning. They built RL environments that simulate the design workflow, allowing the model to try edits, receive feedback, and improve. Reward models were shaped around criteria that designers care about, such as alignment, contrast, correct component usage, and request fulfillment.\n\nBy expanding the diversity of examples and refining the reward signals, the RL stage pushes the model beyond simple imitation, encouraging it to generalize to edits it has never seen in the supervised set.\n\n## Evaluating edits with deterministic validators and visual judges\n\nQuality assessment combines two layers. Deterministic validators check that the model’s output is syntactically valid and that the requested change is present in the generated JSON. If a validator flags a problem, the pipeline can self-heal: it revises the edit using the feedback loop before sending it to the canvas.\n\nBeyond structural checks, visual model judges evaluate the aesthetic and functional aspects of the edit. These judges look for alignment errors, contrast issues, or misuse of components, problems that a pure syntax check would miss. After the automated judges score an edit, expert designers review a sample to calibrate the judges and ensure the reward model reflects real design priorities.\n\nThe internal evaluation suite measures several dimensions separately: adherence to the request, structural correctness, visual quality, speed, and cost. Models that score well across these axes are considered for production use. The combination of deterministic validators and visual judges gives a reliable signal that an edit will both work technically and meet designer expectations.\n\n## The takeaway\n\nSupervised fine-tuning can teach a model to emit valid Figma edits, but reinforcement learning is needed to make those edits reliable and generalizable. Pairing deterministic validators with visual judges provides a practical feedback loop that keeps the model fast enough for real-time design work while maintaining quality. The concrete success of a Llama 3.3 70B model trained on 250 000 synthetic edits shows that a focused post-training pipeline can bring a specialized editing agent up to parity with frontier models.",
+  "sources": [
+    {
+      "title": "We're training a Figma-fluent editing model",
+      "url": "https://www.figma.com/blog/training-a-figma-fluent-editing-model/"
+    }
+  ],
+  "popularity": 9,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/training-a-figma-fluent-editing-model-with-fine-tuning-and-rl.jpg",
+  "thumbnailCredit": {
+    "name": "Emily Bernal",
+    "url": "https://unsplash.com/@emilybernal?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/silver-imac-and-apple-keyboard-v9vII5gV8Lw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
