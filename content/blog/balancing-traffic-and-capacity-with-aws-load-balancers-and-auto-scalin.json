@@ -1,0 +1,33 @@
+{
+  "slug": "balancing-traffic-and-capacity-with-aws-load-balancers-and-auto-scalin",
+  "title": "Balancing traffic and capacity with AWS load balancers and auto scaling",
+  "date": "2026-11-05",
+  "excerpt": "AWS load balancers spread requests while auto scaling adds compute when demand spikes, keeping apps responsive.",
+  "tags": [
+    "Backend",
+    "Systems",
+    "Web"
+  ],
+  "body": "A sudden traffic spike can overwhelm an application before new servers are ready. In one example the service’s response time doubled and errors appeared within minutes while the ops team chased a manual instance launch that took far too long. AWS Elastic Load Balancing spreads the incoming requests, and AWS Auto Scaling adds compute capacity when the load grows.  \n\nThe following sections show how the two pieces fit together, which scaling policies keep capacity in step with demand, and how container and serverless workloads stay in the loop. By the end, the reader will know which load balancer type to pick for a given protocol, how to pair it with the right scaling policy, and what integration points to use for ECS, EKS, or Lambda.  \n\n## How ALB and NLB route traffic for different workloads  \n\nApplication Load Balancer (ALB) operates at Layer 7, so it can inspect HTTP headers, host names, and URL paths. This makes it a natural fit for web apps and micro-service architectures that need host-based or path-based routing. An ALB target group may contain EC2 instances, IP addresses, or Lambda functions. For example, an ALB can send `/api/*` requests to a fleet of container instances while routing `/static/*` to a Lambda that serves static assets.  \n\nNetwork Load Balancer (NLB) sits at Layer 4 and handles raw TCP, UDP, or TLS streams. It is designed for high-throughput, low-latency traffic such as gaming back-ends, real-time analytics, or database proxies. Because it forwards packets without inspecting the payload, NLB can preserve the client IP and support static IP addresses, which some firewalls require.  \n\nBoth balancers use target groups to define where traffic goes. The source notes that ALB supports instance, IP address, and Lambda function targets, while NLB registers the same target types but only for Layer 4 protocols. Choosing the right balancer therefore starts with the protocol and the need for content-based routing.  \n\n## Scaling policies that match demand to capacity  \n\nAuto Scaling provides several policy types that decide when to add or remove compute resources. The source lists target tracking, step scaling, simple scaling, scheduled scaling, and predictive scaling.  \n\n* Target-tracking policies keep a chosen metric, often CPU utilization, near a predefined value. When the metric climbs above the target, capacity is added until the metric falls back, then scales down when usage drops.  \n* Step scaling defines discrete actions for metric thresholds. For example, a rise in request count might trigger the launch of two extra instances, while a larger rise launches four.  \n* Simple scaling performs a single adjustment after a breach, suitable for predictable bursts.  \n* Scheduled scaling adds capacity at known peak times, such as a daily batch window.  \n* Predictive scaling uses historical data to forecast demand and pre-warm resources ahead of time.  \n\nEC2 Auto Scaling Groups maintain EC2 instance capacity using minimum, maximum, and desired capacity, along with launch templates. ECS Service Auto Scaling and EKS Horizontal Pod Autoscaler work the same way but operate on tasks or pods instead of instances. Lambda’s provisioned concurrency is the serverless analogue: it keeps a pool of warm execution environments ready, reducing cold-start latency.  \n\nA practical pattern is to combine a target-tracking policy for day-to-day load with a scheduled boost for known traffic spikes. The trade-off is between paying for idle capacity and risking latency during unexpected surges.  \n\n## Integrating load balancers with container and serverless services  \n\nContainer orchestration platforms expose their workloads as targets that a load balancer can register automatically. ECS registers each task’s elastic network interface with an ALB or NLB target group, and when the service’s desired task count changes, driven by ECS Service Auto Scaling, the load balancer instantly sees the new IPs and starts routing traffic.  \n\nEKS uses a Kubernetes Service of type `LoadBalancer`. The controller creates an ALB or NLB and populates its target group with pod IPs. Horizontal Pod Autoscaler adjusts the pod replica count, while Cluster Autoscaler or Karpenter adds worker nodes if pod density exceeds node capacity.  \n\nLambda can be a direct target of an ALB. The ALB forwards HTTP requests to the function, and the function scales automatically. Provisioned concurrency can be tuned alongside the ALB’s listener rules to keep latency predictable.  \n\nHealth checks are the glue that keeps traffic away from unhealthy containers or instances. Both ALB and NLB support configurable health-check paths or ports, and the scaling services respect those health states when deciding whether to launch new capacity.  \n\n## The takeaway  \n\nChoose ALB for HTTP/HTTPS traffic that needs host or path routing, and NLB for raw TCP/UDP streams that demand low latency. Pair the balancer with a scaling policy, target tracking for steady-state load, step or scheduled scaling for bursts, to keep capacity aligned with demand. Finally, register containers, pods, or Lambda functions as target-group members so the load balancer and auto-scaling mechanisms stay in sync.  \n\n[Source: AWS Load Balancing and Auto Scaling: How Traffic Distribution and Dynamic Capacity Work Together](https://dev.to/cloudsynthesizer/aws-load-balancing-and-auto-scaling-how-traffic-distribution-and-dynamic-capacity-work-together-3pb)",
+  "sources": [
+    {
+      "title": "AWS Load Balancing and Auto Scaling: How Traffic Distribution and Dynamic Capacity Work Together",
+      "url": "https://dev.to/cloudsynthesizer/aws-load-balancing-and-auto-scaling-how-traffic-distribution-and-dynamic-capacity-work-together-3pb"
+    }
+  ],
+  "popularity": 5,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/balancing-traffic-and-capacity-with-aws-load-balancers-and-auto-scalin.jpg",
+  "thumbnailCredit": {
+    "name": "Growtika",
+    "url": "https://unsplash.com/@growtika?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/3d-render-of-cloud-computing-concept-Am6pBe2FpJw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
