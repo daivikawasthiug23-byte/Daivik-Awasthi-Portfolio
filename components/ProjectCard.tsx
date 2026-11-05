@@ -6,7 +6,7 @@ export function ProjectCard({ title, kind, blurb, stack, repo, live, image }: {
 }) {
   const href = live ?? repo;
   return (
-    <article className="nb-card flex h-full flex-col overflow-hidden">
+    <article className="nb-card nb-lift flex h-full flex-col overflow-hidden">
       {image && (
         <div className="relative border-b-[2.5px] border-ink">
           <a href={href} target="_blank" rel="noreferrer" aria-label={`${title}, ${live ? "live site" : "source code"}`} className="relative block aspect-[16/10] overflow-hidden bg-[#111]">
@@ -16,7 +16,7 @@ export function ProjectCard({ title, kind, blurb, stack, repo, live, image }: {
               width={1280}
               height={800}
               sizes="(min-width: 1024px) 560px, 100vw"
-              className="size-full object-cover object-top"
+              className="size-full object-cover object-top transition-transform duration-500 ease-out hover:scale-105 motion-reduce:transition-none"
             />
           </a>
         </div>

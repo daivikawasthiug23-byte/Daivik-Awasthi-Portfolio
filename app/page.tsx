@@ -29,13 +29,13 @@ export default function Home() {
       {/* Hero */}
       <section id="top" className="mx-auto grid max-w-[1320px] items-center gap-10 px-4 pb-16 pt-12 md:px-7 lg:grid-cols-[1.35fr_1fr] lg:gap-14 lg:pb-24 lg:pt-20">
         <div>
-          <h1 className="text-balance text-[2.25rem] leading-[1.06] tracking-tight sm:text-[3.4rem] lg:text-[3.6rem]">
+          <h1 data-hero className="text-balance text-[2.25rem] leading-[1.06] tracking-tight sm:text-[3.4rem] lg:text-[3.6rem]">
             Hi, I&apos;m {profile.name}.
             <br />
             {profile.intro[0]}
           </h1>
-          <p className="mt-5 max-w-[56ch] text-lg text-muted sm:text-[1.15rem]">{profile.intro[1]}</p>
-          <div className="mt-7 flex flex-wrap gap-3.5">
+          <p data-hero className="mt-5 max-w-[56ch] text-lg text-muted sm:text-[1.15rem]">{profile.intro[1]}</p>
+          <div data-hero className="mt-7 flex flex-wrap gap-3.5">
             <a href={profile.links.resume} target="_blank" rel="noreferrer" className="nb-btn nb-btn-accent">
               <FileText size={18} /> View Resume
             </a>
@@ -45,7 +45,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative w-full max-w-[420px] justify-self-center">
+        <div data-hero-photo className="relative w-full max-w-[420px] justify-self-center">
           <div className="nb-card overflow-hidden bg-accent !shadow-[10px_10px_0_var(--shadow)]">
             <Image
               src="/daivik-new.jpg"
@@ -62,12 +62,12 @@ export default function Home() {
 
       {/* Stats */}
       <div className="mx-auto max-w-[1320px] px-4 pb-16 md:px-7 md:pb-20">
-        <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <dl data-stagger className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {stats.map((s) => (
             <div key={s.label} className="nb-card flex flex-col px-4 py-4 text-center">
               <dt className="order-2 text-sm text-muted">{s.label}</dt>
               <dd className="text-3xl font-extrabold tracking-tight text-ink">
-                {s.value}
+                <span data-count>{s.value}</span>
                 {s.unit && <span className="ml-1 text-base font-semibold text-muted">{s.unit}</span>}
               </dd>
             </div>
@@ -78,7 +78,7 @@ export default function Home() {
       {/* Experience: write-up on the left, timeline card on the right */}
       <section id="experience" aria-labelledby="experience-title" className="scroll-mt-20 border-t-[2.5px] border-ink bg-alt py-16 md:py-20">
         <div className="mx-auto grid max-w-[1320px] items-start gap-10 px-4 md:px-7 lg:grid-cols-[1.4fr_1fr] lg:gap-16">
-          <div>
+          <div data-reveal>
             <h2 id="experience-title" className="text-[2rem] md:text-[2.75rem]">Experience</h2>
             <div className="mt-8 grid max-w-[44ch] gap-5 text-[1.15rem] leading-[1.7]">
               {experience[0].about.map((p, i) => (
@@ -92,7 +92,7 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <div className="nb-card p-6">
+          <div data-reveal className="nb-card p-6">
             <h3 className="text-lg">Timeline</h3>
             <ol className="mt-5 border-l-[2.5px] border-ink pl-6">
               {timeline.map((t) => (
@@ -121,7 +121,7 @@ export default function Home() {
         </Swipe>
 
         <h3 className="mt-14 text-[1.35rem]">In the works</h3>
-        <ul className="mt-4 grid gap-5 md:grid-cols-2">
+        <ul data-stagger className="mt-4 grid gap-5 md:grid-cols-2">
           {inTheWorks.map((w) => (
             <li key={w.name}>
               <a href={w.url} target="_blank" rel="noreferrer" className="block h-full rounded-[10px] border-[2.5px] border-dashed border-ink bg-card p-5">
@@ -139,11 +139,11 @@ export default function Home() {
 
       {/* Achievements */}
       <Section id="achievements" title="Achievements" band>
-        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ul data-stagger className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {achievements.map((a, i) => (
             <li
               key={a.label}
-              className={`nb-card flex flex-col gap-2 p-6 ${i === 0 ? "!bg-accent text-[#111]" : ""}`}
+              className={`nb-card nb-lift flex flex-col gap-2 p-6 ${i === 0 ? "!bg-accent text-[#111]" : ""}`}
             >
               <p className={`font-extrabold leading-none tracking-tight ${a.stat.length > 8 ? "text-[1.9rem] sm:pt-2.5" : "text-[2.6rem]"}`}>{a.stat}</p>
               <p className="mt-1 text-[1.05rem] font-bold leading-snug">{a.label}</p>
@@ -155,7 +155,7 @@ export default function Home() {
 
       {/* Skills */}
       <Section id="skills" title="Skills" subtitle="What I use to build and ship things.">
-        <dl className="nb-card px-6 py-2">
+        <dl data-reveal className="nb-card px-6 py-2">
           {skills.map((g) => (
             <div key={g.group} className="grid gap-2 border-t-2 border-line py-4 first:border-t-0 md:grid-cols-[140px_1fr] md:items-center md:gap-5">
               <dt className="font-extrabold text-ink">{g.group}</dt>
@@ -172,7 +172,7 @@ export default function Home() {
       {/* Closing call to action */}
       <section id="contact" aria-labelledby="contact-title" className="scroll-mt-20 border-t-[2.5px] border-ink bg-alt py-16 md:py-20">
         <div className="mx-auto max-w-[1320px] px-4 md:px-7">
-          <div className="rounded-[10px] border-[2.5px] border-ink bg-accent px-6 py-10 text-[#111] shadow-[10px_10px_0_var(--ink)] sm:p-14">
+          <div data-reveal className="rounded-[10px] border-[2.5px] border-ink bg-accent px-6 py-10 text-[#111] shadow-[10px_10px_0_var(--ink)] sm:p-14">
             <h2 id="contact-title" className="max-w-[20ch] text-[1.9rem] leading-[1.08] !text-[#111] sm:text-5xl">Hiring a new engineer? Let&apos;s talk.</h2>
             <p className="mt-3.5 max-w-[52ch] text-[1.1rem]">I&apos;m looking for my first full-time role. Send me an email or take a look at my resume.</p>
             <div className="mt-7 flex flex-wrap items-center gap-3.5">

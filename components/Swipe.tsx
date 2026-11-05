@@ -26,6 +26,7 @@ export function Swipe({ label, children }: { label: string; children: React.Reac
       <ul
         ref={track}
         onScroll={onScroll}
+        data-stagger
         aria-label={label}
         tabIndex={0}
         className="no-scrollbar relative max-sm:-mx-4 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:scroll-px-4 max-sm:gap-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4 max-sm:pb-3 sm:grid sm:gap-7 md:grid-cols-2"

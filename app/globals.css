@@ -55,6 +55,12 @@ body {
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
+/* Pre-hide animated elements (the "js" class is set before first paint) so they don't flash before GSAP runs. */
+@media (prefers-reduced-motion: no-preference) {
+  .js :is([data-hero], [data-hero-photo], [data-reveal]) { opacity: 0; visibility: hidden; }
+  .js [data-stagger] > * { opacity: 0; visibility: hidden; }
+}
+
 @layer base {
   h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; color: var(--ink); text-wrap: balance; }
 }
@@ -72,6 +78,8 @@ p { text-wrap: pretty; }
     font-weight: 700; line-height: 1.2; white-space: nowrap;
     transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
   }
+  .nb-lift { transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
+  .nb-lift:hover { transform: translate(-3px, -3px); box-shadow: 9px 9px 0 var(--shadow); }
   .nb-btn:hover, .nb-btn[aria-expanded="true"] { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--shadow); }
   .nb-btn-sm { min-height: 44px; padding: 0 0.875rem; font-size: 0.95rem; }
   .nb-btn-accent { background: var(--accent); color: var(--on-accent); }
@@ -91,7 +99,7 @@ p { text-wrap: pretty; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nb-btn { transition: none; }
+  .nb-btn, .nb-lift { transition: none; }
 }
 
 /* ---------- console ---------- */

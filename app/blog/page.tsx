@@ -20,7 +20,7 @@ export default function Blog() {
   const posts = getPosts().map(summarize);
   return (
     <main id="main" className="mx-auto max-w-[1320px] px-4 py-10 md:px-7 md:py-14">
-      <section className="nb-card mb-10 p-6 md:p-8">
+      <section data-hero className="nb-card mb-10 p-6 md:p-8">
         <div className="flex items-start gap-3">
           <span className="mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border-2 border-ink bg-accent text-[#141414]">
             <Bot size={16} />

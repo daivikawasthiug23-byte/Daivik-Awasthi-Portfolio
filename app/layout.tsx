@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/Providers";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
+import { PageAnimations } from "@/components/PageAnimations";
 import { Terminal } from "@/components/Terminal";
 import { profile } from "@/content/profile";
 import { skills } from "@/content/skills";
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`${jakarta.variable} ${jetbrains.variable}`}>
       <body className="font-sans antialiased">
+        <script dangerouslySetInnerHTML={{ __html: 'document.documentElement.classList.add("js")' }} />
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:border-2 focus:border-ink focus:bg-accent focus:px-4 focus:py-2 focus:font-bold focus:text-[#111]"
@@ -56,6 +58,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(person).replace(/</g, "\\u003c") }} />
         <Providers>
+          <PageAnimations />
           <Nav />
           {children}
           <Footer />

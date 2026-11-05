@@ -5,7 +5,7 @@ export function Section({ id, title, subtitle, band, children, className = "" }:
     <section id={id} className={`scroll-mt-20 border-t-[2.5px] border-ink py-16 md:py-20 ${band ? "bg-alt" : ""} ${className}`}>
       <div className="mx-auto max-w-[1320px] px-4 md:px-7">
         {title && (
-          <header className="max-w-2xl">
+          <header data-reveal className="max-w-2xl">
             <h2 className="text-[2rem] md:text-[2.75rem]">{title}</h2>
             {subtitle && <p className="mt-3 text-muted">{subtitle}</p>}
           </header>
