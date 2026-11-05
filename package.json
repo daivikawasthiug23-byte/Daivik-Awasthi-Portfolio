@@ -11,7 +11,8 @@
     "gemini:check": "tsx scripts/gemini-check.ts",
     "blog:generate": "tsx scripts/blog/run.ts",
     "blog:thumbnails": "tsx scripts/blog/thumbnails.ts",
-    "blog:check": "tsx scripts/blog/check.ts"
+    "blog:check": "tsx scripts/blog/check.ts",
+    "blog:prune": "tsx scripts/blog/prune.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

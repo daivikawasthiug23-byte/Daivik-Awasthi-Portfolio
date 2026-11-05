@@ -45,6 +45,12 @@ jobs:
           UPSLASH_ACCESS_KEY: ${{ secrets.UPSLASH_ACCESS_KEY }} # same key, in case the secret was saved with this spelling
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Drops posts older than BLOG_TTL_DAYS (default 90) so the site does not grow without bound.
+      - name: Prune expired posts
+        run: npm run blog:prune
+        env:
+          BLOG_TTL_DAYS: ${{ vars.BLOG_TTL_DAYS }}
+
       - name: Re-check every post against the rules
         run: npm run blog:check
 
