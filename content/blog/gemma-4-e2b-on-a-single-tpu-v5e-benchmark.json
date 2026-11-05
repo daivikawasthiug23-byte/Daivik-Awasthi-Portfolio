@@ -1,0 +1,33 @@
+{
+  "slug": "gemma-4-e2b-on-a-single-tpu-v5e-benchmark",
+  "title": "Gemma 4 E2B on a single TPU v5e benchmark",
+  "date": "2026-11-05",
+  "excerpt": "Gemma 4 E2B runs in bf16, 4-bit, Python JAX and Rust on one v5e chip and is compared to vLLM.",
+  "tags": [
+    "AI",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "Gemma-4 E2B fits comfortably on a single v5e-1 TPU. The bf16 checkpoint occupies 9.257 GB of the 16.909 GB HBM, leaving enough room for the KV cache without any quantization. That baseline lets the author ask three practical questions: does 4-bit quantization help when the model already fits in bf16, how much of the JAX engine’s latency comes from Python, and how a hand-written JAX engine compares to vLLM on the same hardware.\n\n## bf16 versus 4-bit on the JAX engine\n\nThe pure-JAX engine runs in Python and can operate in dense fp16 (which keeps the bf16 weights unchanged) or in two 4-bit modes supplied by Google and by xbill9. Loading the dense model takes 5.4 seconds and reports “Loaded 9.26 GB of parameters on TPU_0”. The 4-bit builds load faster, 39.2 seconds for the xbill9 checkpoint and 51.9 seconds for Google’s, because the weight footprint drops to 6.559 GB.  \n\nWhen the benchmark runs eight prompts, each generating 128 greedy tokens, the dense bf16 path delivers the highest token-per-second rate. The author notes that “bf16 beats 4-bit in the JAX engine”, meaning the extra compression does not translate into faster decoding.\n\nThe cache remains in bf16 even for the quantized runs, so the decoder still has to de-quantize each token, adding overhead that outweighs the memory savings. In short, if the model already fits in bf16, the expected speed gain from 4-bit quantization does not materialize on this chip.\n\n## Python JAX versus Rust compiled engine\n\nThe same JAX graph can be compiled by libtpu from Rust source. The Rust engine is built by hand-writing the graph, feeding it to the libtpu compiler that JAX already uses, and then loading the compiled artifact. In the benchmark the Rust version matches the pure-Python JAX engine token-per-second performance.  \n\nBecause the Rust engine eliminates the Python interpreter from the hot path, the author expected a noticeable latency drop. The measured result shows “the Rust engine matches the JAX engine’s tokens”, indicating that the Python overhead in this particular decoder is minimal.\n\nThe JAX engine already jits the prefill and each decode step, so the runtime spends almost all of its time on the compiled XLA kernels rather than on Python dispatch. For this workload, rewriting the graph in Rust does not buy a speed advantage, but it does provide a viable alternative for teams that prefer a compiled binary without changing performance characteristics.\n\n## vLLM performance on the same chip\n\nvLLM serves the same Gemma-4 E2B checkpoint as a reference implementation. The author runs it on the identical v5e-1 VM and measures throughput with the same client that drives the JAX engines. While the overall token-per-second rate of vLLM is comparable to the JAX engines, its first-token latency is the fastest of the three.  \n\nThe benchmark therefore shows that “over HTTP it decodes at vLLM’s rate with the fastest first token”. The advantage comes from vLLM’s aggressive caching and pre-allocation strategies, which reduce the time needed to materialize the first output token after a request arrives.\n\nAfter that initial token, the steady-state throughput aligns with the JAX-based decoders. For applications where the first token latency dominates the user experience, such as interactive chat, vLLM may still be the preferred choice even when the raw token-per-second numbers are similar.\n\n## The takeaway\n\nWhen a Gemma-4 E2B model fits in bf16 on a v5e-1 TPU, 4-bit quantization does not improve decoding speed, so stick with bf16 unless memory is the only constraint. Switching the JAX engine from Python to a hand-written Rust graph yields no token-rate gain, confirming that the Python overhead is already negligible after JIT compilation. Finally, vLLM matches the JAX engines in sustained throughput while delivering the lowest first-token latency, making it the better option for latency-sensitive chat workloads.",
+  "sources": [
+    {
+      "title": "Gemma 4 E2B in JAX on One TPU v5e: bf16 or 4-Bit, Python or Rust, and How It Stands Against vLLM",
+      "url": "https://dev.to/gde/gemma-4-e2b-in-jax-on-one-tpu-v5e-bf16-or-4-bit-python-or-rust-and-how-it-stands-against-vllm-j72"
+    }
+  ],
+  "popularity": 7,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/gemma-4-e2b-on-a-single-tpu-v5e-benchmark.jpg",
+  "thumbnailCredit": {
+    "name": "İsmail Enes Ayhan",
+    "url": "https://unsplash.com/@ismailenesayhan?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/server-room-aisle-with-metal-equipment-racks-lVZjvw-u9V8?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
