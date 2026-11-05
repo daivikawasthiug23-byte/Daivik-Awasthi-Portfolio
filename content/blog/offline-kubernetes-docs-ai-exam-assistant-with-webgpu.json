@@ -1,0 +1,33 @@
+{
+  "slug": "offline-kubernetes-docs-ai-exam-assistant-with-webgpu",
+  "title": "Offline Kubernetes docs AI exam assistant with WebGPU",
+  "date": "2026-11-05",
+  "excerpt": "A browser-only RAG system lets students query official Kubernetes docs without internet or paid models.",
+  "tags": [
+    "AI",
+    "Web",
+    "Systems"
+  ],
+  "body": "A Kubernetes exam last semester hit a snag when a few students used ChatGPT Plus while the rest relied on free tiers. The speed gap turned the test into a race rather than an assessment of real-world DevOps skills. The author of the “Leveling the Playing Field” article built a 100 % offline RAG assistant that runs in the browser, so every student gets the same documentation-grounded help without any network calls.\n\nThe post walks through four building blocks that make the offline assistant practical: prebuilt vectors that avoid any startup indexing, a hybrid search that blends semantic similarity with exact keyword matching, on-device generation using Gemma 4 and LiteRT-LM, and a final checklist for classroom rollout. By the end, readers will know how to ship a zero-cost, air-gapped AI helper that fits on a typical student laptop.\n\n## Zero startup indexing with prebuilt vectors\n\nEmbedding an entire Kubernetes reference set in the browser would normally take minutes, if not hours, and would fill IndexedDB with gigabytes of data. The solution is to move the heavy lifting to the maintainer’s machine.\n\nThe author pre-computed a normalized float-32 matrix of 16,483 chunks, each 768 dimensions, and stored it alongside a BM25 inverted index. Because the matrix is already in the right shape, the browser can load it directly from the Origin Private File System (OPFS) and start searching instantly.\n\n```js\n// prebuilt 16,483-chunk float32 matrix (768 dimensions) loaded from OPFS\nconst vectors = new Float32Array(await fetch('vectors.bin').then(r=>r.arrayBuffer()));\n```\n\nNo scraping, no on-device embedding, and no long-running workers. The only runtime cost is the few megabytes needed to read the binary file into memory, which completes in under a second on an integrated GPU. This “zero startup indexing” eliminates the equity gap caused by varying network speeds or CPU power.\n\n## Hybrid search using reciprocal rank fusion\n\nPure semantic search can miss the precise terminology that Kubernetes users rely on, while keyword-only search ignores the meaning of a query. The article combines both by running EmbeddingGemma to get a semantic similarity score for each chunk, and BM25 to get an exact-match score for Kubernetes keywords. The two ranked lists are merged with Reciprocal Rank Fusion (RRF), which gives each document a combined rank based on its position in both lists.\n\nThe fusion step also groups results by heading level and enforces page diversity, so the top five answers cover different sections of the documentation rather than repeating the same page. This hybrid approach mirrors how engineers search: they type a phrase, glance at the most relevant docs, and verify terminology against the official spec.\n\n## On-device generation with Gemma 4 and LiteRT-LM\n\nOnce the relevant passages are retrieved, the assistant needs to generate a concise answer and, when appropriate, a YAML manifest. The author uses Gemma 4 E2B, a 2.01 GB model quantized to 4-bit, loaded through LiteRT-LM and executed on WebGPU. Because the model runs entirely on the client’s GPU, there is no latency from a remote API and no risk of data leakage.\n\nThe generation pipeline streams tokens directly to the UI, allowing students to see the answer appear in real time. To keep memory usage in check on integrated GPUs, the system creates a fresh native conversation for each turn and caps the prompt at 6,000 UTF-8 bytes. The entire model and its cache occupy roughly 2 GB of OPFS space, well within the ~8 GiB free disk budget mentioned in the source.\n\n## The takeaway\n\nZero-cost, offline AI assistance is achievable by prebuilding vector indexes, fusing semantic and keyword search with RRF, and running a quantized Gemma 4 model on WebGPU. Deploy the precomputed vectors and BM25 index, let the browser load them from OPFS, and use LiteRT-LM for on-device generation. The result is a fair, privacy-preserving exam helper that works on everyday student laptops without any network dependency.",
+  "sources": [
+    {
+      "title": "Leveling the Playing Field: Building a 100% Offline Kubernetes Docs RAG Exam Assistant with Web AI, Gemma 4, and WebGPU",
+      "url": "https://dev.to/gde/leveling-the-playing-field-building-a-100-offline-kubernetes-docs-rag-exam-assistant-with-web-ai-53bi"
+    }
+  ],
+  "popularity": 8,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 9,
+    "specificity": 9,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/offline-kubernetes-docs-ai-exam-assistant-with-webgpu.jpg",
+  "thumbnailCredit": {
+    "name": "Ilya Pavlov",
+    "url": "https://unsplash.com/@ilyapavlov?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/monitor-showing-java-programming-OqtafYT5kTw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
