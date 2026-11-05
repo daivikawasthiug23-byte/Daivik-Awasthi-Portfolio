@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { embed } from "../../lib/ask/embed";
+import { embed } from "../../lib/embed";
 import { hasGeminiKeys } from "../../lib/gemini-pool";
 import { hasGroqKeys } from "../../lib/groq-pool";
 import { critique, ruleViolations, wordCount, type Review } from "./gate";

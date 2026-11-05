@@ -1,39 +1,31 @@
-export function Card({ id, title, aside, children, className = "" }: {
-  id?: string; title?: string; aside?: React.ReactNode; children: React.ReactNode; className?: string;
+export function Section({ id, title, subtitle, band, children, className = "" }: {
+  id?: string; title?: string; subtitle?: string; band?: boolean; children: React.ReactNode; className?: string;
 }) {
   return (
-    <section id={id} className={`scroll-mt-6 rounded-lg border border-border bg-surface/70 p-5 backdrop-blur-md md:p-6 ${className}`}>
-      {title && (
-        <div className="mb-4 flex items-baseline justify-between gap-4">
-          <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-fg">{title}</h2>
-          {aside && <DateTag>{aside}</DateTag>}
-        </div>
-      )}
-      {children}
+    <section id={id} className={`scroll-mt-20 border-t-[2.5px] border-ink py-16 md:py-20 ${band ? "bg-alt" : ""} ${className}`}>
+      <div className="mx-auto max-w-[1320px] px-4 md:px-7">
+        {title && (
+          <header className="max-w-2xl">
+            <h2 className="text-[2rem] md:text-[2.75rem]">{title}</h2>
+            {subtitle && <p className="mt-3 text-muted">{subtitle}</p>}
+          </header>
+        )}
+        <div className={title ? "mt-9" : ""}>{children}</div>
+      </div>
     </section>
   );
 }
 
 export function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted">{children}</span>
-  );
+  return <span className="nb-tag !px-2.5 !py-1 !text-[0.85rem]">{children}</span>;
 }
 
 export function Parts({ parts }: { parts: (string | { b: string })[] }) {
   return (
     <>
       {parts.map((p, i) =>
-        typeof p === "string" ? p : <strong key={i} className="font-medium text-fg">{p.b}</strong>,
+        typeof p === "string" ? p : <strong key={i} className="font-semibold text-ink">{p.b}</strong>,
       )}
     </>
-  );
-}
-
-export function DateTag({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex h-7 shrink-0 items-center rounded-full border border-border bg-hover px-3 text-xs text-muted">
-      {children}
-    </span>
   );
 }

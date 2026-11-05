@@ -6,25 +6,17 @@ export const experience = [
     role: "Software Engineering Intern",
     location: "Bengaluru, India",
     dates: "May 2026 - Jul 2026",
-    points: [
-      ["I built a self-service developer platform with React, TypeScript and Go on AWS ECS Fargate. It replaced a CLI-only workflow for ", { b: "9,000+" }, " developers. A common task went from ", { b: "about a minute" }, " to ", { b: "about 2 seconds" }, " (estimated)."],
-      ["I added background job processing with SQS FIFO and EventBridge. It brought batch operations and status tracking, and automated a step that used to be manual."],
-      ["I designed a DynamoDB history table with TTL for an admin dashboard. I also added role-based access (RBAC) to the OIDC-authenticated APIs. It passed a security review."],
-      ["I wrote unit and integration tests with ", { b: "87%" }, " backend coverage. I deployed to QA through GitLab CI/CD with security scans."],
-      ["I found and fixed a QA service failure caused by an upstream tool update, and extended its schema."],
+    summary: "I built a self-service web platform as an alternative to the CLI-only workflow developers rely on for installing packages on their systems.",
+    about: [
+      ["At Goldman Sachs I built a self-service web platform, an alternative to the CLI-only workflow developers use to install packages."],
+      ["I worked across the stack: ", { b: "React" }, " and ", { b: "TypeScript" }, " on the front, ", { b: "Go" }, " on ", { b: "AWS" }, " with ", { b: "DynamoDB" }, " behind it, and role-based access over ", { b: "OIDC" }, "."],
+      ["It passed a security review and shipped to QA through ", { b: "GitLab CI/CD" }, ". I also fixed a service my features depended on and optimised a slow manual process."],
     ] as Point[],
-    tags: ["React", "TypeScript", "Go", "AWS ECS Fargate", "SQS", "EventBridge", "DynamoDB", "OIDC", "GitLab CI"],
   },
 ];
 
-export const education = {
-  degree: "Bachelor of Technology",
-  branch: "Information Technology",
-  school: "Netaji Subhas University of Technology, New Delhi",
-  dates: "2023 - 2027",
-  coursework: [
-    "Data Structures", "Database Management System", "Operating Systems", "Computer Networks",
-    "OOPS", "Artificial Intelligence", "Generative AI",
-  ],
-  gpa: "GPA: 8.85/10",
-};
+// Shown as the timeline next to the experience write-up.
+export const timeline = [
+  { when: "Summer 2026", title: "Goldman Sachs", note: "Software Engineering Intern" },
+  { when: "Next", title: "Your team", note: "Let's talk", href: "#contact" },
+];

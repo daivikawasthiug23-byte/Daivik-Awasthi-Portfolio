@@ -1,65 +1,126 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { Download, Mail } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Menu, X } from "lucide-react";
 import { profile } from "@/content/profile";
 import { ThemeToggle } from "./ThemeToggle";
 
 const links = [
-  { label: "Overview", href: "/#about" },
-  { label: "LinkedIn", href: profile.links.linkedin, external: true },
-  { label: "GitHub", href: profile.links.github, external: true },
-  { label: "LeetCode", href: profile.links.leetcode, external: true },
-  { label: "Ask", href: "/#ask" },
-  { label: "Blogs", href: "/blog", route: true },
+  { label: "Experience", href: "/#experience", id: "experience" },
+  { label: "Projects", href: "/#projects", id: "projects" },
+  { label: "Skills", href: "/#skills", id: "skills" },
+  { label: "Blog", href: "/blog", id: "blog" },
+  { label: "Contact", href: "/#contact", id: "contact" },
 ];
 
-const focus = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg";
-const linkClass = `text-sm text-muted hover:text-fg ${focus}`;
-
-const button = `inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-border px-2.5 text-xs text-fg hover:bg-hover sm:px-3 ${focus}`;
+const item =
+  "flex min-h-11 items-center rounded-md border-[2.5px] border-transparent px-3 font-bold text-ink transition-[background-color,box-shadow] duration-150 hover:bg-alt";
+const current = "!border-ink !bg-accent !text-[#111] shadow-[3px_3px_0_var(--shadow)]";
 
 export function Nav() {
+  const pathname = usePathname();
+  const [section, setSection] = useState("");
+  const [menu, setMenu] = useState(false);
+
+  // Highlights the section in the middle of the screen, and "Contact" once the page bottoms out.
+  useEffect(() => {
+    if (pathname !== "/") return;
+    const ids = links.filter((l) => l.href.startsWith("/#")).map((l) => l.id);
+    const onScroll = () => {
+      const middle = innerHeight / 2;
+      let now = "";
+      if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) now = "contact";
+      else {
+        for (const id of ids) {
+          const r = document.getElementById(id)?.getBoundingClientRect();
+          if (r && r.top <= middle && r.bottom > middle) now = id;
+        }
+      }
+      setSection(now);
+    };
+    onScroll();
+    addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("resize", onScroll);
+    return () => {
+      removeEventListener("scroll", onScroll);
+      removeEventListener("resize", onScroll);
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenu(false);
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, [menu]);
+
+  const active = pathname.startsWith("/blog") ? "blog" : section;
+  const [first, ...rest] = profile.name.split(" ");
+
   return (
-    <header className="relative z-50 h-16 border-b border-border bg-bg">
-      <nav className="mx-auto grid h-full max-w-6xl grid-cols-[auto_1fr_auto] items-center px-4 md:px-6">
-        <a href="#top" className={`flex items-center gap-2.5 justify-self-start ${focus}`}>
+    <header className="sticky top-0 z-40 border-b-[2.5px] border-ink bg-bg">
+      <div className="mx-auto flex min-h-[68px] max-w-[1320px] items-center justify-between gap-3 px-4 md:px-7">
+        <Link href="/" className="inline-flex min-h-11 items-center gap-2.5 text-lg font-extrabold tracking-tight text-ink">
           <Image
-            src="/daivik.jpg"
+            src="/daivik-new.jpg"
             alt=""
-            width={32}
-            height={32}
-            className="size-8 rounded-full border border-border object-cover object-top"
+            width={36}
+            height={36}
+            className="size-9 rounded-full border-2 border-ink object-cover object-top"
           />
-          <span className="text-sm font-semibold tracking-tight">{profile.name}</span>
-        </a>
-        <div className="hidden items-center gap-6 justify-self-start pl-10 md:flex">
-          {links.map((l) =>
-            l.route ? (
-              <Link key={l.label} href={l.href} className={linkClass}>{l.label}</Link>
-            ) : (
-              <a
-                key={l.label}
-                href={l.href}
-                {...(l.external ? { target: "_blank", rel: "noreferrer" } : {})}
-                className={linkClass}
-              >
-                {l.label}
-              </a>
-            ),
-          )}
-        </div>
-        <div className="col-start-3 flex items-center gap-2 justify-self-end">
-          <a href={`mailto:${profile.email}`} aria-label="Contact" className={button}>
-            <Mail size={14} />
-            <span className="hidden sm:inline">Contact</span>
-          </a>
-          <a href={profile.links.resume} download aria-label="Resume" className={button}>
-            <Download size={14} />
-            <span className="hidden sm:inline">Resume</span>
-          </a>
+          <span>
+            {first}
+            <span className="text-accent"> {rest.join(" ")}</span>
+          </span>
+        </Link>
+
+        <div className="flex items-center gap-2">
+          <nav aria-label="Primary" className="hidden lg:block">
+            <ul className="flex items-center gap-1">
+              {links.map((l) => (
+                <li key={l.id}>
+                  <Link href={l.href} aria-current={active === l.id ? "true" : undefined} className={`${item} ${active === l.id ? current : ""}`}>
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
           <ThemeToggle />
+          <button
+            type="button"
+            onClick={() => setMenu((m) => !m)}
+            aria-expanded={menu}
+            aria-controls="mobile-menu"
+            className="flex size-11 cursor-pointer items-center justify-center rounded-lg border-[2.5px] border-ink bg-card text-ink shadow-[3px_3px_0_var(--shadow)] lg:hidden"
+          >
+            {menu ? <X size={20} /> : <Menu size={20} />}
+            <span className="sr-only">Menu</span>
+          </button>
         </div>
-      </nav>
+      </div>
+
+      {menu && (
+        <nav id="mobile-menu" aria-label="Primary" className="border-t-[2.5px] border-ink bg-bg lg:hidden">
+          <ul className="mx-auto grid max-w-[1320px] gap-1 px-4 py-3 md:px-7">
+            {links.map((l) => (
+              <li key={l.id}>
+                <Link
+                  href={l.href}
+                  onClick={() => setMenu(false)}
+                  aria-current={active === l.id ? "true" : undefined}
+                  className={`${item} ${active === l.id ? current : ""}`}
+                >
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
     </header>
   );
 }

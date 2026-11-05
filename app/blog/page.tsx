@@ -19,22 +19,22 @@ const steps = [
 export default function Blog() {
   const posts = getPosts().map(summarize);
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 md:px-6">
-      <section className="mb-8 rounded-lg border border-border bg-surface p-5 md:p-6">
+    <main id="main" className="mx-auto max-w-[1320px] px-4 py-10 md:px-7 md:py-14">
+      <section className="nb-card mb-10 p-6 md:p-8">
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted">
+          <span className="mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border-2 border-ink bg-accent text-[#141414]">
             <Bot size={16} />
           </span>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-fg">Blog</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+            <h1 className="text-4xl md:text-5xl">Blog</h1>
+            <p className="mt-3 max-w-3xl text-base text-muted">
               These posts are written by an AI, not by me. A pipeline picks a trending software engineering or AI topic
               each day, writes a short post from real sources, and checks it against a strict style guide before it goes
               live. Every post links to its sources, so you can verify what it says. It is also a working example of how I
               build guarded AI systems.
             </p>
-            <details className="mt-3 text-sm text-muted">
-              <summary className="cursor-pointer text-fg hover:underline hover:underline-offset-4">How it works</summary>
+            <details className="mt-4 text-base text-muted">
+              <summary className="cursor-pointer font-semibold text-ink hover:underline hover:underline-offset-4">How it works</summary>
               <ol className="mt-3 list-decimal space-y-1.5 pl-5 leading-6">
                 {steps.map((s) => (
                   <li key={s}>{s}</li>
@@ -49,7 +49,7 @@ export default function Blog() {
       </section>
 
       {posts.length === 0 ? (
-        <p className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">The first post is on its way.</p>
+        <p className="nb-card p-6 text-base text-muted">The first post is on its way.</p>
       ) : (
         <BlogBrowser posts={posts} />
       )}

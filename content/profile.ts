@@ -2,7 +2,8 @@ export const profile = {
   name: "Daivik Awasthi",
   role: "Software Engineer | Problem Solver",
   intro: [
-    "Final-year IT student at NSUT who cares about getting the details right. Currently looking for SDE roles where I can own hard problems and ship things people rely on.",
+    "Still learning and always building.",
+    "Final-year B.Tech student at NSUT, Delhi, looking to start my career as a software engineer in a team where I can grow.",
   ],
   location: "Delhi, India",
   school: "NSUT",

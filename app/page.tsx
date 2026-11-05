@@ -1,200 +1,204 @@
 import Image from "next/image";
-import { Building2, FileText, Mail, MapPin, Phone } from "lucide-react";
-import { GithubIcon, LeetcodeIcon, LinkedinIcon } from "@/components/BrandIcons";
-import { Card, DateTag, Parts, Tag } from "@/components/Card";
-import { AskBot } from "@/components/AskBot";
-import { hasGeminiKeys } from "@/lib/gemini-pool";
-import { hasGroqKeys } from "@/lib/groq-pool";
+import { FileText, Mail } from "lucide-react";
+import { EmailActions } from "@/components/EmailActions";
+import { Section, Tag } from "@/components/Card";
 import { ProjectCard } from "@/components/ProjectCard";
+import { Swipe } from "@/components/Swipe";
 import { profile, stats } from "@/content/profile";
-import { education, experience } from "@/content/experience";
-import { moreOnGithub, projects } from "@/content/projects";
+import { experience, timeline } from "@/content/experience";
+import { inTheWorks, moreOnGithub, projects } from "@/content/projects";
 import { skills } from "@/content/skills";
-import { getRepo } from "@/lib/github";
-import { achievements, leadership } from "@/content/achievements";
+import { achievements } from "@/content/achievements";
 
-const rowLink = "hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg";
+const slugify = (s: string) => s.toLowerCase().replace(/\s+/g, "-");
+// Deployed web apps come first, then the projects that have no live version.
+const allProjects = [
+  ...projects.map((p) => ({
+    slug: p.slug, title: p.title, kind: p.kind, blurb: p.blurb, stack: p.stack,
+    repo: p.repo, live: p.live, image: p.image,
+  })),
+  ...moreOnGithub.map((m) => ({
+    slug: slugify(m.name), title: m.name, kind: m.kind, blurb: m.blurb,
+    stack: m.stack, repo: m.url, live: m.live, image: m.image,
+  })),
+].sort((a, b) => Number(!!b.live) - Number(!!a.live));
 
-const contactRows = [
-  { icon: Building2, text: profile.school },
-  { icon: MapPin, text: profile.location },
-  { icon: Mail, text: profile.email, href: `mailto:${profile.email}` },
-  { icon: LinkedinIcon, text: "linkedin.com/in/daivik-awasthi", href: profile.links.linkedin },
-  { icon: GithubIcon, text: "github.com/daivikawasthi01", href: profile.links.github },
-  { icon: LeetcodeIcon, text: "leetcode.com/u/Daivik_Awasthi", href: profile.links.leetcode },
-  { icon: Phone, text: profile.phone, href: `tel:${profile.phone.replace(/\s/g, "")}` },
-];
-
-export default async function Home() {
-  const repos = await Promise.all(projects.map((p) => getRepo(p.repo)));
-  const otherRepos = await Promise.all(moreOnGithub.map((m) => getRepo(m.url)));
+export default function Home() {
   return (
-    <main id="top" className="relative mx-auto max-w-6xl px-4 py-8 md:px-6">
-      <div aria-hidden className="bg-aurora" />
-      <div className="grid items-start gap-6 lg:grid-cols-12">
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:col-span-4">
-          <Card id="about">
-            <div className="flex flex-col items-start">
-              <Image
-                src="/daivik.jpg"
-                alt="Daivik Awasthi"
-                width={240}
-                height={240}
-                priority
-                className="size-60 shrink-0 self-center rounded-full border border-border object-cover object-top"
-              />
-              <h1 className="mt-4 self-center text-2xl font-semibold tracking-tight text-fg">{profile.name}</h1>
-              <p className="mt-1 self-center text-sm font-medium text-fg">{profile.role}</p>
-            </div>
-            <div className="mt-4 space-y-2 text-sm leading-6 text-muted">
-              {profile.intro.map((t) => <p key={t}>{t}</p>)}
-            </div>
-            <a
-              href={profile.links.resume}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-5 inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-fg px-4 text-sm font-medium text-bg hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg"
-            >
-              <FileText size={16} /> View Resume
+    <main id="main">
+      {/* Hero */}
+      <section id="top" className="mx-auto grid max-w-[1320px] items-center gap-10 px-4 pb-16 pt-12 md:px-7 lg:grid-cols-[1.35fr_1fr] lg:gap-14 lg:pb-24 lg:pt-20">
+        <div>
+          <h1 className="text-balance text-[2.25rem] leading-[1.06] tracking-tight sm:text-[3.4rem] lg:text-[3.6rem]">
+            Hi, I&apos;m {profile.name}.
+            <br />
+            {profile.intro[0]}
+          </h1>
+          <p className="mt-5 max-w-[56ch] text-lg text-muted sm:text-[1.15rem]">{profile.intro[1]}</p>
+          <div className="mt-7 flex flex-wrap gap-3.5">
+            <a href={profile.links.resume} target="_blank" rel="noreferrer" className="nb-btn nb-btn-accent">
+              <FileText size={18} /> View Resume
             </a>
-            <ul className="mt-5 space-y-2 border-t border-border pt-4 text-sm text-muted">
-              {contactRows.map(({ icon: Icon, text, href }) => (
-                <li key={text} className="flex items-center gap-2.5">
-                  <Icon size={14} className="shrink-0 text-subtle" />
-                  {href ? (
-                    <a
-                      href={href}
-                      {...(href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
-                      className={`break-all ${rowLink}`}
-                    >
-                      {text}
-                    </a>
-                  ) : (
-                    <span>{text}</span>
+            <a href={`mailto:${profile.email}`} className="nb-btn">
+              <Mail size={18} /> Contact
+            </a>
+          </div>
+        </div>
+
+        <div className="relative w-full max-w-[420px] justify-self-center">
+          <div className="nb-card overflow-hidden bg-accent !shadow-[10px_10px_0_var(--shadow)]">
+            <Image
+              src="/daivik-new.jpg"
+              alt="Photo of Daivik Awasthi"
+              width={852}
+              height={1080}
+              priority
+              sizes="(min-width: 1024px) 420px, 90vw"
+              className="aspect-square w-full object-cover object-top"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <div className="mx-auto max-w-[1320px] px-4 pb-16 md:px-7 md:pb-20">
+        <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="nb-card flex flex-col px-4 py-4 text-center">
+              <dt className="order-2 text-sm text-muted">{s.label}</dt>
+              <dd className="text-3xl font-extrabold tracking-tight text-ink">
+                {s.value}
+                {s.unit && <span className="ml-1 text-base font-semibold text-muted">{s.unit}</span>}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      {/* Experience: write-up on the left, timeline card on the right */}
+      <section id="experience" aria-labelledby="experience-title" className="scroll-mt-20 border-t-[2.5px] border-ink bg-alt py-16 md:py-20">
+        <div className="mx-auto grid max-w-[1320px] items-start gap-10 px-4 md:px-7 lg:grid-cols-[1.4fr_1fr] lg:gap-16">
+          <div>
+            <h2 id="experience-title" className="text-[2rem] md:text-[2.75rem]">Experience</h2>
+            <div className="mt-8 grid max-w-[44ch] gap-5 text-[1.15rem] leading-[1.7]">
+              {experience[0].about.map((p, i) => (
+                <p key={i}>
+                  {p.map((x, j) =>
+                    typeof x === "string" ? x : (
+                      <strong key={j} className="font-bold text-ink">{x.b}</strong>
+                    ),
                   )}
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card id="achievements" title="Achievements">
-            <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-muted marker:text-subtle">
-              {achievements.map((a, i) => <li key={i}><Parts parts={a} /></li>)}
-            </ul>
-          </Card>
-
-          <Card id="skills" title="Skills">
-            <div className="space-y-4">
-              {skills.map((g) => (
-                <div key={g.group}>
-                  <p className="mb-2 font-mono text-xs uppercase tracking-wider text-subtle">{g.group}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {g.items.map((i) => <Tag key={i}>{i}</Tag>)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card id="leadership" title="Leadership">
-            <ul className="space-y-3 text-sm leading-6 text-muted">
-              {leadership.map((l) => (
-                <li key={l.org}>
-                  <span className="font-medium text-fg">{l.role}</span>, {l.org}
-                  <span className="block text-subtle">({l.dates})</span>
-                  {l.text}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </aside>
-
-        <div className="flex flex-col gap-4 lg:col-span-8">
-          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {stats.map((s) => (
-              <div key={s.label} className="rounded-lg border border-border bg-surface/70 px-3 backdrop-blur-md py-5 text-center">
-                <p className="flex items-baseline justify-center gap-1.5">
-                  <span className="text-2xl font-semibold tracking-tight text-fg xl:text-3xl">{s.value}</span>
-                  {s.unit && <span className="text-sm text-subtle">{s.unit}</span>}
                 </p>
-                <p className="mt-2 text-xs font-medium text-subtle">{s.label}</p>
-              </div>
-            ))}
-          </section>
-
-          <Card title="Education" aside={education.dates}>
-            <div className="flex items-baseline justify-between gap-4">
-              <h3 className="text-base font-medium text-fg">
-                {education.degree} <span className="font-normal text-muted">({education.branch})</span>
-              </h3>
-              <span className="shrink-0 text-xs text-muted">{education.gpa}</span>
-            </div>
-            <p className="mt-1 text-sm text-muted">{education.school}</p>
-            <p className="mb-2 mt-5 font-mono text-xs uppercase tracking-wider text-subtle">Relevant Coursework</p>
-            <div className="flex flex-wrap gap-1.5">
-              {education.coursework.map((c) => <Tag key={c}>{c}</Tag>)}
-            </div>
-          </Card>
-
-          <Card id="experience" title="Experience">
-            {experience.map((e) => (
-              <div key={e.company}>
-                <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-baseline">
-                  <h3 className="text-base font-medium text-fg">{e.company}</h3>
-                  <DateTag>{e.dates}</DateTag>
-                </div>
-                <p className="mt-1 text-sm text-muted">{e.role}, {e.location}</p>
-                <ul className="mt-4 list-disc space-y-3 pl-5 text-base leading-7 text-muted marker:text-subtle">
-                  {e.points.map((p, i) => <li key={i}><Parts parts={p} /></li>)}
-                </ul>
-                <div className="mt-5 flex flex-wrap gap-1.5">
-                  {e.tags.map((t) => <Tag key={t}>{t}</Tag>)}
-                </div>
-              </div>
-            ))}
-          </Card>
-
-          <div id="projects" className="scroll-mt-6">
-            <div className="mb-3 flex items-baseline justify-between">
-              <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-fg">Projects</h2>
-              <a href={profile.links.github} target="_blank" rel="noreferrer" className="text-sm text-muted hover:text-fg">
-                See all on GitHub
-              </a>
-            </div>
-            <p className="mb-3 text-sm font-medium text-fg">Featured projects</p>
-            <div className="flex flex-col gap-4">
-              {projects.map((p, i) => (
-                <ProjectCard
-                  key={p.slug}
-                  title={p.title}
-                  repo={p.repo}
-                  live={p.live}
-                  stack={p.stack}
-                  points={p.points}
-                  gh={repos[i]}
-                />
-              ))}
-            </div>
-
-            <p className="mb-3 mt-8 border-t border-border pt-6 text-sm font-medium text-fg">Other projects</p>
-            <div className="flex flex-col gap-4">
-              {moreOnGithub.map((m, i) => (
-                <ProjectCard
-                  key={m.name}
-                  title={m.name}
-                  repo={m.url}
-                  live={m.live}
-                  stack={m.stack}
-                  description={m.note}
-                  gh={otherRepos[i]}
-                />
               ))}
             </div>
           </div>
-
-          {(hasGroqKeys() || hasGeminiKeys()) && <AskBot />}
+          <div className="nb-card p-6">
+            <h3 className="text-lg">Timeline</h3>
+            <ol className="mt-5 border-l-[2.5px] border-ink pl-6">
+              {timeline.map((t) => (
+                <li key={t.title} className="relative pb-6 last:pb-0">
+                  <span aria-hidden className="absolute -left-[33.5px] top-1.5 size-3 rounded-sm border-[2.5px] border-ink bg-accent" />
+                  <p className="mono text-[0.85rem] text-muted">{t.when}</p>
+                  <p className="mt-0.5 text-[1.15rem] font-extrabold text-ink">
+                    {t.href ? (
+                      <a href={t.href} className="underline decoration-accent decoration-[3px] underline-offset-4 hover:decoration-4">{t.title}</a>
+                    ) : (
+                      t.title
+                    )}
+                  </p>
+                  <p className="text-muted">{t.note}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* Projects */}
+      <Section id="projects" title="Projects" subtitle="Things I've built. The web apps are live, and the code is public.">
+        <Swipe label="Projects">
+          {allProjects.map(({ slug, ...p }) => <ProjectCard key={slug} {...p} />)}
+        </Swipe>
+
+        <h3 className="mt-14 text-[1.35rem]">In the works</h3>
+        <ul className="mt-4 grid gap-5 md:grid-cols-2">
+          {inTheWorks.map((w) => (
+            <li key={w.name}>
+              <a href={w.url} target="_blank" rel="noreferrer" className="block h-full rounded-[10px] border-[2.5px] border-dashed border-ink bg-card p-5">
+                <p className="mono text-[0.82rem] text-muted">{w.kind}</p>
+                <h4 className="text-xl">{w.name}</h4>
+                <p className="mt-1.5 text-[0.97rem] text-muted">{w.blurb}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-9">
+          <a href={profile.links.github} target="_blank" rel="noreferrer" className="nb-btn">See all on GitHub ↗</a>
+        </p>
+      </Section>
+
+      {/* Achievements */}
+      <Section id="achievements" title="Achievements" band>
+        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {achievements.map((a, i) => (
+            <li
+              key={a.label}
+              className={`nb-card flex flex-col gap-2 p-6 ${i === 0 ? "!bg-accent text-[#111]" : ""}`}
+            >
+              <p className={`font-extrabold leading-none tracking-tight ${a.stat.length > 8 ? "text-[1.9rem] sm:pt-2.5" : "text-[2.6rem]"}`}>{a.stat}</p>
+              <p className="mt-1 text-[1.05rem] font-bold leading-snug">{a.label}</p>
+              <p className={`text-[0.95rem] ${i === 0 ? "text-[#111]/80" : "text-muted"}`}>{a.note}</p>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      {/* Skills */}
+      <Section id="skills" title="Skills" subtitle="What I use to build and ship things.">
+        <dl className="nb-card px-6 py-2">
+          {skills.map((g) => (
+            <div key={g.group} className="grid gap-2 border-t-2 border-line py-4 first:border-t-0 md:grid-cols-[140px_1fr] md:items-center md:gap-5">
+              <dt className="font-extrabold text-ink">{g.group}</dt>
+              <dd>
+                <ul className="flex flex-wrap gap-2">
+                  {g.items.map((i) => <li key={i}><Tag>{i}</Tag></li>)}
+                </ul>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </Section>
+
+      {/* Closing call to action */}
+      <section id="contact" aria-labelledby="contact-title" className="scroll-mt-20 border-t-[2.5px] border-ink bg-alt py-16 md:py-20">
+        <div className="mx-auto max-w-[1320px] px-4 md:px-7">
+          <div className="rounded-[10px] border-[2.5px] border-ink bg-accent px-6 py-10 text-[#111] shadow-[10px_10px_0_var(--ink)] sm:p-14">
+            <h2 id="contact-title" className="max-w-[20ch] text-[1.9rem] leading-[1.08] !text-[#111] sm:text-5xl">Hiring a new engineer? Let&apos;s talk.</h2>
+            <p className="mt-3.5 max-w-[52ch] text-[1.1rem]">I&apos;m looking for my first full-time role. Send me an email or take a look at my resume.</p>
+            <div className="mt-7 flex flex-wrap items-center gap-3.5">
+              <a
+                href={`mailto:${profile.email}`}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border-[2.5px] border-[#111] bg-[#111] px-5 font-bold text-white shadow-[4px_4px_0_#fff] transition-[transform,box-shadow] duration-150 hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[1px_1px_0_#fff]"
+              >
+                <Mail size={18} /> Email me
+              </a>
+              <a
+                href={profile.links.resume}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border-[2.5px] border-[#111] bg-white px-5 font-bold text-[#111] shadow-[4px_4px_0_#111] transition-[transform,box-shadow] duration-150 hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[1px_1px_0_#111]"
+              >
+                <FileText size={18} /> Resume
+              </a>
+            </div>
+            <div className="mt-9 border-t-[2.5px] border-[#111] pt-7">
+              <p className="font-bold">Or email me at</p>
+              <p className="mono mt-1 break-all text-lg font-bold sm:text-2xl">{profile.email}</p>
+              <div className="mt-5"><EmailActions email={profile.email} /></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

@@ -6,16 +6,15 @@ import { useMemo, useState } from "react";
 import { Flame, Search } from "lucide-react";
 import { formatDate, type PostSummary } from "@/lib/blog-shared";
 
-const focus = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg";
 
 function PostCard({ post, rank }: { post: PostSummary; rank?: number }) {
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className={`group flex flex-col overflow-hidden rounded-lg border border-border bg-surface transition-colors hover:border-fg/20 ${focus}`}
+      className={`nb-card group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5`}
     >
       {post.thumbnail && (
-        <div className="relative aspect-[1200/630] w-full border-b border-border bg-hover">
+        <div className="relative aspect-[1200/630] w-full border-b-[3px] border-ink bg-hover">
           <Image
             src={post.thumbnail}
             alt=""
@@ -26,7 +25,7 @@ function PostCard({ post, rank }: { post: PostSummary; rank?: number }) {
         </div>
       )}
       <div className="flex flex-1 flex-col p-5">
-      <div className="flex items-center justify-between gap-3 text-xs text-subtle">
+      <div className="mono flex items-center justify-between gap-3 text-xs text-subtle">
         <span>
           {formatDate(post.date)} · {post.readingMinutes} min read
         </span>
@@ -35,13 +34,13 @@ function PostCard({ post, rank }: { post: PostSummary; rank?: number }) {
           {post.popularity}
         </span>
       </div>
-      <h3 className="mt-3 text-base font-medium leading-snug text-fg group-hover:underline group-hover:underline-offset-4">
+      <h3 className="mt-3 text-xl leading-tight group-hover:underline group-hover:underline-offset-4">
         {post.title}
       </h3>
-      <p className="mt-2 flex-1 text-sm leading-6 text-muted">{post.excerpt}</p>
+      <p className="mt-2 flex-1 text-[15px] leading-6 text-muted">{post.excerpt}</p>
       <div className="mt-4 flex flex-wrap gap-1.5">
         {post.tags.map((t) => (
-          <span key={t} className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted">
+          <span key={t} className="nb-tag !text-xs">
             {t}
           </span>
         ))}
@@ -73,7 +72,7 @@ export function BlogBrowser({ posts }: { posts: PostSummary[] }) {
     <div>
       {!filtering && posts.length > 3 && (
         <section aria-labelledby="top-ranked" className="mb-10">
-          <h2 id="top-ranked" className="mb-3 font-heading text-base font-semibold uppercase tracking-wider text-fg">
+          <h2 id="top-ranked" className="mb-4 text-3xl">
             Top ranked
           </h2>
           <div className="grid gap-4 md:grid-cols-3">
@@ -85,7 +84,7 @@ export function BlogBrowser({ posts }: { posts: PostSummary[] }) {
       )}
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-fg">
+        <h2 className="text-3xl">
           {filtering ? `${results.length} result${results.length === 1 ? "" : "s"}` : "All posts"}
         </h2>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -96,17 +95,17 @@ export function BlogBrowser({ posts }: { posts: PostSummary[] }) {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search posts"
               aria-label="Search posts"
-              className="h-9 w-full rounded-full border border-border bg-bg pl-9 pr-4 text-sm text-fg outline-none placeholder:text-subtle focus:border-fg/40 sm:w-60"
+              className="h-10 w-full rounded-lg border-2 border-ink bg-card pl-9 pr-4 text-sm text-ink placeholder:text-subtle sm:w-60"
             />
           </label>
-          <div role="group" aria-label="Sort posts" className="inline-flex rounded-full border border-border p-0.5 text-sm">
+          <div role="group" aria-label="Sort posts" className="inline-flex rounded-lg border-2 border-ink bg-card p-0.5 text-sm">
             {(["latest", "top"] as const).map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setSort(s)}
                 aria-pressed={sort === s}
-                className={`rounded-full px-3 py-1 ${sort === s ? "bg-fg text-bg" : "text-muted hover:text-fg"} ${focus}`}
+                className={`rounded-md px-3 py-1 font-semibold ${sort === s ? "bg-accent text-[#141414]" : "text-muted hover:text-ink"}`}
               >
                 {s === "latest" ? "Latest" : "Top ranked"}
               </button>
@@ -122,9 +121,7 @@ export function BlogBrowser({ posts }: { posts: PostSummary[] }) {
             type="button"
             onClick={() => setTag(t)}
             aria-pressed={tag === t}
-            className={`rounded-full border px-3 py-1 text-sm ${
-              tag === t ? "border-fg bg-fg text-bg" : "border-border text-muted hover:bg-hover hover:text-fg"
-            } ${focus}`}
+            className={`nb-tag !px-3 !py-1 !text-sm ${tag === t ? "!bg-accent !text-[#141414]" : "hover:bg-hover"}`}
           >
             {t}
           </button>
@@ -132,7 +129,7 @@ export function BlogBrowser({ posts }: { posts: PostSummary[] }) {
       </div>
 
       {results.length === 0 ? (
-        <p className="rounded-lg border border-border bg-surface p-6 text-sm text-muted">
+        <p className="nb-card p-6 text-base text-muted">
           No posts match that search. Try a different word or clear the filter.
         </p>
       ) : (
