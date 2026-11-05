@@ -1,0 +1,32 @@
+{
+  "slug": "zig-now-requires-parentheses-for-ambiguous-operator-precedence",
+  "title": "Zig now requires parentheses for ambiguous operator precedence",
+  "date": "2026-11-05",
+  "excerpt": "Zig 0.18 adds compile-time errors for expressions where operator precedence is unclear, prompting explicit parentheses.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A devlog entry from October 24 2026 marks the long-awaited landing of proposal #114, the “require parentheses for ambiguous operator precedence” change that has been open since February 2016. After ten years of discussion, the master branch now refuses to compile an expression when the compiler cannot decide which operator should be evaluated first. The first error you will see looks like this:\n\n```zig\nconst a = x orelse y == z; // error: ambiguous operator precedence, add parentheses\n```\n\nThe compiler points out the clash between `orelse` and `==` and forces you to make the grouping explicit. The devlog explains why this matters, which operators remain safe, and how to upgrade an existing codebase without hunting down every ambiguous spot by hand.\n\n## Why the compiler now flags ambiguous precedence\n\nIn Zig 0.17.x the same line would have been interpreted as `(x orelse y) == z`. The new rules drop that implicit ordering for any pair of operators that does not have a documented precedence relationship. The devlog supplies a contrived example that would have required a cascade of parentheses under the new system:\n\n```\n((((a & ((b + c * d) >> e)) | f) orelse g()) catch (h + i)) == j or (k and l);\n```\n\nSuch dense code is rare, but the change eliminates the need to memorize a large, unintuitive precedence table. Instead, the compiler forces explicit grouping whenever the order could be misread. The author notes that only 353 lines out of the million-plus lines in the Zig codebase needed changes, indicating that most real-world projects will encounter this error infrequently.\n\n## Which operators still have a defined hierarchy\n\nThe language reference now lists a compact table for the operators that retain an unambiguous hierarchy. The table includes the usual arithmetic and comparison symbols:\n\n* `* / % *|`  \n* `+ - +% -% +| -|`  \n* `== != < > <= >=`  \n* `and or`\n\nThere is nothing surprising in this set; developers only need to remember the standard arithmetic precedence and the logical `and`/`or` ordering. A subtle case highlighted in the devlog is the `%` operator: it has clear precedence with `+` and `-`, but when mixed with `*` or `/` (or with another `%`) the combination becomes ambiguous, so parentheses are required.\n\nBecause the compiler now flags every ambiguous combination, you do not need to memorize these edge cases, just add parentheses when the error appears.\n\n## Fixing existing code automatically\n\nThe devlog outlines two ways to address the new errors. The manual route lets you decide the intended grouping for each case, which can surface hidden bugs. The automated route runs the formatter with the `--upgrade` flag:\n\n```bash\nzig fmt --upgrade path/to/files\n```\n\nThe `--upgrade` option was added specifically to insert the required parentheses while preserving the original evaluation order. It will be removed after one release cycle, so running it sooner rather than later is advisable. After the formatter finishes, it is still wise to inspect the diff.\n\nSome patterns receive parentheses that change the visual grouping even if the semantics stay the same. For example, `a orelse b() catch c` may become `a orelse (b() catch c)`. The devlog notes that redundant parentheses can appear, such as `a orelse ((b …))`; they are harmless but worth a quick glance.\n\n## Incremental migration tips\n\n1. Compile the project after pulling the latest master. The first pass will surface every ambiguous-operator error.  \n2. Run `zig fmt --upgrade` on the whole repository. The formatter adds parentheses automatically, keeping the old evaluation order.  \n3. Review the diff for any surprising groupings. In particular, look at `orelse` combined with `catch` or `or` combined with `and`, because those are common places where developers previously relied on implicit rules.  \n4. Run the test suite. If a test fails, the failure may indicate that the original implicit precedence was not what the author intended, providing an opportunity to fix a latent bug.  \n5. Once the codebase compiles cleanly, remove the `--upgrade` flag from any CI scripts, as it will be deprecated after the next release.\n\n## The takeaway\n\nZig now treats ambiguous operator combinations as compilation errors, forcing explicit parentheses. Only a small, well-defined set of operators keeps implicit precedence, so most code remains unchanged. Run `zig fmt --upgrade` to apply the needed parentheses automatically, then review the changes to confirm the intended order. This makes code easier to read and eliminates the need to remember a sprawling precedence chart.  \n\n*Source: [Zig devlog, Partial Operator Precedence](https://ziglang.org/devlog/2026/#2026-10-24).*",
+  "sources": [
+    {
+      "title": "Partial Operator Precedence",
+      "url": "https://ziglang.org/devlog/2026/#2026-10-24"
+    }
+  ],
+  "popularity": 6,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 9,
+    "specificity": 9,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/zig-now-requires-parentheses-for-ambiguous-operator-precedence.jpg",
+  "thumbnailCredit": {
+    "name": "Fotis Fotopoulos",
+    "url": "https://unsplash.com/@ffstop?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/smartphone-and-computer-monitors-with-code-6sAl6aQ4OWI?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
