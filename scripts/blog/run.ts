@@ -154,6 +154,14 @@ async function gate(brief: string, sources: Source[], first: string) {
 async function main() {
   if (!hasGroqKeys() && !hasGeminiKeys()) throw new Error("No API key is set (GROQ_API_KEY, GROQ_API_KEY_2, ... or GEMINI_API_KEY, ...)");
   const posts = loadPosts();
+
+  // One post per day (UTC), however often the external cron fires. Pass --force to write another.
+  const today = new Date().toISOString().slice(0, 10);
+  if (!DRY && !process.argv.includes("--force") && posts.some((p) => p.date === today)) {
+    console.log(`A post for ${today} already exists, skipping`);
+    return;
+  }
+
   const { ordered, fresh } = await shortlist(posts);
 
   let chosen: Candidate | undefined;
