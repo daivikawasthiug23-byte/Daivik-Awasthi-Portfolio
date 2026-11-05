@@ -1,0 +1,37 @@
+{
+  "slug": "ai-forces-the-payback-of-four-decades-of-php-debt",
+  "title": "AI forces the payback of four decades of PHP debt",
+  "date": "2026-11-05",
+  "excerpt": "The PHP2Shell flaw shows how AI can turn old memory bugs into remote code execution risks.",
+  "tags": [
+    "AI",
+    "Security",
+    "Web"
+  ],
+  "body": "A researcher at Calif used AI tools to turn an out-of-memory error reported in 2024 into arbitrary code execution on servers running WordPress or Drupal. The same flaw, dubbed PHP2Shell, suddenly became a remote-code-execution vector that could read data and install malware on high-profile sites such as NASA, Wikipedia and the White House.\n\nThe incident shows how a bug that was once dismissed as a harmless crash can become a weapon when AI can automate the deep reasoning needed to chain it to a full exploit.\n\n## Legacy PHP bugs become attack vectors\n\nPHP was created in 1994 as “Personal Home Page” and has powered a huge share of the web for four decades. Most of the code that still runs today was written long before modern secure-by-design practices existed. The PHP2Shell bug originated from an out-of-memory error that caused the interpreter to abort when a data buffer overflowed its allocated memory. Historically, such crashes were logged, patched in later releases, or simply ignored because they did not appear to expose data.\n\nSuman Jana, an associate professor at Columbia University, notes that “there will be a bunch of bug reports that are waiting to be fixed, which are just crashes. Most people don’t take them very seriously.” The source does not say the bug was ever exploited before the AI-assisted audit. It remained in the codebase, unpatched, because a crash is not usually considered a security issue. That complacency is now the weak link that AI helped to expose.\n\n## AI-assisted audit uncovers the exploit\n\nIn early 2024, the cybersecurity firm Calif partnered with OpenAI to audit PHP. Within two weeks, a researcher used large-language models and code-analysis tools to automatically reason about the out-of-memory condition. The AI suggested a sequence of memory-allocation calls that forced the interpreter to allocate a buffer just large enough to overflow into adjacent memory structures. By crafting a payload that triggered the overflow, the researcher achieved arbitrary code execution on the host server.\n\nThe exploit works on any site that runs a vulnerable version of PHP, which includes the majority of WordPress and Drupal installations. Because those platforms power a large fraction of the public internet, the potential impact was massive. The discovery prompted the PHP Foundation to issue a patch before any malicious actor could weaponize the technique, but the window demonstrated how AI can compress months of manual reverse-engineering into days.\n\n## Why the technical debt finally matters\n\nMatt Suiche, AI security research lead at Tolmo, says the episode is a “wake-up call for AI in cybersecurity.” The underlying problem is not the AI itself but the 40 years of legacy code that were never built with modern threat models in mind. Each unpatched crash report is a piece of technical debt that accumulates risk. When AI can rapidly explore the state space of a program, it turns those dormant bugs into active attack surfaces.\n\nThe tradeoff is clear: legacy systems save time and money in the short term, but they hide reasoning-intensive bugs that become cheap to exploit once AI can do the heavy lifting.\n\nThe source does not provide a precise count of how many similar bugs exist, but it emphasizes that “all the legacy software that was written by humans over the last 40 years is being exposed.” In other words, the same AI that promises to automate routine work is also automating the discovery of deep, obscure vulnerabilities.\n\n## The takeaway\n\nAI can turn a long-standing crash into a remote-code-execution exploit in days. The PHP2Shell case proves that unaddressed crash bugs are now high-value targets. The practical step is to treat every reported crash as a potential security issue and prioritize patches, especially in widely deployed languages like PHP. Paying down that 40-year-old technical debt is the only way to stay ahead of AI-driven attackers.",
+  "sources": [
+    {
+      "title": "AI is forcing us to pay off 40 years of technical debt",
+      "url": "https://spectrum.ieee.org/ai-in-cybersecurity-php2shell-vulnerability"
+    },
+    {
+      "title": "We're Building AI to Replace Ourselves. What's the Plan?",
+      "url": "https://dev.to/sylwia-lask/were-building-ai-to-replace-ourselves-whats-the-plan-4oll"
+    }
+  ],
+  "popularity": 100,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/ai-forces-the-payback-of-four-decades-of-php-debt.jpg",
+  "thumbnailCredit": {
+    "name": "Ilya Pavlov",
+    "url": "https://unsplash.com/@ilyapavlov?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/monitor-showing-java-programming-OqtafYT5kTw?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
