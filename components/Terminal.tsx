@@ -1,33 +1,48 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { Joystick } from "./Joystick";
 import { profile } from "@/content/profile";
 import { experience } from "@/content/experience";
-import { moreOnGithub, projects } from "@/content/projects";
-import { skills } from "@/content/skills";
 import { achievements } from "@/content/achievements";
+import { HOME, all, complete, dirOf, label, list, resolve, tree, walk } from "@/lib/terminal-fs";
 
+// My own commands start with /. Everything else works like the real Linux command.
+const OWN = ["/help", "/experience", "/projects", "/achievements", "/github", "/linkedin", "/leetcode", "/secret"];
+const LINUX = ["ls", "cd", "pwd", "cat", "tree", "echo", "whoami", "date", "uname", "history", "clear", "exit", "sudo", "rm", "mkdir", "touch", "mv", "cp"];
+const commands = [...OWN, ...LINUX];
+const withPath = ["ls", "cd", "cat", "tree"];
 
-// Same order as the page: deployed web apps first.
-const all = [
-  ...projects.map((p) => ({ name: p.title, url: p.live ?? p.repo ?? profile.links.github, shot: !!p.live })),
-  ...moreOnGithub.map((m) => ({ name: m.name, url: m.live ?? m.url, shot: !!m.live })),
-].sort((a, b) => Number(b.shot) - Number(a.shot));
-
-const commands = [
-  "about", "work", "projects", "open", "skills", "achievements",
-  "contact", "github", "linkedin", "leetcode", "resume", "blog", "theme", "clear", "help",
+const HELP = [
+  "My commands start with /",
+  "• /experience     where I work",
+  "• /projects       list what I've built",
+  "• /projects <n>   open project n, like /projects 1",
+  "• /achievements   things I'm proud of",
+  "• /github         open my GitHub",
+  "• /linkedin       open my LinkedIn",
+  "• /leetcode       open my LeetCode",
+  "• /secret         a surprise (sound on!)",
+  "• /help           show this list",
+  "",
+  "The rest work like Linux (my portfolio is a folder)",
+  "• ls [-a] [dir]   list files",
+  "• cd <dir>        go into a folder, cd .. to go back",
+  "• cat <file>      read a file",
+  "• tree            show every folder and file",
+  "• pwd             where am I",
+  "• echo <text>     print text",
+  "• whoami  date  uname  history",
+  "• clear           clear the screen",
+  "• exit            close the terminal",
+  "",
+  "Tip: Tab completes, ↑ and ↓ bring back old commands.",
 ];
 
-const group = (name: string) => skills.find((g) => g.group.startsWith(name))?.items.join(", ") ?? "";
 const PROMPT = "❯";
-const NEXT = (c: string) => `Next: ${c}`;
 
-type Line = { kind: "in" | "out"; text: string };
+type Line = { kind: "in" | "out" | "art"; text: string; dir?: string };
 
 function linkify(text: string): ReactNode {
   return text.split(/(https?:\/\/\S+|\b[\w.-]+@[\w.-]+\.\w+)/g).map((part, i) => {
@@ -38,23 +53,34 @@ function linkify(text: string): ReactNode {
 }
 
 export function Terminal() {
-  const router = useRouter();
-  const { resolvedTheme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<Line[]>([
-    { kind: "out", text: "Hi, I’m Daivik. Type projects to see what I’ve built." },
+    { kind: "out", text: "For the list of commands, type /help" },
   ]);
+  const [cwd, setCwd] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [past, setPast] = useState<string[]>([]);
   const [cursor, setCursor] = useState<number | null>(null);
   const screenRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
+  const animRef = useRef<number | null>(null);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopAnim = useCallback(() => {
+    if (animRef.current !== null) window.clearInterval(animRef.current);
+    animRef.current = null;
+    audioRef.current?.pause();
+    audioRef.current = null;
+  }, []);
+  useEffect(() => stopAnim, [stopAnim]);
 
   const close = useCallback(() => {
+    stopAnim();
     setOpen(false);
     launcherRef.current?.focus();
-  }, []);
+  }, [stopAnim]);
 
   useEffect(() => {
     if (!open) return;
@@ -81,54 +107,122 @@ export function Terminal() {
     if (!line) return;
     const [cmd, ...rest] = line.split(/\s+/);
     const arg = rest.join(" ").toLowerCase();
-    const c = cmd.toLowerCase();
+    const flags = rest.filter((x) => x.startsWith("-")).join("").replace(/-/g, "");
+    const args = rest.filter((x) => !x.startsWith("-"));
+    const typedName = cmd.toLowerCase();
+    // Linux commands work with or without a leading slash; "help" works too.
+    const bare = typedName.replace(/^\//, "");
+    const c = LINUX.includes(bare) ? bare : bare === "help" ? "/help" : typedName;
 
+    stopAnim();
     if (c === "clear") return setLines([]);
-    setLines((l) => [...l, { kind: "in", text: line }]);
+    setLines((l) => [...l, { kind: "in", text: line, dir: label(cwd) }]);
 
     switch (c) {
-      case "help":
-        return say(`Try ${commands.filter((x) => x !== "help").join(", ")}. Start with projects.`);
-      case "about":
-        return say(`${profile.intro.join(" ")} ${NEXT("work")}`);
-      case "work": {
+      case "/help":
+        return say(...HELP);
+      case "/experience": {
         const e = experience[0];
-        return say(`${e.company}, ${e.role} (${e.dates}). ${e.summary} ${NEXT("projects")}`);
+        return say(`${e.company}, ${e.role} (${e.dates}). ${e.summary}`);
       }
-      case "projects":
-        return say("Here is what I’ve built:", ...all.map((p, i) => `${i + 1}  ${p.name}`), "Type open 1 to visit one.");
-      case "open": {
-        if (!arg) return say("Open which one? Try open 1, or a project name.");
+      case "/projects":
+      case "/project": {
+        if (!arg) return say("Projects (type /projects 1 to open one):", ...all.map((p, i) => `${i + 1}  ${p.name}`));
         const i = Number(arg);
         const p = Number.isInteger(i) ? all[i - 1] : all.find((x) => x.name.toLowerCase().includes(arg));
-        return p ? visit(p.name, p.url) : say(`No project called ${arg}. Type projects to see the list.`);
+        return p ? visit(p.name, p.url) : say(`No project ${arg}. Type /projects to see the list.`);
       }
-      case "skills":
-        return say(`I mostly write ${group("Languages")}, building on ${group("Frontend")} and ${group("Backend")}, with ${group("Databases")} for data. ${NEXT("achievements")}`);
-      case "achievements":
-        return say(`${achievements.slice(0, 3).map((a) => `${a.stat} ${a.label.toLowerCase()}`).join(", ")}. ${NEXT("contact")}`);
-      case "contact":
-        return say(`Email me at ${profile.email} or call ${profile.phone}. ${NEXT("resume")}`);
-      case "github":
+      case "/achievements":
+        return say(...achievements.map((a) => `• ${a.stat} ${a.label.toLowerCase()}`));
+      case "/github":
         return visit("GitHub", profile.links.github);
-      case "linkedin":
+      case "/linkedin":
         return visit("LinkedIn", profile.links.linkedin);
-      case "leetcode":
+      case "/leetcode":
         return visit("LeetCode", profile.links.leetcode);
-      case "resume":
-        return visit("resume", `${window.location.origin}${profile.links.resume}`);
-      case "blog":
-        say("Taking you to the blog.");
-        close();
-        return router.push("/blog");
-      case "theme": {
-        const next = arg === "dark" || arg === "light" ? arg : resolvedTheme === "dark" ? "light" : "dark";
-        if (arg && arg !== "dark" && arg !== "light") return say("Use theme dark or theme light.");
-        setTheme(next);
-        return say(`Switched to ${next} mode.`);
+      case "echo":
+        return say(rest.join(" ") || " ");
+      case "whoami":
+        return say("guest, my favourite visitor today.");
+      case "date":
+        return say(new Date().toString());
+      case "uname":
+        return say(arg === "-a" ? "Linux portfolio 6.1.0-daivik #1 SMP x86_64 GNU/Linux" : "Linux");
+      case "history":
+        return say(...[...past, line].map((h, i) => `${String(i + 1).padStart(3)}  ${h}`));
+      case "pwd":
+        return say(cwd.length ? `${HOME}/${cwd.join("/")}` : HOME);
+      case "ls": {
+        const showAll = flags.includes("a");
+        const target = resolve(cwd, args[0] ?? ".");
+        const w = target === "denied" ? null : walk(target);
+        if (target === "denied") return say(`ls: cannot open '${args[0]}': Permission denied`);
+        if (!w) return say(`ls: cannot access '${args[0]}': No such file or directory`);
+        if (!dirOf(w.node)) return say(args[0]);
+        const items = list(w.node, showAll);
+        return say(showAll ? [".", "..", ...items].join("  ") : items.join("  ") || " ");
+      }
+      case "cd": {
+        if (!args[0] || args[0] === "~") return setCwd([]);
+        const target = resolve(cwd, args[0]);
+        if (target === "denied") return say(`cd: ${args[0]}: Permission denied`);
+        const w = walk(target);
+        if (!w) return say(`cd: ${args[0]}: No such file or directory`);
+        if (!dirOf(w.node)) return say(`cd: ${args[0]}: Not a directory`);
+        return setCwd(w.names);
+      }
+      case "cat": {
+        if (!args[0]) return say("cat: missing file. Try /cat about.txt");
+        const target = resolve(cwd, args[0]);
+        if (target === "denied") return say(`cat: ${args[0]}: Permission denied`);
+        const w = walk(target);
+        if (!w) return say(`cat: ${args[0]}: No such file or directory`);
+        if (dirOf(w.node)) return say(`cat: ${args[0]}: Is a directory`);
+        return say(w.node);
+      }
+      case "tree": {
+        const target = resolve(cwd, args[0] ?? ".");
+        const w = target === "denied" ? null : walk(target);
+        if (!w || !dirOf(w.node)) return say(`tree: ${args[0] ?? "."}: not a directory`);
+        return say(args[0] ?? ".", ...tree(w.node));
+      }
+      case "rm":
+      case "mkdir":
+      case "touch":
+      case "mv":
+      case "cp":
+        return say(`${c}: Read-only file system. This portfolio is look, don't touch.`);
+      case "exit":
+        return close();
+      case "sudo":
+        return say("Nice try. guest is not in the sudoers file. This incident will be reported.");
+      case "/secret": {
+        say("Secret unlocked. Can you hear me?");
+        // Started right here, inside the Enter keypress, so the browser allows sound.
+        const sound = new Audio("/Rick-Roll-Sound-Effect.mp3");
+        audioRef.current = sound;
+        sound.play().catch(() => {});
+        import("@/content/secret-frames").then(({ frames }) => {
+          let n = 0;
+          setLines((l) => [...l, { kind: "art", text: frames[0] }]);
+          animRef.current = window.setInterval(() => {
+            n += 1;
+            // About 9 seconds: long enough for the whole sound clip.
+            if (n >= frames.length * 5 || sound.ended) {
+              stopAnim();
+              say("That's it. Thanks for poking around. 🕺");
+              return;
+            }
+            setLines((l) => {
+              const i = l.map((x) => x.kind).lastIndexOf("art");
+              return i < 0 ? l : l.map((x, j) => (j === i ? { ...x, text: frames[n % frames.length] } : x));
+            });
+          }, 75);
+        });
+        return;
       }
       default:
-        return say(`Not a command: ${cmd}. Try help.`);
+        return say(OWN.includes(`/${c}`) ? `${cmd}: command not found. Did you mean /${c}?` : `${cmd}: command not found. Type /help.`);
     }
   }
 
@@ -156,11 +250,21 @@ export function Terminal() {
       setInput(i >= past.length ? "" : past[i]);
     } else if (e.key === "Tab") {
       e.preventDefault();
-      const word = input.trim().toLowerCase();
-      if (!word || word.includes(" ")) return;
-      const hits = commands.filter((n) => n.startsWith(word));
-      if (hits.length === 1) setInput(hits[0] + (hits[0] === "open" ? " " : ""));
-      else if (hits.length > 1) say(hits.join("   "));
+      const typed = input.replace(/^\s+/, "");
+      if (!typed) return;
+      const [first, ...more] = typed.split(/\s+/);
+      if (more.length === 0) {
+        const word = first.toLowerCase();
+        const hits = commands.filter((n) => n.startsWith(word));
+        if (hits.length === 1) setInput(hits[0] + (withPath.includes(hits[0]) || hits[0] === "/projects" ? " " : ""));
+        else if (hits.length > 1) say(hits.join("   "));
+        return;
+      }
+      if (!withPath.includes(first.toLowerCase().replace(/^\//, ""))) return;
+      const last = more[more.length - 1];
+      const r = complete(cwd, last);
+      if (r.done !== undefined) setInput(`${[first, ...more.slice(0, -1)].join(" ")} ${r.done}`);
+      else if (r.hits && r.hits.length > 1) say(r.hits.join("   "));
     }
   }
 
@@ -210,13 +314,15 @@ export function Terminal() {
             >
               {lines.map((l, i) =>
                 l.kind === "in" ? (
-                  <div key={i}><span className="text-accent">{PROMPT}</span> {l.text}</div>
+                  <div key={i}><span className="text-accent">{l.dir ?? "~"} {PROMPT}</span> {l.text}</div>
+                ) : l.kind === "art" ? (
+                  <pre key={i} className="my-1 whitespace-pre text-[6px] leading-[6px] sm:text-[8px] sm:leading-[8px]">{l.text}</pre>
                 ) : (
                   <div key={i} className="whitespace-pre-wrap break-words opacity-90">{linkify(l.text)}</div>
                 ),
               )}
               <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex items-center gap-2 pb-1">
-                <span aria-hidden className="shrink-0 text-accent">{PROMPT}</span>
+                <span aria-hidden className="shrink-0 text-accent">{label(cwd)} {PROMPT}</span>
                 <input
                   ref={inputRef}
                   value={input}
@@ -240,12 +346,12 @@ export function Terminal() {
             style={{ background: "var(--c-panel)", boxShadow: "inset 0 4px 0 rgba(0,0,0,.28)" }}
           >
             <div className="min-w-0" style={{ height: "var(--u)" }}>
-              <Joystick onScroll={scrollBy} onLeft={() => run("clear")} onRight={() => run("help")} />
+              <Joystick onScroll={scrollBy} onLeft={() => run("clear")} onRight={() => run("/help")} />
             </div>
 
-            <div className="grid min-w-0 grid-cols-2 grid-rows-3 gap-1.5" style={{ height: "var(--u)" }}>
-              {["Github", "Resume", "Contact", "Theme", "Clear", "Help"].map((k) => (
-                <button key={k} type="button" className={key} onClick={() => run(k.toLowerCase())}>
+            <div className="grid min-w-0 grid-cols-2 grid-rows-2 gap-1.5" style={{ height: "var(--u)" }}>
+              {["GitHub", "LinkedIn", "LeetCode", "Clear"].map((k) => (
+                <button key={k} type="button" className={key} onClick={() => run(k === "Clear" ? "clear" : `/${k.toLowerCase()}`)}>
                   {k}
                 </button>
               ))}
@@ -253,18 +359,18 @@ export function Terminal() {
 
             <div className="relative mx-auto min-w-0" style={{ height: "var(--u)", width: "min(100%, var(--u))" }}>
               {[
-                ["Work", "50%", "17%"],
-                ["Skills", "17%", "50%"],
-                ["Projects", "83%", "50%"],
-                ["About", "50%", "83%"],
-              ].map(([k, x, y]) => (
+                ["Work", "/experience", "50%", "17%"],
+                ["Awards", "/achievements", "17%", "50%"],
+                ["Projects", "/projects", "83%", "50%"],
+                ["Help", "/help", "50%", "83%"],
+              ].map(([k, cmd, x, y]) => (
                 <button
                   key={k}
                   type="button"
                   className={face}
                   style={{ left: x, top: y, width: "36%" }}
                   aria-label={k}
-                  onClick={() => run(k.toLowerCase())}
+                  onClick={() => run(cmd)}
                 >
                   <span style={{ fontSize: "calc(var(--u) * 0.062)" }}>{k}</span>
                 </button>
