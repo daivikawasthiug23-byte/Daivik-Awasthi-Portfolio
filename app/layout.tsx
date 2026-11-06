@@ -49,6 +49,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`${jakarta.variable} ${jetbrains.variable}`}>
       <body className="font-sans antialiased">
+        {/* Injected by an inline script (like the "js" class below) so React never renders a <script> element. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'var s=document.createElement("script");s.src="/swarm-rebuild.js";s.dataset.agents="14";s.dataset.wait="data-hydrated";s.dataset.path="/";document.body.insertBefore(s,document.body.firstChild)',
+          }}
+        />
         <script dangerouslySetInnerHTML={{ __html: 'document.documentElement.classList.add("js")' }} />
         <a
           href="#main"

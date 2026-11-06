@@ -25,7 +25,7 @@ export function PageAnimations() {
   const [ready, setReady] = useState(false);
   useEffect(() => {
     let b = 0;
-    const a = requestAnimationFrame(() => { b = requestAnimationFrame(() => setReady(true)); });
+    const a = requestAnimationFrame(() => { b = requestAnimationFrame(() => { document.documentElement.setAttribute("data-hydrated", ""); setReady(true); }); });
     return () => { cancelAnimationFrame(a); cancelAnimationFrame(b); };
   }, []);
 
