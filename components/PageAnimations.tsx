@@ -89,7 +89,9 @@ export function PageAnimations() {
 
         // Numbers count up, keeping their suffix ("850+" -> 0 ... 850+).
         all("[data-count]").forEach((el) => {
-          const text = el.textContent ?? "";
+          // Remember the real value: a reverted run leaves the "0+" placeholder
+          // in the DOM, and the next run would otherwise count up to 0.
+          const text = (el.dataset.countFinal ??= el.textContent ?? "");
           const m = text.match(/^(\d+(?:\.\d+)?)(.*)$/);
           if (!m) return;
           const [, num, suffix] = m;
@@ -107,7 +109,13 @@ export function PageAnimations() {
         // Layout shifts from fonts and images move trigger positions.
         const refresh = () => ScrollTrigger.refresh();
         addEventListener("load", refresh);
-        return () => removeEventListener("load", refresh);
+        return () => {
+          removeEventListener("load", refresh);
+          // Put the real numbers back if we're torn down mid-count.
+          all("[data-count]").forEach((el) => {
+            if (el.dataset.countFinal) el.textContent = el.dataset.countFinal;
+          });
+        };
       });
       return () => mm.revert();
     },
