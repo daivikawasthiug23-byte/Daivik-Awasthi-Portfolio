@@ -318,7 +318,17 @@ export function Terminal() {
                 ) : l.kind === "art" ? (
                   <pre key={i} className="my-1 whitespace-pre text-[6px] leading-[6px] sm:text-[8px] sm:leading-[8px]">{l.text}</pre>
                 ) : (
-                  <div key={i} className="whitespace-pre-wrap break-words opacity-90">{linkify(l.text)}</div>
+                  <div key={i} className="whitespace-pre-wrap break-words opacity-90">
+                    {l.text.startsWith("• /secret") ? (
+                      <>
+                        {"• "}
+                        <span className="font-bold text-[#4ade80]">/secret</span>
+                        {l.text.slice("• /secret".length)}
+                      </>
+                    ) : (
+                      linkify(l.text)
+                    )}
+                  </div>
                 ),
               )}
               <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex items-center gap-2 pb-1">

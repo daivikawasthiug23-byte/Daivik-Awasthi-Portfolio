@@ -20,13 +20,29 @@ export function PageAnimations() {
   const bar = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
-  // GSAP edits the DOM, so wait until React has finished hydrating the page
-  // (two frames after mount) or the server HTML and client DOM would differ.
+  // GSAP edits the DOM, so wait until React has hydrated the page content. The page sits in its own
+  // Suspense boundary, which can hydrate after this layout component mounts, so a fixed delay is not
+  // enough: poll until #main carries a React fiber (the sign that it has been hydrated), then wait
+  // two more frames. Gives up after 5s so content is never left un-animated.
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    let b = 0;
-    const a = requestAnimationFrame(() => { b = requestAnimationFrame(() => { document.documentElement.setAttribute("data-hydrated", ""); setReady(true); }); });
-    return () => { cancelAnimationFrame(a); cancelAnimationFrame(b); };
+    let id = 0;
+    const t0 = performance.now();
+    const hydrated = () => {
+      const main = document.getElementById("main");
+      return !!main && Object.keys(main).some((k) => k.startsWith("__reactFiber"));
+    };
+    const go = () => {
+      document.documentElement.setAttribute("data-hydrated", "");
+      setReady(true);
+    };
+    const poll = () => {
+      if (hydrated() || performance.now() - t0 > 5000) {
+        id = requestAnimationFrame(() => { id = requestAnimationFrame(go); });
+      } else id = requestAnimationFrame(poll);
+    };
+    poll();
+    return () => cancelAnimationFrame(id);
   }, []);
 
   useGSAP(

@@ -1,5 +1,6 @@
 /* Swarm Rebuild: a crew of cursor agents rebuilds the page as the visitor scrolls.
-   Options (data-attributes on the script tag): agents, speed, line, bg, accent, path.
+   Options (data-attributes on the script tag): agents, speed, line, bg, accent,
+   path (comma-separated pages it runs on, e.g. "/,/blog"; it follows client-side navigation).
    Page hooks: data-sr-skip, data-sr-logo, data-sr-replay, data-sr-stat. */
 (function () {
   'use strict';
@@ -9,10 +10,18 @@
 
   var cs0 = D.currentScript || D.querySelector('script[src*="swarm-rebuild"]');
   var ds = (cs0 && cs0.dataset) || {};
-  if ((W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)').matches) || (ds.path && ds.path !== location.pathname)) {
+  if (W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     W.SwarmRebuild = NOOP;
     return;
   }
+  var PATHS = (ds.path || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+  function norm(pn) { return pn.replace(/\/+$/, '') || '/'; }
+  function pathOk() { return !PATHS.length || PATHS.indexOf(norm(location.pathname)) >= 0; }
+
+  function create(myPath, fast) {
+
+  var dead = false, offs = [];
+  function on(t, e, f, o) { t.addEventListener(e, f, o); offs.push(function () { t.removeEventListener(e, f, o); }); }
 
   /* ---------- config ---------- */
   var N = Math.max(1, parseInt(ds.agents, 10) || 14);
@@ -75,6 +84,7 @@
     '#sr-hud{position:fixed;z-index:' + Z + ';left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 6px 6px 12px;border:2.5px solid ' + INK + ';border-radius:8px;background:' + CARD + ';box-shadow:4px 4px 0 ' + SH + ';color:' + INK + ';font:700 12px/1 ' + MONO + ';pointer-events:auto;white-space:nowrap;max-width:calc(100vw - 16px)}',
     '.sr-cap{position:absolute;left:0;right:0;top:calc(50% + 62px);text-align:center;font:700 12px/1.4 ' + MONO + ';color:' + INK + ';padding:0 16px}',
     '.sr-hint{position:fixed;z-index:' + Z + ';left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translate(-50%,8px);max-width:calc(100vw - 32px);padding:8px 12px;border:2px solid ' + INK + ';border-radius:8px;background:var(--sr-accent);color:var(--on-accent,#111);box-shadow:3px 3px 0 ' + SH + ';font:700 12px/1.4 ' + MONO + ';text-align:center;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s}',
+    '.sr-hint{bottom:calc(92px + env(safe-area-inset-bottom)) !important}',
     '.sr-hint.sr-on{opacity:1;transform:translate(-50%,0)}',
     '#sr-hud{transition:opacity .4s}#sr-hud.sr-idle{opacity:.35}#sr-hud.sr-idle:hover,#sr-hud.sr-idle:focus-within{opacity:1}',
     '#sr-hud button{all:unset;cursor:pointer;padding:6px 10px;border:2px solid ' + INK + ';border-radius:6px;background:' + PAPER + ';color:' + INK + ';font:700 12px/1 ' + MONO + ';transition:transform .12s,background-color .12s}',
@@ -104,6 +114,7 @@
     clearTimeout(hintT); hintT = setTimeout(hideHint, ms);
   }
   function hideHint() { clearTimeout(hintT); hint.classList.remove('sr-on'); }
+  function isTouch() { return W.innerWidth < 640 || (W.matchMedia('(pointer: coarse)').matches && !W.matchMedia('(pointer: fine)').matches); }
   var hud = el('div'); hud.id = 'sr-hud';
   var hAv = el('div', 'sr-av', hud), hLbl = el('span', '', hud);
   var hAg = el('span', 'sr-ag', hud);
@@ -124,7 +135,7 @@
     var color = COLORS[i % 16];
     var e = el('div', 'sr-agent', agentsEl);
     e.style.color = color;
-    e.innerHTML = '<svg class="sr-arrow" width="14" height="20" viewBox="0 0 14 20"><path d="' + ARROW + '" fill="' + color + '" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg><div class="sr-beam"></div><div class="sr-tag" style="background:' + color + '">' + NAMES[i % 16] + '</div>';
+    e.innerHTML = '<svg class="sr-arrow" width="14" height="20" viewBox="0 0 14 20"><path d="' + ARROW + '" fill="' + color + '" style="stroke:var(--ink,#111)" stroke-width="1.6" stroke-linejoin="round"/></svg><div class="sr-beam"></div><div class="sr-tag" style="background:' + color + '">' + NAMES[i % 16] + '</div>';
     var side = i % 4, x = side < 2 ? (side ? vw + 30 : -30) : Math.random() * vw, y = side < 2 ? Math.random() * vh : (side === 2 ? -30 : vh + 30);
     agents.push({ i: i, e: e, arrow: e.children[0], beam: e.children[1], color: color, x: x, y: y, vx: 0, vy: 0, rot: 0, task: null, wx: Math.random() * vw, wy: Math.random() * vh * LINE, wt: 0 });
     var d = el('i', '', hAv); d.textContent = NAMES[i % 16][0]; d.style.background = color;
@@ -264,7 +275,8 @@
       if (HTML.hasAttribute(ds.wait) || performance.now() - t0 > 8000) cb(); else setTimeout(poll, 50);
     })();
   }
-  whenReady(function () { whenHydrated(prepare); });
+  // after a client-side navigation the page is already loaded: start on the next frames so the real page never shows first
+  (fast ? function (cb) { requestAnimationFrame(function () { requestAnimationFrame(cb); }); } : whenReady)(function () { whenHydrated(function () { if (!dead) prepare(); }); });
 
   /* ---------- finishing ---------- */
   function freeAgent(a) {
@@ -487,21 +499,25 @@
     if (phase === 'scan') txt = 'Scanning page… ' + fmt(layersReady ? Math.round(total * Math.min(1, scanT / (1.9 / speed))) : 0) + ' layers';
     else if (phase === 'build') { ag = N + ' agents   '; txt = fmt(doneCount) + ' / ' + fmt(total) + ' layers'; }
     else txt = 'Rebuilt ' + fmt(total) + ' layers in ' + elapsed.toFixed(1) + 's';
-    var key = ag + txt + phase + tourOn;
+    var key = ag + txt + phase + tourOn + isTouch();
     if (key === lastHud) { if (phase === 'build') hBar.style.width = (total ? doneCount / total * 100 : 0) + '%'; return; }
     lastHud = key;
     hAg.textContent = ag; labelOnly.nodeValue = txt;
     hBar.style.width = (total ? doneCount / total * 100 : 0) + '%';
     bTour.textContent = (phase === 'done' || phase === 'leaving') ? 'Replay' : tourOn ? 'Pause' : 'Tour';
     bX.title = phase === 'done' ? 'Dismiss' : 'Skip';
+    bX.textContent = phase === 'build' ? (isTouch() ? 'Skip' : 'Skip (Esc)') : '×';
   }
 
   /* ---------- main loop ---------- */
   var last = performance.now();
   function frame(now) {
+    if (dead) return;
     requestAnimationFrame(frame);
     var dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000)); last = now;
     if (phase === 'gone') return;
+    // Client-side navigation keeps this script alive: stand down when leaving the page it was made for.
+    if (location.pathname !== myPath) { shutdown(); return; }
     var time = now / 1000, i, a;
 
     if (phase === 'scan') {
@@ -605,10 +621,10 @@
         velRot(a, dt);
       }
     }
-    var following = (phase === 'done' || free) && mouse.on;
     for (i = 0; i < agents.length; i++) {
       a = agents[i];
-      var op = (!a.task && following) ? '0.4' : '1';
+      // Only agents that are actually building are opaque; wandering or trailing ones stay faint so text stays readable.
+      var op = a.task ? '1' : '0.35';
       if (a.op !== op) { a.op = op; a.e.style.opacity = op; }
       render(a);
     }
@@ -627,13 +643,25 @@
     setTimeout(function () { if (phase !== 'scan') scanEl.style.display = scanEl.classList.contains('sr-out') ? 'none' : ''; }, 600);
     W.scrollTo({ top: 0, behavior: 'instant' });
     needCheck = true;
-    showHint('Keep scrolling. The crew builds just ahead of you. (Esc = skip)', 6500);
+    showHint('Keep scrolling. The crew builds just ahead of you.' + (isTouch() ? '' : ' (Esc = skip)'), 6500);
   }
   var told = false;
   function completeBuild() {
     elapsed = (performance.now() - buildT0) / 1000; doneAt = performance.now();
     phase = 'done'; tourOn = false;
     if (!told && W.matchMedia('(pointer: fine)').matches) { told = true; showHint('Ta-da! Wiggle your mouse, the crew tags along.', 5000); }
+  }
+
+  function shutdown() {
+    abortAll();
+    layers.forEach(function (l) { try { finishLayer(l); } catch (e) {} });
+    unfinished = []; tourOn = false; hideHint();
+    [rootEl, scanEl, agentsEl, hint, hud].forEach(function (n) { if (n.parentNode) n.parentNode.removeChild(n); });
+    HTML.classList.remove('sr-lock');
+    phase = 'gone'; dead = true;
+    offs.forEach(function (f) { f(); }); offs = [];
+    if (style.parentNode) style.parentNode.removeChild(style);
+    HTML.style.removeProperty('--sr-accent');
   }
 
   /* ---------- public controls ---------- */
@@ -671,21 +699,21 @@
   bTour.addEventListener('click', function () { if (phase === 'done') replay(); else tour(); });
   bSpeed.addEventListener('click', function () { setSpeed(speed === 1 ? 2 : speed === 2 ? 4 : 1); });
   bX.addEventListener('click', function () { if (phase === 'done') dismiss(); else skip(); });
-  D.addEventListener('click', function (e) {
+  on(D, 'click', function (e) {
     var t = e.target && e.target.closest && e.target.closest('[data-sr-replay]');
     if (t) { e.preventDefault(); replay(); }
   });
-  W.addEventListener('keydown', function (e) {
+  on(W, 'keydown', function (e) {
     if (e.key === 'Escape') skip();
     else if (tourOn && /^(Arrow|Page|Home|End| )/.test(e.key)) { tourOn = false; lastHud = ''; }
   });
   function stopTour() { if (tourOn) { tourOn = false; lastHud = ''; } }
-  W.addEventListener('wheel', stopTour, { passive: true });
-  W.addEventListener('touchstart', stopTour, { passive: true });
-  W.addEventListener('scroll', function () { lastScroll = performance.now(); needCheck = true; }, { passive: true });
-  W.addEventListener('resize', function () { sizeCanvas(); needCheck = true; });
+  on(W, 'wheel', stopTour, { passive: true });
+  on(W, 'touchstart', stopTour, { passive: true });
+  on(W, 'scroll', function () { lastScroll = performance.now(); needCheck = true; }, { passive: true });
+  on(W, 'resize', function () { sizeCanvas(); needCheck = true; });
 
-  W.addEventListener('pointermove', function (e) {
+  on(W, 'pointermove', function (e) {
     if (e.pointerType !== 'mouse') return;
     var dx = e.clientX - mouse.x, dy = e.clientY - mouse.y, d = hyp(dx, dy);
     if (mouse.on && d > 2) {
@@ -694,8 +722,8 @@
     } else if (!mouse.on) mouse.t = performance.now();
     mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true;
   }, { passive: true });
-  HTML.addEventListener('mouseleave', function () { mouse.on = false; });
-  W.addEventListener('blur', function () { mouse.on = false; });
+  on(HTML, 'mouseleave', function () { mouse.on = false; });
+  on(W, 'blur', function () { mouse.on = false; });
 
   W.SwarmRebuild = {
     replay: replay, skip: skip, setSpeed: setSpeed, tour: tour,
@@ -704,4 +732,22 @@
 
   requestAnimationFrame(frame);
   updateHud();
+  return { path: myPath, shutdown: shutdown, dead: function () { return dead; } };
+  }
+
+  /* ---------- page manager: runs one swarm per allowed page, follows client-side navigation ---------- */
+  var cur = null, startedFor = null, first = true;
+  function sync() {
+    var path = location.pathname;
+    if (cur && (cur.dead() || cur.path !== path)) { cur.shutdown(); cur = null; }
+    if (!pathOk()) { startedFor = null; return; }
+    if (!cur && startedFor !== path) {
+      startedFor = path;
+      cur = create(path, !first); // after a client-side navigation, start at once (no visible un-built page)
+      first = false;
+    }
+  }
+  W.SwarmRebuild = NOOP;
+  sync();
+  setInterval(sync, 50);
 })();
