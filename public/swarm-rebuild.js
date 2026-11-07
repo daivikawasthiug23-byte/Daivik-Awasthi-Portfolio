@@ -18,6 +18,304 @@
   function norm(pn) { return pn.replace(/\/+$/, '') || '/'; }
   function pathOk() { return !PATHS.length || PATHS.indexOf(norm(location.pathname)) >= 0; }
 
+  /* ---------- sound ----------
+     The extension's original sound: a glass piano in E, all synthesized (no audio files). Every
+     finished box or image plays one note of the E major pentatonic, snapped to a soft 8th-note grid so
+     a busy crew comes out as a generative melody: big pieces low, small ones high, pitch rising left to
+     right, panned to where the cursor is. Typing and clicks are quiet paper ticks underneath.
+     One shared instance for the page session. Browsers only start audio after a click or keypress, so
+     the context is created on the first gesture (data-sound="off" to default off). */
+  var PENTA = [0, 2, 4, 7, 9], E2 = 40;
+  function mtof(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+  function cl(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+  function Sound() {
+    var pref = ds.sound !== 'off';
+    try { var sv = W.localStorage.getItem('sr-sound'); if (sv === '0') pref = false; else if (sv === '1') pref = true; } catch (e) {}
+    this.on = pref;
+    this.ctx = null; this.bpm = 104; this.musicOn = false; this.musicMode = false; this.mNext = null; this.mStep = 0; this.mTimer = 0; this.slots = {}; this.slotKeys = [];
+    this.lastKey = {}; this.keyTimes = []; this.pressTimes = []; this.ends = [];
+  }
+  var SP = Sound.prototype;
+  SP.init = function () {
+    if (this.ctx) return true;
+    var Ctx = W.AudioContext || W.webkitAudioContext;
+    if (!Ctx) { this.noAudio = true; return false; }
+    try { this.ctx = new Ctx({ latencyHint: 'interactive' }); } catch (e) { this.noAudio = true; return false; }
+    var ctx = this.ctx;
+    var out = ctx.createGain(); out.gain.value = this.on ? 1 : 0;
+    var comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -18; comp.knee.value = 14; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.3;
+    var master = ctx.createGain(); master.gain.value = 0.9;
+    master.connect(comp); comp.connect(out); out.connect(ctx.destination);
+    var verb = ctx.createConvolver(); verb.buffer = this.impulse(3.2, 2.4);
+    var wet = ctx.createGain(); wet.gain.value = 0.5;
+    verb.connect(wet); wet.connect(master);
+    var mus = ctx.createGain(); mus.gain.value = 0; mus.connect(master);
+    var mverb = ctx.createConvolver(); mverb.buffer = this.impulse(1.8, 2.6);
+    var mwet = ctx.createGain(); mwet.gain.value = 0.3; mverb.connect(mwet); mwet.connect(mus);
+    this.mus = mus; this.mverb = mverb;
+    this.out = out; this.master = master; this.verb = verb;
+    this.noiseBuf = this.noise(1.5);
+    this.t0 = ctx.currentTime;
+    return true;
+  };
+  // generated room: decaying stereo noise that darkens as it rings out
+  SP.impulse = function (secs, decay) {
+    var sr = this.ctx.sampleRate, n = Math.floor(sr * secs), b = this.ctx.createBuffer(2, n, sr);
+    for (var ch = 0; ch < 2; ch++) {
+      var d = b.getChannelData(ch), lp = 0;
+      for (var i = 0; i < n; i++) {
+        var k = i / n;
+        lp += (0.55 - 0.4 * k) * (Math.random() * 2 - 1 - lp);
+        d[i] = lp * Math.pow(1 - k, decay) * (i < sr * 0.012 ? i / (sr * 0.012) : 1);
+      }
+    }
+    return b;
+  };
+  SP.noise = function (secs) {
+    var sr = this.ctx.sampleRate, b = this.ctx.createBuffer(1, Math.floor(sr * secs), sr), d = b.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return b;
+  };
+  SP.now = function () { return this.ctx.currentTime; };
+  SP.resume = function () { if (this.ctx && this.ctx.state !== 'running' && this.ctx.resume) this.ctx.resume().catch(function () {}); };
+  // call from a user gesture: creates the context and starts it
+  SP.unlock = function () { if (!this.on) return; if (this.init()) this.resume(); };
+  SP.ready = function () { return !!(this.ctx && this.on && this.ctx.state === 'running'); };
+  SP.blocked = function () { return this.on && !this.noAudio && (!this.ctx || this.ctx.state !== 'running'); };
+  SP.setOn = function (on) {
+    this.on = on;
+    try { W.localStorage.setItem('sr-sound', on ? '1' : '0'); } catch (e) {}
+    if (on && !this.ctx) this.init();
+    if (!this.ctx) return;
+    var t = this.ctx.currentTime;
+    this.out.gain.cancelScheduledValues(t);
+    this.out.gain.setTargetAtTime(on ? 1 : 0, t, 0.05);
+    if (on) this.resume();
+  };
+  // next 8th/16th-note on the grid
+  SP.grid = function (div) {
+    var step = 60 / this.bpm / div, k = Math.ceil((this.now() + 0.015 - this.t0) / step);
+    return { when: this.t0 + k * step, slot: div + ':' + k };
+  };
+  SP.pan = function (x, w) { return cl((x / Math.max(1, w)) * 1.6 - 0.8, -0.8, 0.8); };
+  SP.bus = function (pan, send) {
+    var ctx = this.ctx, g = ctx.createGain(), p = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
+    if (p.pan) p.pan.value = pan;
+    var mm = this.musicMode; // background music routes through its own fader and room
+    g.connect(p); p.connect(mm ? this.mus : this.master);
+    if (send) { var s = ctx.createGain(); s.gain.value = send; p.connect(s); s.connect(mm ? this.mverb : this.verb); }
+    return g;
+  };
+  // glass piano: a few sine partials (one inharmonic, for the glass) plus a felt-hammer tick
+  SP.piano = function (midi, when, vel, pan, ring) {
+    ring = ring || 2.4;
+    var now = this.now(), ctx = this.ctx, f = mtof(midi);
+    this.ends = this.ends.filter(function (e) { return e > now; });
+    if (this.ends.length >= 28) return;
+    var v = this.bus(pan, 0.85); v.gain.value = 0.3 * vel;
+    var hi = f > 900, parts = [[1, 1, 1], [2, 0.38, 0.55], [3, 0.12, 0.32], [2.756, 0.16, 0.42], [5.4, 0.05, 0.16]], last = null;
+    for (var i = 0; i < parts.length; i++) {
+      var r = parts[i][0], a = parts[i][1], d = parts[i][2];
+      if (f * r > 15000) continue;
+      var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * r * (1 + (Math.random() - 0.5) * 0.002);
+      var g = ctx.createGain(), dec = ring * d * (hi ? 0.65 : 1);
+      g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(a, when + 0.005); g.gain.exponentialRampToValueAtTime(0.0006, when + dec);
+      o.connect(g); g.connect(v); o.start(when); o.stop(when + dec + 0.05); last = o;
+    }
+    this.tick(when, pan, Math.min(9000, f * 4 + 1200), 1.2, 0.125, 0.03, v);
+    this.ends.push(when + ring * (hi ? 0.65 : 1));
+    if (last) last.onended = function () { v.disconnect(); };
+  };
+  // short filtered-noise tick: typing, clicks, hammers
+  SP.tick = function (when, pan, freq, q, vel, len, dest) {
+    var ctx = this.ctx, src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain(), own = !dest;
+    src.buffer = this.noiseBuf; bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = q;
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vel, when + 0.0008); g.gain.exponentialRampToValueAtTime(0.0004, when + len);
+    var bus = dest || this.bus(pan, 0.06);
+    src.connect(bp); bp.connect(g); g.connect(bus);
+    src.start(when, Math.random() * 1.2); src.stop(when + len + 0.02);
+    if (own) src.onended = function () { bus.disconnect(); };
+  };
+  SP.pad = function (midi, when, vel, len) {
+    var ctx = this.ctx, g = this.bus(0, 0.9);
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vel, when + len * 0.4); g.gain.exponentialRampToValueAtTime(0.0005, when + len);
+    [-4, 4].forEach(function (det) {
+      var o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = mtof(midi); o.detune.value = det;
+      o.connect(g); o.start(when); o.stop(when + len + 0.05);
+    });
+  };
+  SP.sweep = function (t, f0, f1, f2, dur, peak, swell) {
+    var ctx = this.ctx, src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = this.bus(0, 0.6);
+    src.buffer = this.noiseBuf; src.loop = true; bp.type = 'bandpass'; bp.Q.value = 0.9;
+    bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.4);
+    if (f2) bp.frequency.exponentialRampToValueAtTime(f2, t + dur * 0.8);
+    g.gain.setValueAtTime(swell ? 0 : peak, t);
+    if (swell) g.gain.linearRampToValueAtTime(peak, t + dur * 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+    src.connect(bp); bp.connect(g); src.start(t); src.stop(t + dur + 0.1);
+    src.onended = function () { g.disconnect(); };
+  };
+
+  /* events: screen coordinates in */
+  // one mechanical key: a sharp click on top of a short "thock" (deeper for space)
+  SP.key = function (x, w, id, n, space) {
+    if (!this.ready()) return;
+    var t = this.now();
+    if (t - (this.lastKey[id] || -1) < 0.024) return;
+    this.keyTimes = this.keyTimes.filter(function (k) { return t - k < 1; });
+    if (this.keyTimes.length > 80) return;
+    this.lastKey[id] = t;
+    var pan = this.pan(x, w), at = t + 0.004;
+    for (var k = 0; k < Math.min(n || 1, 3); k++) {
+      this.keyTimes.push(t);
+      var sp = space && k === 0, vel = rnd(0.75, 1);
+      this.tick(at, pan, rnd(3600, 5600), 2.2, rnd(0.2, 0.3) * vel, rnd(0.006, 0.011));
+      this.tick(at + rnd(0.001, 0.005), pan, sp ? rnd(380, 560) : rnd(850, 1500), 1.6, (sp ? 0.26 : rnd(0.13, 0.2)) * vel, sp ? 0.065 : rnd(0.025, 0.042));
+      at += rnd(0.018, 0.032);
+    }
+  };
+  // a mouse button: press click, then a lighter release
+  SP.press = function (x, w) {
+    if (!this.ready()) return;
+    var t = this.now();
+    this.pressTimes = this.pressTimes.filter(function (k) { return t - k < 1; });
+    if (this.pressTimes.length > 40) return;
+    this.pressTimes.push(t);
+    var pan = this.pan(x, w);
+    this.tick(t + 0.004, pan, rnd(2100, 2700), 4, 0.32, 0.012);
+    this.tick(t + 0.005, pan, rnd(650, 850), 2, 0.16, 0.022);
+    this.tick(t + rnd(0.055, 0.075), pan, rnd(2900, 3400), 4, 0.15, 0.008);
+  };
+  // a finished box or image sings one note
+  SP.place = function (kind, x, y, w, h, vw, vh) {
+    if (!this.ready()) return;
+    var area = (w * h) / Math.max(1, vw * vh);
+    var oct = area > 0.08 ? 1 : area > 0.015 ? 2 : area > 0.002 ? 3 : 4;
+    var deg = Math.floor(cl(x / Math.max(1, vw), 0, 0.999) * 5), midi = E2 + oct * 12 + PENTA[deg];
+    var g = this.grid(2);
+    if (this.slots[g.slot]) return; // one note per slot keeps it a melody, not a cluster
+    this.slots[g.slot] = 1; this.slotKeys.push(g.slot);
+    if (this.slotKeys.length > 64) delete this.slots[this.slotKeys.shift()];
+    var off = y < -40 || y > vh + 40 ? 0.45 : 1, pan = this.pan(x, vw);
+    var vel = (kind === 'image' ? 0.5 : 0.55) * 0.42, ring = oct <= 1 ? 3.6 : oct >= 4 ? 1.6 : 2.4;
+    this.piano(midi, g.when, vel * off, pan, ring);
+    if (kind === 'image') this.piano(midi + (PENTA[(deg + 2) % 5] - PENTA[deg] + 12) % 12, g.when + 0.04, vel * 0.6 * off, pan, ring);
+  };
+  // the page dissolving: an airy swell over a low open fifth
+  SP.intro = function () {
+    if (!this.ready()) return;
+    var t = this.now() + 0.02, self = this;
+    this.sweep(t, 260, 2400, 900, 2.2, 0.16, true);
+    [[E2, 0], [E2 + 7, 0.08], [E2 + 12, 0.16]].forEach(function (p) { self.pad(p[0], t + 0.3 + p[1], 0.07, 2.6); });
+  };
+  // the crew fans out: an E G# B E arpeggio on the grid
+  SP.start = function () {
+    if (!this.ready()) return;
+    var g = this.grid(4), step = 60 / this.bpm / 4, self = this;
+    [E2 + 24, E2 + 28, E2 + 31, E2 + 36, E2 + 40].forEach(function (m, i) { self.piano(m, g.when + i * step, 0.2, -0.5 + i * 0.25, 2); });
+  };
+  // the last chord rings: E major add9, strummed
+  SP.finale = function () {
+    if (!this.ready()) return;
+    var g = this.grid(2), self = this, chord = [E2, E2 + 7, E2 + 12, E2 + 16, E2 + 19, E2 + 26, E2 + 28, E2 + 31, E2 + 36, E2 + 43];
+    chord.forEach(function (m, i) { self.piano(m, g.when + i * 0.035, 0.34 - i * 0.015, -0.6 + (i / chord.length) * 1.2, 5.5); });
+    this.pad(E2 + 12, g.when, 0.05, 5);
+  };
+  // back to the real page: a falling sweep
+  SP.release = function () {
+    if (!this.ready()) return;
+    var t = this.now() + 0.01;
+    this.sweep(t, 3000, 220, 0, 1.1, 0.12, false);
+    this.piano(E2 + 12, t + 0.05, 0.3, 0, 2.5);
+  };
+  /* ---- background music: an original slow C-major loop (16 bars, about 48 s) ----
+     Kalimba lead over a soft bass, a warm pad and a light shaker, on the same 8th-note grid as the
+     agents' piano notes. It fades in when the build starts and fades out as the build finishes. */
+  var CHORD = { C: [36, [60, 64, 67]], Am: [33, [57, 60, 64]], F: [41, [53, 57, 60]], G: [43, [55, 59, 62]], Em: [40, [55, 59, 64]] };
+  var PROG = ['C', 'Am', 'F', 'G', 'C', 'Am', 'F', 'G', 'F', 'G', 'Em', 'Am', 'F', 'G', 'C', 'C'];
+  var _ = null;
+  var TUNE = [ // eighth notes per bar, semitones above C5
+    [4, _, 7, _, 9, 7, 4, _], [9, _, 7, _, 4, _, 2, 4], [0, _, 4, _, 7, 9, 7, _], [7, _, 2, _, 4, 2, 0, _],
+    [7, _, 9, _, 12, 9, 7, _], [9, 7, 4, _, 7, _, 4, _], [4, _, 0, _, 4, 7, 9, _], [7, _, 9, 7, 4, _, 2, _],
+    [9, _, 12, _, 9, 7, 9, _], [7, _, 9, _, 7, 4, 2, _], [4, _, 7, _, 11, _, 9, 7], [9, _, _, 7, 4, _, 2, 0],
+    [0, _, 4, _, 9, _, 7, 4], [2, _, 7, _, 9, 7, 2, _], [4, _, 7, 9, 12, _, 9, 7], [4, _, _, _, 0, _, _, _]
+  ];
+  var MUSIC_LEVEL = 0.55;
+  // kalimba: a soft sine fundamental with a faint metallic overtone, gentle attack, warm lowpass
+  SP.kalimba = function (midi, when, vel, pan, ring) {
+    var ctx = this.ctx, f = mtof(midi), v = this.bus(pan, 0.5), lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 2400; lp.Q.value = 0.4; lp.connect(v); v.gain.value = 0.4 * vel;
+    var parts = [[1, 1, 1], [2, 0.1, 0.45], [5.4, 0.07, 0.1]], last = null;
+    for (var i = 0; i < parts.length; i++) {
+      var o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * parts[i][0] * (1 + (Math.random() - 0.5) * 0.002);
+      var g = ctx.createGain(), dec = ring * parts[i][2];
+      g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(parts[i][1], when + 0.008); g.gain.exponentialRampToValueAtTime(0.0006, when + dec);
+      o.connect(g); g.connect(lp); o.start(when); o.stop(when + dec + 0.05); last = o;
+    }
+    if (last) last.onended = function () { v.disconnect(); lp.disconnect(); };
+  };
+  SP.bass = function (midi, when, vel) {
+    var ctx = this.ctx, o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter(), bus = this.bus(-0.1, 0.1);
+    o.type = 'triangle'; o.frequency.value = mtof(midi); lp.type = 'lowpass'; lp.frequency.value = 520;
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vel, when + 0.012); g.gain.exponentialRampToValueAtTime(0.0006, when + 0.55);
+    o.connect(lp); lp.connect(g); g.connect(bus); o.start(when); o.stop(when + 0.6);
+    o.onended = function () { bus.disconnect(); };
+  };
+  SP.musicStep = function (k, when, st) {
+    var slot = k % 8, bar = Math.floor(k / 8) % 16, ch = CHORD[PROG[bar]], t = when + (slot % 2) * st * 0.12;
+    this.musicMode = true;
+    try {
+      if (slot === 0) for (var i = 0; i < ch[1].length; i++) this.pad(ch[1][i], when + i * 0.04, 0.03, st * 8 * 1.2);
+      if (slot === 0 || slot === 4) this.bass(ch[0], t, 0.34);
+      if (slot === 3 || slot === 6) this.bass(ch[0] + 7, t, 0.2);
+      var n = TUNE[bar][slot];
+      if (n != null) this.kalimba(72 + n, t, 0.3 + (slot === 0 ? 0.05 : 0), -0.15 + (n % 5) * 0.08, 1.8);
+      if (slot % 2) this.tick(t, slot === 3 || slot === 7 ? 0.3 : -0.3, 6500, 1.2, 0.022, 0.035);
+    } finally { this.musicMode = false; }
+  };
+  SP.musicTick = function () {
+    if (!this.musicOn) return;
+    if (!this.ready() || D.hidden) { this.mNext = null; return; }
+    var now = this.now(), st = 60 / this.bpm / 2;
+    if (this.mNext == null || this.mNext < now - 0.2) {
+      var fresh = this.mNext == null;
+      this.mNext = this.grid(2).when;
+      if (fresh) { // fade in (also when audio was unlocked late, by the first click)
+        this.mus.gain.cancelScheduledValues(now); this.mus.gain.setValueAtTime(this.mus.gain.value, now);
+        this.mus.gain.linearRampToValueAtTime(MUSIC_LEVEL, now + 3);
+      }
+    }
+    while (this.mNext < now + 0.5) { this.musicStep(this.mStep, this.mNext, st); this.mNext += st; this.mStep++; }
+  };
+  SP.musicStart = function () {
+    if (this.musicOn) return;
+    this.musicOn = true; this.mNext = null; this.mStep = 0;
+    var self = this;
+    clearInterval(this.mTimer);
+    this.mTimer = setInterval(function () { self.musicTick(); }, 90);
+    this.musicTick();
+  };
+  SP.musicStop = function (fade) {
+    if (!this.musicOn) return;
+    this.musicOn = false; this.mNext = null;
+    clearInterval(this.mTimer);
+    if (this.ctx && this.mus) {
+      var t = this.now();
+      this.mus.gain.cancelScheduledValues(t); this.mus.gain.setValueAtTime(this.mus.gain.value, t);
+      this.mus.gain.linearRampToValueAtTime(0, t + (fade || 1));
+    }
+  };
+  var SFX = new Sound();
+  // first gesture on the page unlocks audio (capture phase, so nothing can swallow it)
+  ['pointerdown', 'pointerup', 'mousedown', 'click', 'keydown', 'touchend'].forEach(function (ev) {
+    W.addEventListener(ev, function () { if (SFX.blocked()) SFX.unlock(); }, { capture: true, passive: true });
+  });
+  // try right away: browsers that already trust the site (high engagement, autoplay allowed) start at once
+  try { SFX.unlock(); } catch (e) {}
+
   function create(myPath, fast) {
 
   var dead = false, offs = [];
@@ -51,6 +349,9 @@
   var tourRun = 0, lastBusy = 0, doneAt = 0, guideAlpha = 0, lastWork = 0, leaveT = 0;
   var mouse = { on: false, x: 0, y: 0, t: 0, dx: 1, dy: 0 };
   var vw = W.innerWidth, vh = W.innerHeight;
+  var gateOn = false, entered = false, gateEl = null;
+  var tempo = 1, scrollV = 0, lastSY = W.scrollY; // tempo: the crew speeds up when you scroll fast or there is a backlog
+  var fl = { lx: 0, ly: 0, has: false, tx: 0, ty: 0 }; // smoothed mouse velocity for the finale flock
 
   try { history.scrollRestoration = 'manual'; } catch (e) {}
 
@@ -76,13 +377,22 @@
     '.sr-beam{position:absolute;left:-4px;top:0;width:8px;height:18px;display:none;box-sizing:border-box;border-top:2px solid;border-bottom:2px solid}',
     '.sr-beam:before{content:"";position:absolute;left:3px;top:0;bottom:0;width:2px;background:currentColor}',
     '.sr-tag{position:absolute;left:12px;top:20px;padding:0 6px;border:2px solid ' + INK + ';border-radius:4px;box-shadow:2px 2px 0 ' + SH + ';color:#111;font:700 10px/1.5 ' + MONO + ';white-space:nowrap;display:none}',
+    '.sr-cross{position:absolute;left:-12px;top:-12px;overflow:visible;display:none;filter:drop-shadow(2px 2px 0 ' + SH + ')}',
     '.sr-working .sr-tag{display:block}.sr-typing .sr-beam{display:block}.sr-typing .sr-arrow{display:none}',
+    '.sr-draw .sr-cross{display:block}.sr-draw .sr-arrow{display:none}',
     '.sr-hide-paint{background:transparent!important;background-image:none!important;border-color:transparent!important;box-shadow:none!important;outline-color:transparent!important}',
     '.sr-hide-media{opacity:0!important}',
     '.sr-reveal{transition:background-color .35s,border-color .35s,box-shadow .45s,opacity .35s!important}',
     '.sr-rest{color:transparent!important;-webkit-text-fill-color:transparent!important}',
     '#sr-hud{position:fixed;z-index:' + Z + ';left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 6px 6px 12px;border:2.5px solid ' + INK + ';border-radius:8px;background:' + CARD + ';box-shadow:4px 4px 0 ' + SH + ';color:' + INK + ';font:700 12px/1 ' + MONO + ';pointer-events:auto;white-space:nowrap;max-width:calc(100vw - 16px)}',
     '.sr-cap{position:absolute;left:0;right:0;top:calc(50% + 62px);text-align:center;font:700 12px/1.4 ' + MONO + ';color:' + INK + ';padding:0 16px}',
+    '.sr-cap2{top:calc(50% + 86px);font-size:11px;font-weight:600;opacity:.65;transition:opacity .4s}',
+    '.sr-gate{position:absolute;left:0;right:0;top:calc(50% + 112px);display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 16px;opacity:0;transform:translateY(8px);transition:opacity .45s,transform .45s}',
+    '.sr-gate.sr-on{opacity:1;transform:none}',
+    '.sr-enter{all:unset;cursor:pointer;padding:13px 24px;border:2.5px solid ' + INK + ';border-radius:8px;background:var(--sr-accent);color:var(--on-accent,#111);box-shadow:5px 5px 0 ' + SH + ';font:700 14px/1 ' + MONO + ';transition:transform .12s,box-shadow .12s}',
+    '.sr-enter:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 ' + SH + '}.sr-enter:active{transform:translate(3px,3px);box-shadow:2px 2px 0 ' + SH + '}',
+    '.sr-enter:focus-visible{outline:3px solid ' + INK + ';outline-offset:3px}',
+    '.sr-gate small{font:600 11px/1.4 ' + MONO + ';color:' + INK + ';opacity:.65}',
     '.sr-hint{position:fixed;z-index:' + Z + ';left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translate(-50%,8px);max-width:calc(100vw - 32px);padding:8px 12px;border:2px solid ' + INK + ';border-radius:8px;background:var(--sr-accent);color:var(--on-accent,#111);box-shadow:3px 3px 0 ' + SH + ';font:700 12px/1.4 ' + MONO + ';text-align:center;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s}',
     '.sr-hint{bottom:calc(92px + env(safe-area-inset-bottom)) !important}',
     '.sr-hint.sr-on{opacity:1;transform:translate(-50%,0)}',
@@ -90,6 +400,10 @@
     '#sr-hud button{all:unset;cursor:pointer;padding:6px 10px;border:2px solid ' + INK + ';border-radius:6px;background:' + PAPER + ';color:' + INK + ';font:700 12px/1 ' + MONO + ';transition:transform .12s,background-color .12s}',
     '#sr-hud button:hover{background:var(--sr-accent);color:var(--on-accent,#111)}#sr-hud button:active{transform:translate(2px,2px)}',
     '#sr-hud button:focus-visible{outline:3px solid var(--sr-accent);outline-offset:2px}',
+    '#sr-hud button.sr-snd{display:inline-flex;align-items:center;gap:6px;padding:6px 8px}#sr-hud button.sr-snd.sr-off{opacity:.6}',
+    '#sr-hud button.sr-snd.sr-wait{animation:sr-pulse 1.8s ease-in-out infinite}',
+    '@keyframes sr-pulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--sr-accent) 45%,transparent)}}',
+    '@media(max-width:419px){#sr-hud .sr-spd{display:none}}',
     '.sr-av{display:flex}.sr-av i{width:20px;height:20px;border-radius:50%;margin-left:-6px;border:2px solid ' + INK + ';box-sizing:border-box;font:700 9px/16px ' + MONO + ';text-align:center;color:#111;font-style:normal}.sr-av i:first-child{margin-left:0}',
     '.sr-bar{width:64px;height:10px;border:2px solid ' + INK + ';border-radius:3px;background:' + PAPER + ';overflow:hidden}.sr-bar b{display:block;height:100%;width:0;background:var(--sr-accent)}',
     '#sr-hud.sr-done .sr-bar,#sr-hud.sr-done .sr-av,#sr-hud.sr-scanning .sr-av,#sr-hud.sr-scanning .sr-bar{display:none}',
@@ -108,6 +422,8 @@
   tile.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg>';
   var cap = el('div', 'sr-cap', scanEl);
   cap.textContent = N + ' tiny agents are building this site. No pressure.';
+  var cap2 = el('div', 'sr-cap sr-cap2', scanEl);
+  cap2.textContent = 'Click or press any key for sound';
   var hint = el('div', 'sr-hint'), hintT = 0;
   function showHint(text, ms) {
     hint.textContent = text; hint.classList.add('sr-on');
@@ -119,8 +435,23 @@
   var hAv = el('div', 'sr-av', hud), hLbl = el('span', '', hud);
   var hAg = el('span', 'sr-ag', hud);
   var hBarW = el('div', 'sr-bar', hud), hBar = el('b', '', hBarW);
-  var bTour = el('button', '', hud), bSpeed = el('button', '', hud), bX = el('button', '', hud);
+  var bSnd = el('button', 'sr-snd', hud), bTour = el('button', '', hud), bSpeed = el('button', 'sr-spd', hud), bX = el('button', '', hud);
   hLbl.appendChild(hAg);
+  var SPK = '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6v4h2.5l3.5 3V3L5 6z" fill="currentColor"/>', sndKey = '';
+  function renderSnd() {
+    var key = SFX.on ? (SFX.blocked() ? 'wait' : 'on') : 'off';
+    if (key === sndKey) return;
+    sndKey = key;
+    bSnd.innerHTML = SPK + (key === 'off' ? '<path d="M11 6l4 4M15 6l-4 4"/>' : '<path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.6a6 6 0 0 1 0 8.8"/>') + '</svg>';
+    bSnd.classList.toggle('sr-off', key === 'off'); bSnd.classList.toggle('sr-wait', key === 'wait');
+    cap2.style.display = key === 'wait' && !gateOn ? '' : 'none';
+    var lbl = key === 'off' ? 'Sound off (M)' : key === 'wait' ? 'Sound on (starts at your first click or key press)' : 'Sound on (M)';
+    bSnd.title = lbl; bSnd.setAttribute('aria-label', lbl); bSnd.setAttribute('aria-pressed', SFX.on ? 'true' : 'false');
+  }
+  function toggleSound() {
+    SFX.setOn(!SFX.on);
+    setTimeout(renderSnd, 80);
+  }
   bTour.textContent = 'Tour'; bSpeed.textContent = speed + '×'; bX.textContent = '×'; bX.title = 'Skip'; bX.setAttribute('aria-label', 'Skip animation');
   [rootEl, scanEl, agentsEl, hint, hud].forEach(function (n) { HTML.appendChild(n); });
   HTML.classList.add('sr-lock');
@@ -135,13 +466,19 @@
     var color = COLORS[i % 16];
     var e = el('div', 'sr-agent', agentsEl);
     e.style.color = color;
-    e.innerHTML = '<svg class="sr-arrow" width="14" height="20" viewBox="0 0 14 20"><path d="' + ARROW + '" fill="' + color + '" style="stroke:var(--ink,#111)" stroke-width="1.6" stroke-linejoin="round"/></svg><div class="sr-beam"></div><div class="sr-tag" style="background:' + color + '">' + NAMES[i % 16] + '</div>';
+    e.innerHTML = '<svg class="sr-arrow" width="14" height="20" viewBox="0 0 14 20"><path d="' + ARROW + '" fill="' + color + '" style="stroke:var(--ink,#111)" stroke-width="1.6" stroke-linejoin="round"/></svg>' +
+      '<svg class="sr-cross" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke-linecap="round"><path d="M12 3.5V20.5M3.5 12H20.5" style="stroke:var(--ink,#111)" stroke-width="4"/><path d="M12 3.5V20.5M3.5 12H20.5" stroke="' + color + '" stroke-width="1.6"/></g></svg>' +
+      '<div class="sr-beam"></div><div class="sr-tag" style="background:' + color + '">' + NAMES[i % 16] + '</div>';
     var side = i % 4, x = side < 2 ? (side ? vw + 30 : -30) : Math.random() * vw, y = side < 2 ? Math.random() * vh : (side === 2 ? -30 : vh + 30);
-    agents.push({ i: i, e: e, arrow: e.children[0], beam: e.children[1], color: color, x: x, y: y, vx: 0, vy: 0, rot: 0, task: null, wx: Math.random() * vw, wy: Math.random() * vh * LINE, wt: 0 });
+    var fast = Math.random() < 0.25; // a few agents are twitchier than the rest
+    agents.push({ i: i, e: e, arrow: e.querySelector('.sr-arrow'), cross: e.querySelector('.sr-cross'), beam: e.querySelector('.sr-beam'), color: color, x: x, y: y, vx: 0, vy: 0, rot: 0, press: 0, task: null, wx: Math.random() * vw, wy: Math.random() * vh * LINE, wt: 0,
+      fast: fast, speed: fast ? 1000 + Math.random() * 500 : 300 + Math.random() * 450, force: fast ? 3500 + Math.random() * 2500 : 700 + Math.random() * 1100,
+      spin: fast ? 2.2 + Math.random() * 1.2 : 0.8 + Math.random(), curl: Math.random() * 2 - 1, orbit: 70 + Math.random() * 100 });
     var d = el('i', '', hAv); d.textContent = NAMES[i % 16][0]; d.style.background = color;
     if (i >= 5) d.style.display = 'none';
   })(ai);
   hud.classList.add('sr-scanning');
+  SFX.intro();
 
   /* ---------- layer collection ---------- */
   var SKIP = { SCRIPT: 1, STYLE: 1, TEMPLATE: 1, META: 1, BR: 1, NOSCRIPT: 1, LINK: 1 };
@@ -284,7 +621,7 @@
     var k = a.task;
     if (k.frame) removeFrame(k.frame);
     a.task = null;
-    a.e.classList.remove('sr-working', 'sr-typing');
+    a.e.classList.remove('sr-working', 'sr-typing', 'sr-draw');
     if (k.caret) k.caret.style.display = 'none';
   }
   function finishLayer(l) {
@@ -351,14 +688,16 @@
   }
   function render(a) {
     a.e.style.transform = 'translate3d(' + a.x.toFixed(1) + 'px,' + a.y.toFixed(1) + 'px,0)';
-    a.arrow.style.transform = 'rotate(' + a.rot.toFixed(1) + 'deg)';
+    var sq = 1 - a.press * 0.12;
+    a.arrow.style.transform = 'rotate(' + a.rot.toFixed(1) + 'deg) scale(' + sq.toFixed(3) + ')';
+    a.cross.style.transform = 'scale(' + sq.toFixed(3) + ')';
   }
 
   /* ---------- tasks ---------- */
   function eligible(l) { return l.state === 0 && l.trig && (!l.parent || l.parent.state >= 1); }
   function startTask(a, l) {
     l.state = 1;
-    a.task = { l: l, phase: 'travel', t: 0, frame: null, caret: null, typedN: -1 };
+    a.task = { l: l, phase: 'travel', t: 0, frame: null, caret: null, typedN: -1, dur: 0, bend: 0, x0: 0, y0: 0 };
     a.e.classList.add('sr-working');
   }
   function target(l, r) {
@@ -369,6 +708,7 @@
     return { x: r.left, y: r.top };
   }
   function nextAfterFill(a, k) {
+    a.e.classList.remove('sr-draw');
     if (k.l.isText) { enterType(a, k); } else { k.phase = 'hold'; k.t = 0; }
   }
   function enterType(a, k) {
@@ -376,28 +716,41 @@
     a.e.classList.add('sr-typing');
     if (!k.caret) { k.caret = el('div', 'sr-caret', rootEl); }
     k.caret.style.background = a.color; k.caret.style.display = 'block';
-    k.dur = clamp(k.l.txt.length * 0.01, 0.2, 0.8);
+    k.dur = clamp(k.l.txt.length * 0.006, 0.15, 0.4);
   }
 
   function stepTask(a, k, r, dt) {
     var l = k.l; k.t += dt;
-    var sp = speed * PACE;
+    var sp = speed * PACE * tempo;
     if (k.phase === 'travel') {
-      var tp = target(l, r), kk = 6 + 3 * sp;
-      moveTo(a, tp.x, tp.y, kk, dt);
-      if (hyp(a.x - tp.x, a.y - tp.y) < 4 || k.t > 1.2 / sp) {
+      // a timed, slightly curved sweep (not a straight glide), so the crew moves like people with mice
+      var tp = target(l, r);
+      if (!k.dur) {
+        k.x0 = a.x; k.y0 = a.y;
+        var d0 = hyp(tp.x - a.x, tp.y - a.y);
+        k.dur = clamp(0.1 + Math.sqrt(d0) * 0.017, 0.12, 0.7);
+        k.bend = (Math.random() < 0.5 ? -1 : 1) * (0.015 + Math.random() * 0.035) * Math.min(d0, 600);
+      }
+      var tk = Math.min(1, k.t * sp / k.dur), te = 0.5 * (tk * tk * (3 - 2 * tk)) + 0.5 * easeOut(tk);
+      var tdx = tp.x - k.x0, tdy = tp.y - k.y0, tl = hyp(tdx, tdy) || 1, off = Math.sin(Math.PI * te) * k.bend;
+      var nx = k.x0 + tdx * te - (tdy / tl) * off, ny = k.y0 + tdy * te + (tdx / tl) * off;
+      a.vx += ((nx - a.x) / dt - a.vx) * Math.min(1, dt * 12); a.vy += ((ny - a.y) / dt - a.vy) * Math.min(1, dt * 12);
+      a.x = nx; a.y = ny;
+      if (tk >= 1) {
+        a.x = tp.x; a.y = tp.y;
         k.frame = newFrame(!(l.isText && !l.isBox && !l.isMedia));
-        k.t = 0;
-        if (l.isBox || l.isMedia) { k.phase = 'draw'; setFrame(k.frame, r.left, r.top, 0, 0, '0 × 0'); }
+        k.t = 0; a.press = 1; SFX.press(a.x, vw);
+        if (l.isBox || l.isMedia) { k.phase = 'draw'; a.e.classList.add('sr-draw'); setFrame(k.frame, r.left, r.top, 0, 0, '0 × 0'); }
         else { k.phase = 'type'; setFrame(k.frame, r.left, r.top, r.width, r.height, ''); enterType(a, k); }
       }
     } else if (k.phase === 'draw') {
-      var dur = (0.22 + Math.min(0.34, Math.sqrt(r.width * r.height) / 1600)) / sp;
+      var dur = (0.16 + Math.min(0.26, Math.sqrt(r.width * r.height) / 2000)) / sp;
       var p = easeOut(Math.min(1, k.t / dur)), fw = r.width * p, fh = r.height * p;
       setFrame(k.frame, r.left, r.top, fw, fh, Math.round(fw) + ' × ' + Math.round(fh));
       moveTo(a, r.left + fw, r.top + fh, 30, dt);
       if (k.t >= dur) {
         k.phase = 'fill'; k.t = 0;
+        SFX.place(l.isMedia ? 'image' : 'rect', r.left + r.width / 2, r.top + r.height / 2, r.width, r.height, vw, vh);
         var e = l.el;
         e.classList.add('sr-reveal');
         e.classList.remove('sr-hide-paint', 'sr-hide-media');
@@ -405,13 +758,16 @@
       }
     } else if (k.phase === 'fill') {
       setFrame(k.frame, r.left, r.top, r.width, r.height, Math.round(r.width) + ' × ' + Math.round(r.height));
-      var wob = 0.32 / sp;
-      a.x += Math.sin(k.t * 40) * 0.8; a.y += Math.cos(k.t * 34) * 0.8;
+      var wob = 0.1 / sp;
       if (k.t >= wob) nextAfterFill(a, k);
     } else if (k.phase === 'type') {
       var len = l.txt.length, p2 = Math.min(1, k.t / (k.dur / sp)), n = Math.floor(len * p2);
       setFrame(k.frame, r.left, r.top, r.width, r.height, (l.isBox || l.isMedia) ? Math.round(r.width) + ' × ' + Math.round(r.height) : '');
-      if (n !== k.typedN) { k.typedN = n; l.typed.textContent = l.txt.slice(0, n); l.rest.textContent = l.txt.slice(n); }
+      if (n !== k.typedN) {
+        var prevN = Math.max(0, k.typedN);
+        k.typedN = n; l.typed.textContent = l.txt.slice(0, n); l.rest.textContent = l.txt.slice(n);
+        if (n > prevN) SFX.key(a.x, vw, a.i, n - prevN, /\s/.test(l.txt.slice(prevN, n)) ? 1 : 0);
+      }
       var rects = l.typed.getClientRects(), cr;
       if (rects.length) cr = rects[rects.length - 1]; else cr = l.rest.getClientRects()[0];
       var cx, cy, ch;
@@ -422,11 +778,11 @@
       moveTo(a, cx, cy, 25, dt);
       if (p2 >= 1) { k.phase = 'hold'; k.t = 0; k.caret.style.display = 'none'; a.e.classList.remove('sr-typing'); }
     } else if (k.phase === 'hold') {
-      if (k.t >= 0.16 / sp) {
+      if (k.t >= 0.08 / sp) {
         var fr = k.frame;
         if (k.caret) { k.caret.parentNode && k.caret.parentNode.removeChild(k.caret); }
         a.task = null; k.frame = null;
-        a.e.classList.remove('sr-working', 'sr-typing');
+        a.e.classList.remove('sr-working', 'sr-typing', 'sr-draw');
         finishLayer(l);
         if (fr) removeFrame(fr);
       }
@@ -492,11 +848,13 @@
   /* ---------- HUD ---------- */
   var lastHud = '';
   function updateHud() {
+    renderSnd();
     var total = layers.length, txt, ag = '';
     hud.classList.toggle('sr-idle', phase === 'done' && performance.now() - doneAt > 3000);
     hud.classList.toggle('sr-scanning', phase === 'scan');
     hud.classList.toggle('sr-done', phase === 'done' || phase === 'leaving');
-    if (phase === 'scan') txt = 'Scanning page… ' + fmt(layersReady ? Math.round(total * Math.min(1, scanT / (1.9 / speed))) : 0) + ' layers';
+    if (phase === 'scan' && gateOn) txt = 'Ready · ' + fmt(total) + ' layers';
+    else if (phase === 'scan') txt = 'Scanning page… ' + fmt(layersReady ? Math.round(total * Math.min(1, scanT / (1.9 / speed))) : 0) + ' layers';
     else if (phase === 'build') { ag = N + ' agents   '; txt = fmt(doneCount) + ' / ' + fmt(total) + ' layers'; }
     else txt = 'Rebuilt ' + fmt(total) + ' layers in ' + elapsed.toFixed(1) + 's';
     var key = ag + txt + phase + tourOn + isTouch();
@@ -507,6 +865,53 @@
     bTour.textContent = (phase === 'done' || phase === 'leaving') ? 'Replay' : tourOn ? 'Pause' : 'Tour';
     bX.title = phase === 'done' ? 'Dismiss' : 'Skip';
     bX.textContent = phase === 'build' ? (isTouch() ? 'Skip' : 'Skip (Esc)') : '×';
+  }
+
+  /* ---------- finale flock: boids-style orbit around the mouse (or a slow wandering point) ---------- */
+  function flock(list, dt, time) {
+    if (!list.length) return;
+    var m = mouse.on ? mouse : null, sc = vw < 640 ? 0.6 : 1, i, j, a;
+    var o = m || { x: vw * (0.5 + 0.28 * Math.sin(time * 0.37)), y: vh * (0.5 + 0.25 * Math.sin(time * 0.53 + 1)) };
+    if (m && fl.has && dt > 0) {
+      var kv = Math.min(1, dt * 18);
+      fl.tx += ((m.x - fl.lx) / dt - fl.tx) * kv; fl.ty += ((m.y - fl.ly) / dt - fl.ty) * kv;
+    } else { fl.tx = 0; fl.ty = 0; }
+    fl.has = !!m; if (m) { fl.lx = m.x; fl.ly = m.y; }
+    var R = 135 * sc * (1 + 0.18 * Math.sin(time * 0.55)), swirl = Math.tanh(Math.cos(time * 0.11) * 3), want = [];
+    for (i = 0; i < list.length; i++) {
+      a = list[i];
+      var rx = a.x - o.x, ry = a.y - o.y, d = hyp(rx, ry) || 0.01, nx = rx / d, ny = ry / d, ang = Math.atan2(ry, rx);
+      var rr = R * (1 + 0.3 * Math.sin(3 * ang + time * 0.7)) + (a.orbit - 120) * 0.55 * sc;
+      var tang = 300 * 0.85 * (0.7 + a.spin * 0.2) * swirl, rad = clamp((rr - d) * 4, -2600, 1400), far = Math.min(1, Math.max(0, (d - rr) / 600));
+      want.push([-ny * tang + nx * rad - ny * a.curl * 400 * far, nx * tang + ny * rad + nx * a.curl * 400 * far]);
+    }
+    for (i = 0; i < list.length; i++) {
+      a = list[i];
+      var ax = 0, ay = 0, ws = 0;
+      for (j = 0; j < list.length; j++) {
+        if (j === i) continue;
+        var q = list[j], dd = hyp(q.x - a.x, q.y - a.y);
+        if (dd > 90) continue;
+        var w = 1 - dd / 90; ax += q.vx * w; ay += q.vy * w; ws += w;
+      }
+      var fx = want[i][0], fy = want[i][1];
+      if (ws > 0) { fx = fx * 0.7 + (ax / ws) * 0.3; fy = fy * 0.7 + (ay / ws) * 0.3; }
+      var dist = Math.max(0, hyp(a.x - o.x, a.y - o.y) - 180 * sc), maxV = a.speed * 0.7 * (1.3 + Math.min(3.2, dist / 90)), L = hyp(fx, fy);
+      if (L > maxV) { fx *= maxV / L; fy *= maxV / L; }
+      var gx = (fx - a.vx) * 6, gy = (fy - a.vy) * 6, maxF = a.force * 0.7 * (1.4 + Math.min(5, dist / 50)), G = hyp(gx, gy);
+      if (G > maxF) { gx *= maxF / G; gy *= maxF / G; }
+      a.vx += gx * dt; a.vy += gy * dt; a.x += a.vx * dt; a.y += a.vy * dt;
+    }
+    if (m) for (i = 0; i < list.length; i++) { // keep a bubble around the real pointer
+      a = list[i];
+      var px = a.x - m.x, py = a.y - m.y, pd = hyp(px, py) || 0.01;
+      if (pd >= 48) continue;
+      var pnx = px / pd, pny = py / pd;
+      a.x = m.x + pnx * 48; a.y = m.y + pny * 48;
+      var rel = (a.vx - fl.tx) * pnx + (a.vy - fl.ty) * pny;
+      if (rel < 0) { a.vx -= pnx * rel * 1.6; a.vy -= pny * rel * 1.6; }
+      a.vx += pnx * 260; a.vy += pny * 260;
+    }
   }
 
   /* ---------- main loop ---------- */
@@ -529,7 +934,10 @@
         moveTo(a, cx + Math.cos(ang) * rx + Math.sin(time * 3 + i * 1.7) * 10, cy + Math.sin(ang) * ry + Math.cos(time * 2.6 + i * 2.1) * 10, 5, dt);
         velRot(a, dt); render(a);
       }
-      if (layersReady && scanT >= 1.9 / speed) endScan();
+      if (layersReady && scanT >= 1.9 / speed) {
+        if (entered || fast || (!gateOn && !SFX.blocked())) endScan();
+        else if (!gateOn) showGate();
+      }
       updateHud();
       return;
     }
@@ -542,6 +950,8 @@
     }
 
     // build / done
+    var sy = W.scrollY;
+    scrollV = Math.max(scrollV * Math.exp(-dt * 1.2), scrollV * 0.7 + Math.abs(sy - lastSY) / dt * 0.3); lastSY = sy;
     if (needCheck || now - lastCheck > 350) {
       needCheck = false; lastCheck = now; readTheme();
       if (phase === 'build') check();
@@ -565,10 +975,15 @@
     var pending = [];
     for (i = 0; i < unfinished.length; i++) { var u = unfinished[i]; if (u.state === 0 && u.trig) pending.push(u); }
 
-    // assign free agents
+    tempo += (clamp(1.2 + scrollV / 2500 + pending.length / N * 0.3, 1.2, 1.7) - tempo) * Math.min(1, dt * 4);
+
+    // assign free agents. Only a few build at once, top to bottom, so the motion stays in one place
+    // and is easy to read around; as soon as work queues up (scrolling) the whole crew joins in.
+    var busyN = 0, maxWork = pending.length > 5 ? N : Math.min(N, 7);
+    for (i = 0; i < agents.length; i++) if (agents[i].task) busyN++;
     for (i = 0; i < agents.length; i++) {
       a = agents[i];
-      if (a.task || phase !== 'build') continue;
+      if (a.task || phase !== 'build' || busyN >= maxWork) continue;
       var best = null, bs = 1e12;
       for (var j = 0; j < pending.length; j++) {
         var l = pending[j];
@@ -576,7 +991,7 @@
         var sc = l.r.top + 0.3 * hyp(a.x - l.r.left, a.y - l.r.top);
         if (sc < bs) { bs = sc; best = l; }
       }
-      if (best) startTask(a, best);
+      if (best) { startTask(a, best); busyN++; }
     }
 
     // read pass
@@ -587,7 +1002,6 @@
     }
 
     var working = 0;
-    var free = mouse.on && now - lastScroll > 500 && pending.length === 0 && !agents.some(function (x) { return x.task; });
     var idle = [];
     for (i = 0; i < agents.length; i++) {
       a = agents[i];
@@ -600,45 +1014,64 @@
     if (working > 0 || pending.length > 0) lastBusy = now;
     if (phase === 'build' && working === 0 && pending.length === 0 && unfinished.length === 0) completeBuild();
 
-    var moving = now - mouse.t < 350;
-    for (i = 0; i < idle.length; i++) {
-      a = idle[i];
-      var ix = a.i;
-      if ((phase === 'done' || free) && mouse.on) {
-        if (moving) {
-          var lag = 34 + (ix % 5) * 11, spread = (((ix * 37) % 60) - 30) * 0.9;
-          moveTo(a, mouse.x - mouse.dx * lag - mouse.dy * spread, mouse.y - mouse.dy * lag + mouse.dx * spread, 3.2 + (ix % 4) * 0.9, dt);
-          velRot(a, dt);
-        } else {
-          var rad = Math.max(46, N * 4.4), an = Math.PI * 2 * ix / N + time * 0.35;
-          moveTo(a, mouse.x + Math.cos(an) * rad, mouse.y + Math.sin(an) * rad, 5, dt);
-          pointRot(a, dt, Math.atan2(mouse.y - a.y, mouse.x - a.x) * 180 / Math.PI + 115);
-        }
-      } else {
+    if (phase === 'done') {
+      // The finale: the crew keeps orbiting and weaving around the pointer even while it rests, and
+      // only drifts off the sides after a long time with nobody around (25 s with the pointer parked;
+      // 12 s with no pointer at all, e.g. on touch screens, where they circle a slow wandering point).
+      var stay = mouse.on ? now - mouse.t < 25000 : now - Math.max(doneAt, mouse.t) < 12000;
+      if (stay) flock(idle, dt, time);
+      else for (i = 0; i < idle.length; i++) moveTo(idle[i], idle[i].x < vw / 2 ? -60 : vw + 60, idle[i].y, 1.5, dt);
+      for (i = 0; i < idle.length; i++) velRot(idle[i], dt);
+    } else {
+      // Waiting agents rest faintly in the margins instead of drifting over the text.
+      for (i = 0; i < idle.length; i++) {
+        a = idle[i];
         a.wt -= dt;
-        if (a.wt <= 0) { a.wt = 1.2 + Math.random() * 2; a.wx = Math.random() * vw; a.wy = Math.random() * vh * 0.88; }
-        moveTo(a, a.wx, a.wy, 1.4, dt);
+        if (a.wt <= 0) { a.wt = 2.5 + Math.random() * 3; a.wx = (a.i % 2 ? vw - 18 : 18) + (Math.random() - 0.5) * 14; a.wy = vh * 0.06 + Math.random() * vh * 0.82; }
+        moveTo(a, a.wx, a.wy, 0.9, dt);
         velRot(a, dt);
       }
     }
     for (i = 0; i < agents.length; i++) {
       a = agents[i];
-      // Only agents that are actually building are opaque; wandering or trailing ones stay faint so text stays readable.
-      var op = a.task ? '1' : '0.35';
+      // Builders are fully opaque; waiting agents sit in the margins at a softer, still clearly visible opacity.
+      if (a.press > 0) a.press = Math.max(0, a.press - dt * 6);
+      var op = a.task ? '1' : '0.6';
       if (a.op !== op) { a.op = op; a.e.style.opacity = op; }
       render(a);
     }
 
     // guides fade
-    if (working > 0 && phase === 'build') { lastWork = now; guideAlpha = Math.min(1, guideAlpha + dt * 5); }
-    else if (now - lastWork > 1200) guideAlpha = Math.max(0, guideAlpha - dt * 3);
+    if (working > 0 && phase === 'build') { lastWork = now; guideAlpha = Math.min(0.4, guideAlpha + dt * 1.2); }
+    else if (now - lastWork > 1800) guideAlpha = Math.max(0, guideAlpha - dt * 0.8);
     drawGuides();
     updateHud();
   }
 
+  // Browsers only start audio after a click or key press, so a fresh visit waits here for one:
+  // the click that enters the portfolio is also what turns the sound on.
+  function showGate() {
+    gateOn = true; cap2.style.display = 'none';
+    agentsEl.style.transition = 'opacity .5s'; agentsEl.style.opacity = '.55'; // keep the crew from crowding the button
+    cap.textContent = 'The crew is ready to build this site.';
+    gateEl = el('div', 'sr-gate', scanEl);
+    var b = el('button', 'sr-enter', gateEl); b.type = 'button'; b.textContent = 'Enter portfolio';
+    el('small', '', gateEl).textContent = 'Sound on · press M to mute';
+    b.addEventListener('click', function (e) { e.stopPropagation(); enter(); });
+    requestAnimationFrame(function () { if (gateEl) gateEl.classList.add('sr-on'); try { b.focus({ preventScroll: true }); } catch (x) {} });
+  }
+  function enter() {
+    if (entered) return;
+    entered = true; SFX.unlock();
+    var went = false;
+    function go() { if (went || dead || phase !== 'scan') return; went = true; SFX.intro(); endScan(); }
+    // the context needs a moment to leave "suspended"; start the moment it is running
+    if (SFX.ctx && SFX.ctx.state !== 'running') { SFX.ctx.resume().then(go, go); setTimeout(go, 400); } else go();
+  }
+
   function endScan() {
-    phase = 'build'; buildT0 = performance.now();
-    scanEl.classList.add('sr-out');
+    phase = 'build'; buildT0 = performance.now(); SFX.start(); SFX.musicStart();
+    scanEl.classList.add('sr-out'); entered = true; agentsEl.style.opacity = '';
     HTML.classList.remove('sr-lock');
     setTimeout(function () { if (phase !== 'scan') scanEl.style.display = scanEl.classList.contains('sr-out') ? 'none' : ''; }, 600);
     W.scrollTo({ top: 0, behavior: 'instant' });
@@ -646,13 +1079,15 @@
     showHint('Keep scrolling. The crew builds just ahead of you.' + (isTouch() ? '' : ' (Esc = skip)'), 6500);
   }
   var told = false;
-  function completeBuild() {
+  function completeBuild(skipped) {
+    if (skipped) { SFX.release(); SFX.musicStop(1.2); } else { SFX.finale(); SFX.musicStop(4); } // music fades as the build finishes
     elapsed = (performance.now() - buildT0) / 1000; doneAt = performance.now();
     phase = 'done'; tourOn = false;
     if (!told && W.matchMedia('(pointer: fine)').matches) { told = true; showHint('Ta-da! Wiggle your mouse, the crew tags along.', 5000); }
   }
 
   function shutdown() {
+    SFX.musicStop(1);
     abortAll();
     layers.forEach(function (l) { try { finishLayer(l); } catch (e) {} });
     unfinished = []; tourOn = false; hideHint();
@@ -673,7 +1108,7 @@
     layers.forEach(finishLayer);
     unfinished = [];
     hideHint();
-    completeBuild();
+    completeBuild(true);
   }
   function replay() {
     if (!layersReady) return;
@@ -684,10 +1119,10 @@
     scanEl.style.display = ''; void scanEl.offsetWidth; scanEl.classList.remove('sr-out');
     HTML.classList.add('sr-lock');
     W.scrollTo({ top: 0, behavior: 'instant' });
-    phase = 'scan'; lastHud = ''; hideHint();
+    phase = 'scan'; lastHud = ''; hideHint(); SFX.musicStop(0.8); SFX.intro();
   }
   function dismiss() {
-    phase = 'leaving'; leaveT = 0;
+    phase = 'leaving'; leaveT = 0; SFX.release();
     agents.forEach(function (a) { a.leaveX = a.x < vw / 2 ? -60 : vw + 60; });
   }
   function setSpeed(s) { speed = s; bSpeed.textContent = s + '×'; }
@@ -696,6 +1131,7 @@
     tourOn = !tourOn; tourY = W.scrollY; tourRun = 0; lastHud = '';
   }
 
+  bSnd.addEventListener('click', toggleSound);
   bTour.addEventListener('click', function () { if (phase === 'done') replay(); else tour(); });
   bSpeed.addEventListener('click', function () { setSpeed(speed === 1 ? 2 : speed === 2 ? 4 : 1); });
   bX.addEventListener('click', function () { if (phase === 'done') dismiss(); else skip(); });
@@ -705,6 +1141,7 @@
   });
   on(W, 'keydown', function (e) {
     if (e.key === 'Escape') skip();
+    else if ((e.key === 'm' || e.key === 'M') && !e.metaKey && !e.ctrlKey && !e.altKey && !(e.target && (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable))) toggleSound();
     else if (tourOn && /^(Arrow|Page|Home|End| )/.test(e.key)) { tourOn = false; lastHud = ''; }
   });
   function stopTour() { if (tourOn) { tourOn = false; lastHud = ''; } }
