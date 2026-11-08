@@ -1,0 +1,33 @@
+{
+  "slug": "running-adguard-home-and-zeroclaw-on-a-10-openstick",
+  "title": "Running AdGuard Home and Zeroclaw on a $10 OpenStick",
+  "date": "2026-11-08",
+  "excerpt": "A $10 OpenStick can host low-resource services like AdGuard Home and Zeroclaw for self-hosting with near-zero power use.",
+  "tags": [
+    "Security",
+    "AI",
+    "Systems"
+  ],
+  "body": "AdGuard Home provides DNS-level blocking on a tiny footprint  \n\nA $10 OpenStick can run a full-featured DNS blocker without chewing up RAM. The author’s fork of AdGuard Home stays at roughly 40 MB of memory no matter how many blocklists are loaded.\n\nWith a modest 200 k entry list the footprint is the same, and after adding a few popular lists about 60 % of DNS queries are dropped as spam, malware or tracker domains. The device still boots Debian, runs systemd and Podman, and the DNS service lives happily alongside other containers.\n\nRunning a DNS blocker on the stick means every device on the network, smart TV, washing machine or coffee maker, gets filtered before it can reach the internet. The source notes that a DNS blocker cannot replace a firewall, but it does stop a large share of unwanted traffic with almost no CPU load.  \n\nWhat you get: a persistent, low-memory DNS sink that protects every LAN client, and a predictable memory use that never spikes with larger lists.\n\n## Zeroclaw offers a lightweight AI-agent with Telegram integration  \n\nZeroclaw is an AI-agent harness that talks to LLM providers and can be reached through 30 channels, including Telegram. On the OpenStick it idles at ~3 MB RSS, a stark contrast to the author’s earlier experience with OpenClaw, which needed 1 GB+ and broke on every update.  \n\nThe agent runs as a root shell limited to the stick, so the blast radius stays tiny. Queries like “any log entries need attention?” or “how much disk space is left?” are answered over Telegram, which works even when the user is in a remote area with spotty cellular coverage. The source mentions that Zeroclaw’s security defaults are sensible and easy to disable, and the next version will add rich Telegram messages via a pull request the author tracks.  \n\nWhat you get: a responsive, near-zero-memory AI assistant that surfaces system status through a familiar chat app, without the overhead of a full-blown LLM server.\n\n## Cloudflared exposes services without opening ports  \n\nExposing internal services to the internet usually means punching holes in a router or running a reverse proxy. Cloudflared sidesteps that by creating a tunnel to Cloudflare’s network, letting the OpenStick’s containers be reachable without any inbound ports. The author points out the trade-off: traffic traverses Cloudflare, so a powerful adversary could potentially sniff it, but for a hobby homelab that risk is acceptable.  \n\nThe tunnel works for all the services mentioned, AdGuard Home, Zeroclaw, Beszel, and requires only a small daemon running on the stick. No extra firewall rules, no port-forwarding hassle, and the same Cloudflare edge can enforce TLS and rate limiting.  \n\nWhat you get: secure, port-free exposure of self-hosted tools, with the convenience of a single Cloudflare tunnel.\n\n## Beszel monitors resource usage with minimal memory  \n\nKeeping an eye on a tiny server’s health is easy with Beszel. The web UI shows graphs of CPU, memory and network usage, and can push alerts to Telegram when thresholds are crossed. The whole stack consumes about 20 MB: 10 MB for the agent that scrapes metrics, and another 10 MB for the server that stores and visualizes them.  \n\nCompared with a Grafana stack that the author ran on a Kubernetes cluster, Beszel is far lighter and more user-friendly for a single-board device. It also includes built-in alerts for many protocols, so a sudden spike in DNS queries or a memory leak in a container can be caught early and reported via the same Telegram channel used by Zeroclaw.  \n\nWhat you get: a compact, graphical monitor that fits on a $10 stick and integrates with the existing Telegram workflow.\n\n## The takeaway  \n\nA $10 OpenStick can host a full DNS blocker, an AI-agent, a secure tunnel and a resource monitor while staying under a few dozen megabytes of RAM. Use AdGuard Home for network-wide domain filtering, Zeroclaw for low-overhead chat-based control, Cloudflared to expose services safely, and Beszel to keep the whole setup in view. The combination delivers a surprisingly capable homelab without any noisy fans or hefty power bills.",
+  "sources": [
+    {
+      "title": "What I run on my $10 USD OpenStick homelab",
+      "url": "https://blog.bosscher.ch/posts/openstick/"
+    }
+  ],
+  "popularity": 61,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/running-adguard-home-and-zeroclaw-on-a-10-openstick.jpg",
+  "thumbnailCredit": {
+    "name": "Jordan Harrison",
+    "url": "https://unsplash.com/@jouwdan?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/blue-utp-cord-40XgDxBfYXM?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
