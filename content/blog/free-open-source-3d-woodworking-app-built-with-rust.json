@@ -1,0 +1,32 @@
+{
+  "slug": "free-open-source-3d-woodworking-app-built-with-rust",
+  "title": "Free open-source 3D woodworking app built with Rust",
+  "date": "2026-11-09",
+  "excerpt": "KetchUp lets you design shelves, tables and cabinets with exact dimensions in a browser or desktop app, without an account.",
+  "tags": [
+    "Dev Tools",
+    "Web"
+  ],
+  "body": "A fresh project opens to a blank canvas. Clicking one corner, then the opposite corner creates the first face, and the Push/Pull tool instantly gives it thickness. That simple start is exactly how KetchUp, the free open-source 3D woodworking app written in Rust, expects you to begin designing a shelf, table or cabinet.\n\nFrom that first rectangle the workflow stays focused on the tools you need. Sketch lines, rectangles, circles or freehand outlines, then turn any face into a solid form with Push/Pull. Move, scale, offset, or paint the geometry, all while the model stays centered in the view. No account or cloud service is required, and the model is autosaved locally.\n\n## Start with simple shapes and push/pull extrusion\n\nKetchUp keeps the toolbox minimal: line, rectangle, circle, freehand, and the ubiquitous Push/Pull. After drawing a rectangle, selecting Push/Pull lets you drag the face upward to add the board’s thickness. The same action works on any face, so a cabinet side panel becomes a solid block with a single motion. Because the app runs in a desktop browser with WebGPU or WebGL2 acceleration, the extrusion feels responsive on Windows, macOS and Linux alike.\n\nThe workflow mirrors traditional woodworking: draw the outline of a board, then give it depth. No separate step is required to switch from 2-D sketch to 3-D solid, which reduces the mental overhead of juggling multiple tools.\n\n## Snap to geometry, type exact lengths, and add dimensions\n\nPrecision is built into the interface. While drawing, the cursor snaps to existing edges, vertices or the main axes, preventing stray lines. After a shape is placed, typing a number directly into the length field sets the exact size, useful when a shelf must match a specific cut length.\n\nKetchUp also provides a Tape Measure and Dimensions feature. Select an edge and the app displays its length, or click two points to create a dimension annotation that stays attached as the model evolves. This eliminates the need for a separate measuring step and ensures that every cut list can be generated from the model itself.\n\n## Organize parts with groups, components, and tags\n\nA furniture project quickly grows beyond a handful of boards. KetchUp helps keep the assembly manageable by letting you place geometry into groups, reusable components, or tag them with custom labels. A drawer front, for example, can be turned into a component and then placed multiple times across a set of cabinets. If the component’s dimensions change, every instance updates automatically.\n\nTags act like layers: assign “shelf”, “leg” or “hardware” tags and toggle their visibility to focus on a specific part of the build. This organization mirrors how a woodshop separates cut lists, hardware inventories and assembly steps, making the digital model a practical reference on the shop floor.\n\n## Import SketchUp or export OBJ for further workflow\n\nKetchUp is not a closed ecosystem. Using the File → Import menu you can bring in SketchUp (.skp) geometry directly, with the import happening locally on your machine. Textures, scenes and some advanced SketchUp features are not preserved, but the basic geometry transfers cleanly, allowing you to reuse existing models.\n\nExport works the same way: choose File → Export and save the model as a Wavefront OBJ file. The OBJ contains only the mesh data, without materials, which is ideal for feeding the design into downstream tools such as CNC slicers, rendering engines or other 3-D pipelines. The import/export paths keep KetchUp compatible with the broader 3-D ecosystem without forcing lock-in.\n\n## The takeaway\n\nKetchUp lets woodworkers start with a single rectangle, extrude it with Push/Pull, and then refine dimensions with snapping and typed lengths. Groups, components and tags keep larger assemblies organized, while SketchUp import and OBJ export let the model move in and out of other tools. The result is a lightweight, precise, fully open-source way to prototype furniture before the first cut.",
+  "sources": [
+    {
+      "title": "KetchUp – Open-source SketchUp alternative built with Rust and WebGPU",
+      "url": "https://ketchup3d.github.io/app/"
+    }
+  ],
+  "popularity": 10,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/free-open-source-3d-woodworking-app-built-with-rust.jpg",
+  "thumbnailCredit": {
+    "name": "Snapmaker 3D Printer",
+    "url": "https://unsplash.com/@snapmaker_official?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-desk-with-a-laptop-on-it-in-a-room-W4PF63qjy04?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
