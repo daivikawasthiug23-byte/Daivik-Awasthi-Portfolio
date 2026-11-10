@@ -1,0 +1,33 @@
+{
+  "slug": "e-means-delivers-10x-faster-k-means-with-lower-loss",
+  "title": "e-means delivers 10x faster k-means with lower loss",
+  "date": "2026-11-10",
+  "excerpt": "e-means reaches lower test loss than Lloyd in 1-3 epochs, cutting wall-clock time by up to 45× on GPU.",
+  "tags": [
+    "AI",
+    "Data",
+    "Systems"
+  ],
+  "body": "Mini-batch k-means has long been a compromise: it runs faster than full-batch Lloyd but often settles for higher loss. On a benchmark of 100 000 points clustered into 200 groups, the classic Lloyd implementation performs a single update per epoch, while e-means executes 97 updates in the same epoch.\n\nMeasured end-to-end, e-means reaches a test loss below Lloyd’s after just 1.2, 3 epochs and delivers a 10, 45× wall-clock reduction on GPU compared with Flash-KMeans, the state-of-the-art Lloyd code, and an 8, 15× reduction on CPU versus Faiss. The sections below break down how e-means achieves those gains.\n\nThe reader will come away with a concrete picture of three core ideas behind e-means, exponential-moving-average updates, scaling-law-driven hyper-parameters, and fused GPU kernels, plus two peripheral tricks that tighten quality without hurting speed.\n\n## Mini-batch updates with exponential moving averages  \n\nLloyd’s algorithm recomputes each centroid as the exact mean of all points assigned to it, requiring a full pass over the data every iteration. e-means works on mini-batches and replaces the sum-and-count recompute with an exponential moving average (EMA). For a given cluster \\(j\\) the running sum \\(S_j\\) and count \\(N_j\\) are updated with the batch’s sum \\(s_j\\) and count \\(n_j\\) as  \n\n\\[\nS_j \\leftarrow (1-\\alpha)S_j + \\alpha s_j,\\qquad\nN_j \\leftarrow (1-\\alpha)N_j + \\alpha n_j,\n\\]  \n\nwhere \\(\\alpha\\) is a decay factor. The centroid follows as \\(c_j = S_j / N_j\\). Older assignments are down-weighted at rate \\(\\alpha\\), so the centroids track the recent batch distribution instead of the entire history. This avoids the “stale-statistics” problem of the MacQueen update, which simply accumulates all past assignments. The source reports that the EMA rule was the most efficient among the mini-batch variants they tried.\n\n## Automatic batch-size and step-size selection from scaling laws  \n\nTraditional mini-batch methods require manual tuning of batch size and learning-rate-like step size \\(\\alpha\\). e-means sidesteps this by deriving both parameters from scaling laws that depend on \\(\\log n\\), \\(\\log k\\) and \\(\\log T\\) (with \\(n\\) points, \\(k\\) clusters, and \\(T\\) total epochs).\n\nThe formulas produce a batch size that grows slowly with the dataset and a step size that anneals from an initial \\(\\alpha_0\\) down to \\(0.1\\alpha_0\\) by the final epoch. Because the values are computed once at the start, the algorithm needs no hyper-parameter search. The source highlights “no hyper-parameter tuning” as a key advantage over earlier mini-batch methods that required hand-picked learning rates or batch sizes.\n\n## Fused GPU kernels that combine assignment and update  \n\nEven with EMA, a naïve implementation would need two passes: one to assign each point to its nearest centroid, another to accumulate the batch sums and counts. e-means ships a fused GPU kernel that performs both steps in a single launch. The kernel first computes the nearest-centroid assignment for each point, then immediately updates the per-cluster EMA statistics in shared memory before writing the new centroids back.\n\nBy eliminating the separate reduction pass, the wall-clock time matches the theoretical reduction in epochs. The source attributes most of the 10, 45× GPU speedup to this fused kernel, which translates the algorithmic advantage of 97 updates per epoch into real-time savings.\n\n## Peripheral tricks: initialization, dead-cluster revival, and finalization  \n\nBeyond the core update rule, e-means adds three peripheral improvements. A novel initialization reduces the likelihood of poor starting centroids. Clusters whose size falls below a threshold are revived by splitting a large cluster, preventing dead clusters from persisting. Finally, a short exact-mean pass runs at the end of training, reducing loss further with negligible extra runtime. These enhancements help the observed test loss stay below Lloyd’s even after very few epochs.\n\n## Quality and speed together  \n\nSpeed and quality usually trade against each other in k-means: faster methods tend to settle for higher distortion. Across a wide range of scales and datasets, e-means reaches a test loss below Lloyd’s after just 1.2, 3 epochs while delivering a 10, 45× wall-clock reduction on GPU and an 8, 15× reduction on CPU. The source notes that the combination of EMA updates, scaling-law-driven hyper-parameters, fused kernels, and the peripheral improvements yields both better speed and lower loss.\n\n## The takeaway  \n\nUse EMA-based mini-batch updates, let the scaling-law formulas choose batch and step sizes, and run the fused assignment-update kernel. These three steps give k-means clustering that is an order of magnitude faster in wall-clock time while achieving equal or lower test loss than classic full-batch Lloyd.",
+  "sources": [
+    {
+      "title": "E-means: 10x faster k-means at equal loss",
+      "url": "https://e-means.github.io/"
+    }
+  ],
+  "popularity": 28,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 7,
+    "specificity": 8,
+    "engagement": 6,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/e-means-delivers-10x-faster-k-means-with-lower-loss.jpg",
+  "thumbnailCredit": {
+    "name": "Steve A Johnson",
+    "url": "https://unsplash.com/@steve_j?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-chip-in-the-shape-of-a-human-head-gakXaqzGad0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
