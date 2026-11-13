@@ -1,0 +1,36 @@
+{
+  "slug": "never-type-finally-stable-and-new-dropguard-helper",
+  "title": "Never type finally stable and new DropGuard helper",
+  "date": "2026-11-13",
+  "excerpt": "Rust 1.100 stabilizes the never type, updates Infallible, adds Allocator trait and introduces core::mem::DropGuard.",
+  "tags": [
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A function that returns early from a `match` can now be written without a temporary `Result` or extra `unwrap`. In Rust 1.100 the never type (`!`) is finally stable, and the language lets you name it anywhere.\n\nThat means the branch that returns can be coerced to the expected type, and the compiler treats the code after it as unreachable. The release also renames the old `Infallible` alias, changes the fallback for editions before 2024, stabilizes the core of the allocator API, and adds a small helper called `DropGuard` that runs a closure on every exit path.\n\nThe rest of this post shows what each change looks like in practice, why it matters, and how you can start using the new pieces today.\n\n## Never type becomes fully stable and usable everywhere\n\nThe never type has been part of Rust for a decade, but it could not be written directly in most type positions. With 1.100 you can name `!` in any generic argument, return type, or struct field. The compiler still knows that a value of type `!` can never exist, so it allows a *never-to-any* coercion: an expression of type `!` can be treated as any other type.\n\n```rust\nfn mrrrow(option: Option<u32>) {\n    let value = match option {\n        Some(x) => x,\n        None => return, // `return` has type `!`, coerced to `u32`\n    };\n    // ...\n}\n```\n\nIn this example the `None` arm returns early, and the `return` expression has type `!`. Because `!` can be coerced to `u32`, the whole `match` type-checks as `u32`. Before 1.100 you could write the same code, but you could not name `!` in a generic like `Result<T, !>`.\n\n## Infallible now aliases the never type with a breaking fallback change\n\n`Infallible` was introduced as a placeholder for an uninhabited error type. Starting with 1.100 it is simply an alias for `!`. All existing APIs that used `Infallible` now accept `!` without change. The release also flips the “never type fallback” from `()` to `!` for editions before 2024 (2015, 2018, 2021). The change is mostly invisible, but code that ignored a generic result may see a different type inference or a new unreachable-code warning.\n\n```rust\nfn infallible_unwrap<T>(res: Result<T, !>) -> T {\n    let Ok(v) = res;\n    v\n}\n```\n\nBefore 1.100 the `Result<T, !>` syntax was illegal; developers had to write `Result<T, Infallible>`. The alias removes that friction and aligns the library ecosystem with the stabilized never type.\n\n## Allocator trait stabilizes core parts of custom allocation\n\nCustom allocation has been a long-standing goal for the standard library. Rust 1.100 stabilizes the core `Allocator` trait, which defines the minimal interface needed by `Vec` and `Box`. Library authors can now implement `Allocator` for their own memory pools and pass the allocator to these collections:\n\n```rust\nuse std::alloc::Allocator;\nuse std::vec::Vec;\n\nfn make_vec<A: Allocator>(alloc: A) -> Vec<u8, A> {\n    Vec::new_in(alloc)\n}\n```\n\nOnly the core parts of the API are stable; the broader “Allocators 1.0” roadmap still plans to extend support to more collections and pointer types. The stabilization removes the need for nightly-only workarounds and lets crates ship custom-allocator support on the stable channel.\n\n## DropGuard runs a closure on every exit path\n\nThe `Drop` trait already guarantees that a value’s destructor runs when the variable goes out of scope, even during a panic. However, writing a tiny struct that only calls a closure can feel verbose. `core::mem::DropGuard` packages this pattern into a single helper. You give it a value and a closure; the guard dereferences to the value so you can use it normally, and when the guard is dropped it runs the closure.\n\n```rust\nuse core::mem::DropGuard;\n\nfn write_and_cleanup(mut file: std::fs::File) {\n    let guard = DropGuard::new(&mut file, |f| {\n        // This runs whether we return, `?` out, or panic.\n        let _ = f.flush();\n    });\n\n    // Use `guard` as a mutable reference to the file.\n    writeln!(guard, \"Hello, world!\").ok();\n    // No explicit `flush` needed; the guard will do it.\n}\n```\n\nThe guard consumes the variable when it runs, so the closure cannot be called twice. This pattern is useful for ensuring resources like sockets, temporary files, or logging buffers are always cleaned up, without writing a dedicated `struct` for each case.\n\n## The takeaway\n\nRust 1.100 makes the never type first-class, lets `Infallible` be an alias for `!`, and updates the fallback for older editions. The new `Allocator` trait opens stable custom allocation for `Vec` and `Box`, and `DropGuard` gives a concise way to run cleanup code on every exit path. Updating to 1.100 and adopting these pieces will simplify error handling, enable custom memory strategies, and reduce boilerplate around resource cleanup.",
+  "sources": [
+    {
+      "title": "Rust 1.100",
+      "url": "https://blog.rust-lang.org/2026/11/12/Rust-1.100.0/"
+    },
+    {
+      "title": "Relax: JIT compiler for Rust to reduce build times",
+      "url": "https://makepad.github.io/relax/"
+    }
+  ],
+  "popularity": 12,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/never-type-finally-stable-and-new-dropguard-helper.jpg",
+  "thumbnailCredit": {
+    "name": "Chris Ried",
+    "url": "https://unsplash.com/@cdr6934?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-screen-with-a-bunch-of-code-on-it-ieic5Tq8YMk?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
