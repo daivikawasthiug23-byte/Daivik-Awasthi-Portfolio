@@ -1,0 +1,37 @@
+{
+  "slug": "java4shell-memory-corruption-in-openjdk-base64-decoder",
+  "title": "Java4Shell memory corruption in OpenJDK Base64 decoder",
+  "date": "2026-11-18",
+  "excerpt": "A critical OpenJDK bug lets a remote attacker corrupt heap memory and achieve code execution via a short Base64 payload.",
+  "tags": [
+    "Security",
+    "Backend",
+    "AI"
+  ],
+  "body": "A recent disclosure showed that a single line of malformed Base64 can bring down a Java process. The input is just 64 `A` characters followed by a single `=`:\n\n```text\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\n```\n\nWhen OpenJDK’s fast decoder processes that string, it allocates a 50-byte result array, miscalculates the output length, and writes 62 bytes past the array’s end. The overflow can leak heap data in a Heartbleed-style read, or it can be chained to remote code execution (RCE). The source [calif.io/java4shell](https://calif.io/java4shell/) calls the bug Java4Shell (CVE-2026-114938) and rates it 9.2 / 10 on CVSS 4.0.\n\nThe post walks through why the Base64 decoder is vulnerable, how the exploit corrupts heap memory, which applications are likely to be exposed, and ends with a concrete step to protect services.\n\n## Why the Base64 decoder is vulnerable\n\nBase64 appears everywhere, from authentication tokens to file-upload payloads. OpenJDK speeds up decoding on modern x86-64 CPUs by using AVX-512 VBMI instructions that process many bytes in parallel. The performance boost comes from hand-rolled assembly that handles the final few characters of the input.\n\nThe bug lives in that tail-handling code. For the 65-character trigger, the decoder allocates a 50-byte output buffer, decodes the first 64 characters correctly, then encounters the stray `=` padding. The assembly routine computes a *negative* output length, which the surrounding Java code treats as a large positive value. The result is a 64-byte write that overruns the 50-byte buffer by 14 bytes, corrupting whatever object sits next to it on the heap.\n\nBecause the overflow happens before Java validates the input, the runtime eventually throws an exception, but the damage is already done. The corrupted neighboring object can contain pointers, class metadata, or authentication secrets, making the situation similar to the infamous Heartbleed bug.\n\n## How the exploit corrupts heap memory\n\nThe overflow writes 62 bytes past the end of the allocated array. In a typical Java heap layout, that region holds the header of the next object and possibly part of its data.\n\nBy carefully crafting the input, an attacker can control the overwritten bytes and achieve several effects: leaking data when the overwritten object is later read, exposing passwords, private keys, or other secrets; redirecting execution by overwriting a class pointer or a method-table entry, causing the JVM to jump to attacker-controlled code; and triggering full remote-code execution, as demonstrated in several popular Java frameworks where the corrupted object is used to execute arbitrary native code.\n\nThe exploit relies on the fact that the corrupted object remains reachable after the exception is thrown. The Java runtime does not immediately free or sanitize the memory, leaving a window for the attacker to issue further requests that touch the corrupted object.\n\n## What applications are at risk\n\nThe vulnerability exists in OpenJDK 17, 21, 25 and 27, the versions most enterprises run in production. Any Java application that decodes Base64 without additional validation can be hit. The disclosure listed several real-world targets, including Apache Struts (default file-upload handling), Spring Boot (authentication mechanisms that accept Base64-encoded tokens), and custom services that accept JWTs, image uploads, or configuration blobs.\n\nA client-side scenario was also shown: a Java program that opens a TLS connection to a malicious server can be compromised even if it does not expose a network service itself, meaning desktop applications, command-line tools, and any Java-based client can be drawn into the attack.\n\nBecause the bug resides in the core library, the risk surface is broader than the listed products. Any code path that eventually calls `java.util.Base64.getDecoder().decode()` on untrusted input inherits the same exposure.\n\n## Recommendations\n\n- Upgrade OpenJDK to a build that patches CVE-2026-114938. The advisory page linked from the source [calif.io/java4shell](https://calif.io/java4shell/) lists the fixed versions.  \n- If upgrading is not immediately possible, add an input filter that rejects Base64 strings longer than 64 characters ending with a single `=` before they reach the decoder. This short check blocks the known trigger and buys time while a proper patch is applied.  \n- Review code that accepts Base64-encoded data from external sources. Where feasible, replace the fast decoder with the safe, pure-Java implementation, or perform length and padding validation prior to decoding.  \n- Monitor vendor advisories for future updates to the JDK and for any additional mitigations that may be released.\n\n## The takeaway\n\nJava4Shell shows that low-level optimizations in the JDK can re-introduce classic memory-corruption bugs. Upgrading to a patched OpenJDK build eliminates the immediate risk, and adding a simple length check provides a quick defensive layer for environments that cannot patch right away.",
+  "sources": [
+    {
+      "title": "Java4Shell: RCE in OpenJDK when processing Base64",
+      "url": "https://calif.io/java4shell/"
+    },
+    {
+      "title": "Java4Shell: pre-auth RCE flaw in Java 17 puts servers at risk (CVE-2026-114938)",
+      "url": "https://www.aikido.dev/blog/java-17-rce-vulnerability-cve-2026-114938"
+    }
+  ],
+  "popularity": 17,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 8,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/java4shell-memory-corruption-in-openjdk-base64-decoder.jpg",
+  "thumbnailCredit": {
+    "name": "FlyD",
+    "url": "https://unsplash.com/@flyd2069?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/red-padlock-on-black-computer-keyboard-mT7lXZPjk7U?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
