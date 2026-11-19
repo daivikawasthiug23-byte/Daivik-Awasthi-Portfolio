@@ -1,0 +1,33 @@
+{
+  "slug": "critical-http2-rce-flaws-in-nginx-uncovered",
+  "title": "Critical HTTP2 RCE flaws in NGINX uncovered",
+  "date": "2026-11-19",
+  "excerpt": "Two unauthenticated remote code execution bugs in NGINX’s HTTP/2 stack put millions of sites at risk.",
+  "tags": [
+    "Security",
+    "Web",
+    "Systems"
+  ],
+  "body": "A recent coordinated disclosure revealed two critical HTTP/2 flaws in NGINX that let an unauthenticated attacker run arbitrary code on the web server. The vulnerabilities, CVE-2026-123633 and CVE-2026-123007, both carry a CVSS 9.2 rating and affect the default front-door component of more than 225 million sites. Because they live inside NGINX itself, even perfectly written application code cannot protect a deployment that runs a vulnerable version with HTTP/2 enabled.\n\nThe report from Wiz, Ikotas Labs, Metnir, Rapid7 and Xint shows that exploitation can give an attacker full control of the server, the ability to steal data, tamper with web pages or bring services down. The findings also illustrate how AI-assisted analysis is lowering the barrier to finding deep memory-safety bugs that have lingered for years.\n\n## Why the HTTP/2 use-after-free matters\n\nThe use-after-free bug, tracked as CVE-2026-123633, appears when NGINX processes certain HTTP/2 frames. After freeing a memory buffer, the server may still reference that buffer while handling a subsequent frame. If an attacker crafts a sequence of frames that triggers the stale reference, they can cause the server to execute code they control. The Wiz report confirms that the flaw allows a remote attacker to bypass address space layout randomisation (ASLR) and gain code execution without any prior authentication.\n\nNGINX is often the first component that terminates TLS, parses HTTP/2, and forwards traffic to back-end services. A compromise at this layer gives the attacker a foothold before any application logic runs. In practice, an attacker could replace static files, inject malicious JavaScript, or pivot to other services behind the same NGINX instance. Because the bug only requires HTTP/2 to be enabled, any deployment that has not explicitly disabled the protocol is at risk.\n\n## The decade-old integer underflow explained\n\nThe second flaw, CVE-2026-123007, is an integer underflow that dates back to NGINX 1.9.5 released in 2015. An underflow occurs when a subtraction produces a value smaller than the minimum representable integer, wrapping around to a large positive number. In the NGINX code path that parses HTTP/2 header fields, the underflow leads to an incorrect length calculation. The server then allocates a buffer that is too small, writes past its end, and overwrites adjacent memory structures.\n\nWhen the overwritten structures are later used, the attacker can steer execution to attacker-controlled data. The Wiz researchers demonstrated exploitation on a server serving only static files, with no back-end application or third-party modules involved. The fact that the bug has existed for more than a decade highlights how subtle memory-safety issues can survive long code-review cycles, especially in performance-critical components like HTTP/2 handling.\n\n## Coordinated response and patch timeline\n\nThe discovery timeline shows a rapid, multi-vendor response:\n\n- October 21 2026, Wiz reports the use-after-free issue (CVE-2026-123633) to F5, the company behind NGINX, and provides a proof-of-concept that bypasses ASLR.  \n- November 10 2026, F5 releases a patch for CVE-2026-123633 for internal review.  \n- November 16 2026, Wiz reports the integer underflow (CVE-2026-123007) to F5.  \n- November 17 2026, F5 confirms the second report matches CVE-2026-123007 and schedules it for the upcoming security release.  \n- November 18 2026, F5 publishes a security update that addresses both CVE-2026-123633 and CVE-2026-123007, and the coordinated public disclosure goes live.\n\nAll five research teams independently uncovered the same flaws, underscoring the reproducibility of the attack vectors. The coordinated effort allowed F5 to bundle fixes for both vulnerabilities into a single release, reducing the window of exposure for operators. The advisory recommends upgrading to the latest NGINX version, which incorporates multiple security fixes beyond the two CVEs.\n\n## The takeaway\n\nBoth CVE-2026-123633 and CVE-2026-123007 exploit memory-safety bugs in NGINX’s HTTP/2 implementation, and they affect any server with HTTP/2 enabled, including versions as old as 1.9.5 from 2015. Applying the November 18 2026 security update is the only reliable mitigation. Operators should also audit their configurations and disable HTTP/2 if it is not required, thereby removing the attack surface until the patch is applied.",
+  "sources": [
+    {
+      "title": "Unauthenticated remote code execution in Nginx",
+      "url": "https://www.wiz.io/blog/nginx-http2-rce-vulnerabilities"
+    }
+  ],
+  "popularity": 100,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/critical-http2-rce-flaws-in-nginx-uncovered.jpg",
+  "thumbnailCredit": {
+    "name": "Taylor Vick",
+    "url": "https://unsplash.com/@tvick?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/cable-network-M5tzZtFCOfs?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
