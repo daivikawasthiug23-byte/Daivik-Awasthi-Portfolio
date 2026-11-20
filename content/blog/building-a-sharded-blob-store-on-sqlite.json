@@ -1,0 +1,32 @@
+{
+  "slug": "building-a-sharded-blob-store-on-sqlite",
+  "title": "Building a sharded blob store on SQLite",
+  "date": "2026-11-20",
+  "excerpt": "Blobasaur serves multi-megabyte JSON blobs at thousands of ops per second with single-digit millisecond latency on commodity hardware.",
+  "tags": [
+    "Backend",
+    "Systems"
+  ],
+  "body": "Why existing stores fell short  \n\nThe Kite platform stores user-generated UI preferences as opaque JSON blobs that range from a few kilobytes to several megabytes. An early implementation used CouchDB, which could not keep up with the growing request rate. The next step was SSDB, a C++ disk-backed store that speaks the Redis protocol.\n\nSSDB solved the immediate performance problem and ran reliably for several years, but two issues eventually forced a change. First, SSDB became unmaintained, and because it is written in C++ it lay outside the team’s expertise, making forking and long-term maintenance risky. Second, SSDB is a single-node system; it cannot be distributed and forces a hard size limit on blobs.\n\nAt one point the team had to cap blobs at 1 MB because larger payloads caused latency to degrade. As the platform added features such as Terminal mode and more internal services, the need for a distributed key-value store that could handle multi-megabyte blobs at thousands of ops per second became critical.\n\n## Evaluating alternatives  \n\nThe team compared several open-source systems against a short list of criteria: simple key-value API, support for multi-megabyte blobs, high throughput, low operational overhead, and reasonable cost.\n\n* ScyllaDB, already in use for other workloads, but tests showed lower throughput and higher resource usage for large blobs. Frequent overwrites generated tombstones that required careful tuning.  \n* PostgreSQL, familiar to the team, yet storing blobs as `BYTEA` columns proved slow and wasteful of disk space.  \n* SeaweedFS, close to the target use case, but it appends on every overwrite and lacks per-blob TTL, leading to uncontrolled disk growth.  \n* S3 / MinIO, object storage incurred high per-request latency for small blobs, high write costs, and only coarse lifecycle TTLs.  \n* Raw filesystem, required custom atomic-write handling, directory management, and a separate TTL index, adding significant engineering overhead.\n\nSQLite emerged as the most practical choice. It is a single-file, server-less database with a tiny footprint, already part of the language stack, and requires no separate process. Its ACID guarantees and built-in B-tree indexing make atomic writes straightforward, and the file format is portable across commodity hardware. Running SQLite in WAL (write-ahead log) mode provides high concurrency without the heavy resource demands of a full-blown distributed database.  \n\n## Sharding strategy in Blobasaur  \n\nBlobasaur implements sharding at the application layer. Each shard is a separate SQLite file, and a lightweight router maps a blob’s key to a shard using consistent hashing. This design spreads load across multiple disks and CPU cores, allowing horizontal scaling on commodity servers. Because SQLite files are independent, adding or removing shards does not require a global lock or complex rebalancing; the router simply updates its hash ring.\n\nThe router also handles read-through and write-through paths. When a client writes a blob, the router selects the appropriate shard, opens the corresponding SQLite connection in WAL mode, and inserts the blob together with its metadata. Reads follow the same hash lookup, then execute a simple `SELECT` by primary key. The overhead of opening a connection is mitigated by connection pooling per shard.  \n\n## TTL handling without external compaction  \n\nBlobasaur stores an expiration timestamp in a dedicated column alongside each blob. A background sweeper runs on each shard at configurable intervals. Because SQLite supports indexed range queries, the sweeper can locate expired rows efficiently:\n\n```sql\nSELECT rowid FROM blobs WHERE expires_at <= strftime('%s','now');\nDELETE FROM blobs WHERE rowid IN (...);\n```\n\nDeleted rows are reclaimed by SQLite’s automatic page reuse, avoiding the append-only growth problem seen in systems like SeaweedFS. The sweeper’s interval is tuned to balance latency impact against storage reclamation; the source notes that a few-second interval suffices for their bursty traffic pattern.  \n\n## Performance results  \n\nAfter deploying Blobasaur, the team observed that JSON blobs ranging from a few kilobytes to several megabytes are written and read thousands of times per second with single-digit millisecond latency on commodity hardware. The combination of sharding, WAL mode, and indexed TTL expiry keeps both read and write paths fast, even under the bursty traffic typical of stock-market volatility. The system also remains inexpensive to operate because it relies on SQLite files rather than a heavyweight distributed database.  \n\n## The takeaway  \n\nSQLite can serve as a high-throughput, low-latency blob store when paired with application-level sharding and TTL management. By avoiding the operational complexity of larger distributed systems, a team can achieve thousands of ops per second on multi-megabyte blobs while keeping costs low and maintenance simple.",
+  "sources": [
+    {
+      "title": "Distributed, high-performance blob storage on SQLite",
+      "url": "https://zerodha.tech/blog/high-performance-distributed-blob-storage/"
+    }
+  ],
+  "popularity": 25,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/building-a-sharded-blob-store-on-sqlite.jpg",
+  "thumbnailCredit": {
+    "name": "Taylor Vick",
+    "url": "https://unsplash.com/@tvick?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/cable-network-M5tzZtFCOfs?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
