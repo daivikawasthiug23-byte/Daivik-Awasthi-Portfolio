@@ -1,0 +1,33 @@
+{
+  "slug": "self-hosted-pcap-analyzer-with-ai-driven-fault-detection",
+  "title": "Self-hosted pcap analyzer with AI-driven fault detection",
+  "date": "2026-11-22",
+  "excerpt": "PcapAnalyzer runs locally, scans captures with 27 detectors and optional AI, then outputs a PDF report with next-step guidance.",
+  "tags": [
+    "AI",
+    "Backend",
+    "Security"
+  ],
+  "body": "A fresh .pcap lands on the dashboard and, within seconds, the interface lists a handful of red flags: “TCP retransmissions”, “unanswered DNS query”, “IPsec handshake never completed”. The PcapAnalyzer repository describes this as the typical workflow: upload a capture, get an instant fault list, and see a suggested next step for each detector.\n\nThe project is free, open-source under Apache 2.0 and runs entirely on-premise, so no packet ever leaves the network. It ships with 27 built-in detectors that cover transport, routing, application protocols and common security mis-configurations. An optional AI layer can add contextual explanations and let the user ask follow-up questions. The post walks through the upload process, the detector coverage, the AI investigation, and how to export results while keeping data local.\n\n## Upload a capture and get instant fault detection\n\nThe web UI accepts .pcap, .pcapng or gzipped variants. After a file is dropped, the backend runs every detector in parallel and returns a list ordered by severity. Each entry includes a short description, a numeric severity score, and a “next step” hint such as “check firewall rules for blocked SYN packets”.\n\nCapture quality is validated before any detector runs. If duplicated frames from a mirror port appear, or traffic is seen only in one direction, a warning is shown. This early guard prevents false positives that would otherwise waste time.\n\nA hosted demo is available at https://pcap-analyzer-seven.vercel.app/#demo for a quick try. For a local install, the quick-start steps boil down to a single git clone and a script launch:\n\n```bash\ngit clone https://github.com/sebaandrada-cell/PcapAnalyzer.git && cd PcapAnalyzer && ./start.sh\n```\n\nThe script generates a random API token, starts Docker Compose, and prints the token. Opening http://localhost:8080, pasting the token, and uploading a capture produces the instant fault list described above.\n\n## 27 built-in detectors cover TCP, routing and security\n\nDetectors are grouped into five logical families:\n\n* TCP, firewall blocks (SYN→RST), retransmissions, duplicate ACKs, loss, reordering, zero and full windows, resets after the handshake, slow handshakes.  \n* Path, PMTUD black holes, low MSS, IP fragmentation, ICMP errors, routing loops.  \n* Name and address services, unanswered or slow DNS, SERVFAIL, NXDOMAIN bursts, DHCP NAK/DECLINE/no answer, duplicate IPs, ARP storms.  \n* Applications, HTTP 4xx/5xx and slow responses, TLS alerts, legacy SSL/TLS versions.  \n* Security & tunnels, port scans, cleartext logins (FTP, POP3, IMAP, SMTP AUTH, HTTP Basic), Telnet/SMBv1/SNMP v1-v2c, ARP spoofing, overlapping IP fragments, and one-way tunnels such as IPsec (IKE/ESP), WireGuard, OpenVPN, GRE, L2TP, Teredo that never complete a handshake.\n\nEach detector assigns a severity level and a concrete remediation hint. For example, the “IP fragmentation” detector may suggest “verify MTU settings on upstream devices”. This structured output lets operators prioritize work without digging through raw packets.\n\n## Optional AI investigation adds contextual explanations\n\nBeyond the static list, the UI offers an “AI investigation” button. When enabled, the system calls an Anthropic model (the user supplies an API key) and feeds it the same packet filters, statistics and flow diagrams that the detectors used.\n\nThe model then generates a natural-language report that cites specific packet numbers for every claim. Users can ask follow-up questions such as “why did the DNS server not answer?” and receive a refined answer that still points to the underlying packets.\n\nIf no Anthropic key is provided, a demo mode runs the full flow with text generated from the analysis at no cost. The AI step runs locally, and the capture remains encrypted on the machine for up to 60 minutes of inactivity or until the user clicks “Delete capture now”. This design keeps sensitive traffic off the cloud while still delivering the convenience of AI-driven insight.\n\n## Export results and keep data on-premise\n\nAfter analysis finishes, the dashboard offers several export options. Users can download a CSV of the detector list, a PDF report in English or Spanish, or extract Wireshark-style views with real display filters. The flow diagram per conversation can be saved as an image, and the full packet list can be exported for further offline inspection.\n\nAll exports are generated on the host machine; no data is sent to external services. The application listens only on 127.0.0.1, and the README warns against exposing it without an authenticated reverse proxy because the API token also grants access to the AI account. The source code includes a Docker Compose file, a start.sh wrapper, and clear instructions for Windows (Git Bash or WSL) as well as Linux/macOS environments.\n\n## The takeaway\n\nPcapAnalyzer turns a raw capture into a prioritized fault list in seconds, thanks to 27 targeted detectors that span TCP, routing and security. An optional AI layer can flesh out each finding with packet-level citations, while all processing stays on-premise. Clone the repo, run `./start.sh`, and you have a self-hosted analyzer that never leaks network data.",
+  "sources": [
+    {
+      "title": "PcapAnalyzer – self-hosted pcap analyzer with 27 problem detectors",
+      "url": "https://github.com/sebaandrada-cell/PcapAnalyzer"
+    }
+  ],
+  "popularity": 4,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 9,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/self-hosted-pcap-analyzer-with-ai-driven-fault-detection.jpg",
+  "thumbnailCredit": {
+    "name": "Luke Chesser",
+    "url": "https://unsplash.com/@lukechesser?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/graphs-of-performance-analytics-on-a-laptop-screen-JKUTrJ4vK00?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
