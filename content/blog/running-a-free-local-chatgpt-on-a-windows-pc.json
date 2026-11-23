@@ -1,0 +1,33 @@
+{
+  "slug": "running-a-free-local-chatgpt-on-a-windows-pc",
+  "title": "Running a free local ChatGPT on a Windows PC",
+  "date": "2026-11-23",
+  "excerpt": "Set up a private AI chat service at home in 10-15 minutes using Unsloth Desktop and a quantized model that fits your GPU.",
+  "tags": [
+    "AI",
+    "Systems",
+    "Dev Tools"
+  ],
+  "body": "A recent guide shows that a modern Windows PC can become a private ChatGPT in under fifteen minutes once the GPU and the right software are in place. The author installed Unsloth Desktop, grabbed a quantized Qwen model that fits the GPU’s VRAM, set a 128 K context size, and enabled LAN access so every device on the home network can chat with the model. The result is a free, local LLM that never leaves the house.\n\nIn the next few sections you’ll see exactly what hardware and software are required, how to pick a model that matches your video memory, and the steps to install Unsloth Desktop and turn on LAN sharing. By the end you’ll be ready to run a personal ChatGPT that the whole family can use.\n\n## What hardware and software you need\n\nThe guide boils the stack down to three items:\n\n1. A Windows PC with a dedicated GPU. The amount of VRAM determines the largest model you can run. The author uses an RTX 5090 with 32 GB VRAM, but any card with at least 8 GB works for smaller models.\n2. Unsloth Desktop. A free Windows application that loads the model and provides a chat UI. No Python, no command line, no subscription.\n3. An AI model that fits the GPU’s memory. The guide recommends the quantized Qwen 3.8-27B model for a 32 GB card; smaller quantized models are listed for 8 GB and 12 GB cards.\n\nNo additional libraries, virtual environments, or cloud accounts are needed. The only prerequisite is enough free disk space to store the model file, which can be several gigabytes.\n\n## Choosing a model that fits your VRAM\n\nQuantization is the key to making large language models run on consumer GPUs. By converting weights from 16-bit or 32-bit floating point to 4-bit integers, the model size shrinks dramatically at the cost of a modest accuracy loss. The guide points out that an 8-bit model is roughly twice the size of a 4-bit version, and a 2-bit model is half the size of a 4-bit one.\n\nA quick rule of thumb from the source:\n\n- 8 GB, 12 GB VRAM can handle 9 B, 12 B parameter models.  \n- 16 GB, 32 GB VRAM can handle 14 B, 27 B models with 4-bit quantization.  \n- 32 GB VRAM comfortably runs 27 B, 35 B models with room for a large context window.\n\nFor the author's RTX 5090, the chosen Qwen 3.8-27B model at 4-bit precision occupies roughly 27 GB, leaving space for a 128 K token context. If you have an RTX 3060 (12 GB), the guide suggests Qwen 3-14B or the Inkling 2 Mini model, both of which fit comfortably after quantization. The principle is simple: pick the largest model whose quantized size is at least a couple of gigabytes smaller than your card’s VRAM.\n\n## How to install and enable LAN access\n\nThe installation steps are deliberately minimal:\n\n1. Download Unsloth Desktop from the Unsloth website and run the installer. The program registers itself as a Windows service that can be started from the Start menu.  \n2. Inside Unsloth, click Add Model and browse to the folder where you saved the quantized Qwen model file (for example, `qwen3.8-27b-4bit.pt`). The app validates the file size against your GPU and reports if it fits.  \n3. Set the context size. The guide uses a 128 K token window, which lets the model retain long conversations without losing earlier parts. This setting is a simple numeric field in the Unsloth UI.  \n4. Enable LAN access with the toggle labeled Allow network connections. Once turned on, Unsloth prints a local IP address (e.g., `http://192.168.1.42:7860`) that any device on the same Wi-Fi can open in a browser.  \n5. Click Start Server. The model loads into GPU memory, and the chat interface becomes reachable from any browser on the home network.\n\nBecause Unsloth handles all the low-level CUDA calls, there are no terminal commands to run. The entire process from installer launch to a reachable chat page takes about ten minutes, not counting the time needed to download the model file.\n\n## The takeaway\n\nRunning a local ChatGPT on Windows is a matter of matching a quantized model to your GPU’s VRAM and using Unsloth Desktop to serve it. Choose a model that leaves at least a couple of gigabytes free, set a generous context size, and flip the LAN switch so every home device can chat without leaving the network.",
+  "sources": [
+    {
+      "title": "A Beginner's Guide to Local AI with Inkling, Qwen, and Unsloth",
+      "url": "https://www.gpupartner.com/blog/beginners-guide-local-ai-inkling-qwen-unsloth"
+    }
+  ],
+  "popularity": 10,
+  "readingMinutes": 4,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 9
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/running-a-free-local-chatgpt-on-a-windows-pc.jpg",
+  "thumbnailCredit": {
+    "name": "Igor Omilaev",
+    "url": "https://unsplash.com/@omilaev?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-computer-chip-with-the-letter-a-on-top-of-it-eGGFZ5X2LnA?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
