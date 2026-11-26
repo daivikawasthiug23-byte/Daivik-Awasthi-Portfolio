@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync, unlinkSync } from "node:fs";
 import type { Post } from "./types";
 
 // Deletes posts (and their thumbnails) older than the TTL. Run with --dry to only list what would go.
@@ -28,6 +28,8 @@ for (const f of readdirSync(DIR).filter((f) => f.endsWith(".json"))) {
   // thumbnail is a public path such as /blog/<slug>.jpg
   const thumb = post.thumbnail && `public${post.thumbnail}`;
   if (thumb && thumb.startsWith("public/blog/") && existsSync(thumb)) unlinkSync(thumb);
+  // figures or video embedded in the body live in public/blog/<slug>/
+  if (/^[a-z0-9-]+$/.test(post.slug)) rmSync(`public/blog/${post.slug}`, { recursive: true, force: true });
 }
 
 console.log(`${removed} post(s) older than ${ttlDays} days (before ${cutoff})${dry ? " would be removed" : " removed"}`);

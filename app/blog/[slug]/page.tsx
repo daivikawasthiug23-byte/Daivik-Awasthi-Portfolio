@@ -105,6 +105,22 @@ async function Article({ params }: { params: Params }) {
                 ) : (
                   <code className="rounded bg-hover px-1.5 py-0.5 font-mono text-[0.9em] text-fg">{children}</code>
                 ),
+              // Markdown images sit inside a <p>, so the frame and caption are spans. An .mp4 src becomes a video player.
+              img: ({ src, alt, title }) => {
+                if (typeof src !== "string") return null;
+                const frame = "block w-full overflow-hidden rounded-xl border-2 border-ink bg-white";
+                return (
+                  <span className="my-6 block">
+                    {src.endsWith(".mp4") ? (
+                      <video src={src} controls playsInline preload="metadata" aria-label={alt} className={frame} />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element -- figure sizes vary per post
+                      <img src={src} alt={alt ?? ""} loading="lazy" className={`${frame} h-auto`} />
+                    )}
+                    {title && <span className="mt-1.5 block text-xs text-subtle">{title}</span>}
+                  </span>
+                );
+              },
             }}
           >
             {post.body}

@@ -18,7 +18,7 @@ export const wordCount = (s: string) => s.split(/\s+/).filter(Boolean).length;
 // Hard rules. Plain code, so the model cannot argue its way around them.
 export function ruleViolations(body: string, sources: Source[], brief?: string): string[] {
   const v: string[] = [];
-  const prose = body.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]+`/g, ""); // code is exempt from wording rules, e.g. `println!`
+  const prose = body.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]+`/g, "").replace(/!\[/g, "["); // code is exempt from wording rules, e.g. `println!`; the "!" of image syntax is not punctuation
 
   if (EMOJI.test(body)) v.push("Contains an emoji. Remove all emojis.");
   if (/[—–]/.test(prose) || / -- /.test(prose)) v.push("Contains an em dash or en dash. Use a comma, a colon or a new sentence.");
