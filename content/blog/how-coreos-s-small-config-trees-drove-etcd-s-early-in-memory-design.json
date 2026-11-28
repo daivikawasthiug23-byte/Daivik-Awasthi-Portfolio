@@ -1,0 +1,32 @@
+{
+  "slug": "how-coreos-s-small-config-trees-drove-etcd-s-early-in-memory-design",
+  "title": "How CoreOS’s small config trees drove etcd’s early in-memory design",
+  "date": "2026-11-28",
+  "excerpt": "In 2013 CoreOS used a tiny hierarchical keyspace to coordinate reboots and services, which made an in-memory store the obvious choice for early etcd.",
+  "tags": [
+    "Systems",
+    "Backend"
+  ],
+  "body": "## CoreOS’s distributed /etc workload  \n\nIn 2013 CoreOS Container Linux replaced traditional package managers with a minimal, container-only operating system. The system shipped only the Linux kernel, systemd, a container runtime and an A/B partition scheme for automatic updates.\n\nBecause every host could reboot at any moment and move containers around, the cluster needed a single source of truth for scheduling, rolling updates and service discovery. Running a full-blown ZooKeeper or a JVM-based solution on such stripped-down machines was not an option, so CoreOS built etcd, a static Go binary that offered a strongly consistent key-value store.\n\nThe design was deliberately simple: each daemon read from and wrote to a shared hierarchical keyspace that resembled a cluster-wide /etc. Workers did not talk to each other directly; instead they all coordinated through etcd.\n\nFor example, when a worker started, fleetd wrote a liveness heartbeat under the key `/_coreos.com/fleet/machines/` in the shared etcd directory tree. The active scheduler held a lease at `/_coreos.com/fleet/lease/engine-leader`, and services published their endpoints under `/services/web/`. This tiny set of paths drove bootstrapping, service placement and discovery across the whole cluster.\n\n## The in-memory hierarchical directory tree and JSON snapshots  \n\nThe CoreOS workload consisted of a handful of short paths that rarely grew beyond a few kilobytes. The early etcd implementation therefore stored the entire directory tree in RAM. The Go code kept the tree as nested map structures, mirroring the way a Unix /etc directory is laid out.\n\nWhen a change occurred, the tree was serialized to a JSON document and written to a snapshot file. The snapshot captured the whole state in one atomic write, allowing a node to recover its full keyspace after a restart.\n\nStoring everything in memory meant reads were essentially pointer dereferences, and writes required only a JSON marshal and a file write for persistence. The author notes that this approach was “obvious” given the small size of the configuration trees CoreOS used. The trade-off was that the store could not survive large data sets or high churn without exhausting RAM, but for the intended use case the simplicity outweighed the risk.\n\n## Raft persistence and the three-node cap  \n\nTo keep the three etcd replicas in sync, the early version used a Go implementation of the Raft consensus algorithm, dubbed “goraft”. Each node persisted its Raft log to a file separate from the JSON snapshot. The log stored the sequence of client operations, while the snapshot represented the current state.\n\nBenchmarks in the source show that a three-node cluster could sustain a modest write rate with median latency around a few milliseconds. Adding more followers quickly hit diminishing returns because each additional node increased the amount of log replication traffic without improving quorum strength. The author therefore capped the early design at three nodes, matching the typical CoreOS deployment pattern of three etcd members protecting against a single failure.\n\n## When the workload outgrew the in-memory engine  \n\nLarger clusters that tried to reuse the same in-memory engine exposed its limits. The JSON snapshot grew linearly with the number of keys, and the Raft log could fill the disk faster than the simple file-append strategy could handle. Those pressures later motivated the move to a disk-backed engine built on BoltDB. The original design proved sufficient for the initial CoreOS use case, but it could not scale indefinitely.\n\n## The takeaway  \n\nCoreOS’s tiny configuration trees made an in-memory hierarchical store a natural fit. By persisting Raft logs and JSON snapshots, the early etcd could provide strong consistency for a three-node cluster without the overhead of a full database. When the workload grew, the same design exposed limits that later versions had to address. Understanding the original workload explains why etcd started with RAM-only storage and why the three-node cap made sense at the time.",
+  "sources": [
+    {
+      "title": "The Evolution of etcd Storage: A Distributed /etc in RAM (v0.1 - v0.4)",
+      "url": "https://dev.to/frosnerd/the-evolution-of-etcd-storage-a-distributed-etc-in-ram-v01-v04-3d3o"
+    }
+  ],
+  "popularity": 0,
+  "readingMinutes": 3,
+  "quality": {
+    "tone": 8,
+    "specificity": 8,
+    "engagement": 7,
+    "grounded": 8
+  },
+  "model": "openai/gpt-oss-120b",
+  "thumbnail": "/blog/how-coreos-s-small-config-trees-drove-etcd-s-early-in-memory-design.jpg",
+  "thumbnailCredit": {
+    "name": "Kevin Ache",
+    "url": "https://unsplash.com/@kevinache?utm_source=daivik_portfolio&utm_medium=referral",
+    "photoUrl": "https://unsplash.com/photos/a-rack-of-servers-in-a-server-room-2JJ3wBHu4_0?utm_source=daivik_portfolio&utm_medium=referral"
+  }
+}
